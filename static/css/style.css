@@ -58,6 +58,19 @@ body {
     font-size: 0.8rem;
 }
 
+/* 浏览器提示 */
+.browser-tip {
+    margin: 0 1rem 0.75rem;
+    padding: 0.7rem 0.85rem;
+    background: #fff7ed;
+    color: #9a3412;
+    border: 1px solid #fed7aa;
+    border-radius: 0.6rem;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    display: none;
+}
+
 /* 导航标签 - 手机端 3+2 网格 */
 .tabs {
     display: grid;

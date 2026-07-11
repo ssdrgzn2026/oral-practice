@@ -13,6 +13,8 @@
             <p class="subtitle">每天 15 分钟，从“看得懂”练到“说得顺”</p>
         </header>
 
+        <div id="browser-tip" class="browser-tip" style="display:none;"></div>
+
         <nav class="tabs">
             <button class="tab active" data-mode="chat">AI 情景对话</button>
             <button class="tab" data-mode="topic">话题独白</button>
@@ -39,7 +41,7 @@
                 <div id="chat-messages" class="chat-messages"></div>
                 <div class="input-area">
                     <button id="mic-chat" class="btn mic">🎤 开始录音</button>
-                    <input type="text" id="chat-input" placeholder="输入英文，或按住麦克风说话…">
+                    <input type="text" id="chat-input" placeholder="输入英文，或点击麦克风录音…">
                     <button id="send-chat" class="btn primary">发送</button>
                 </div>
                 <p class="tip">💡 想用 AI 对话请双击 configure.bat 配置 API Key；不配置也可使用话题独白、影子跟读、每日表达。</p>

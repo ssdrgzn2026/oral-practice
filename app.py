@@ -94,6 +94,48 @@ def chat():
         return jsonify({"error": f"请求失败：{str(e)}"}), 502
 
 
+@app.route("/api/transcribe", methods=["POST"])
+def transcribe():
+    """
+    接收上传的音频文件，调用 OpenAI 兼容接口的 Whisper 进行转写。
+    需要配置 OPENAI_API_KEY。
+    """
+    if "audio" not in request.files:
+        return jsonify({"error": "未收到音频文件"}), 400
+
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+    if not api_key:
+        return jsonify({"error": "未配置 OPENAI_API_KEY，无法使用语音转写。"}), 401
+
+    audio_file = request.files["audio"]
+    model = (
+        request.form.get("model")
+        or os.environ.get("OPENAI_WHISPER_MODEL")
+        or os.environ.get("OPENAI_MODEL")
+        or "whisper-1"
+    )
+
+    try:
+        resp = requests.post(
+            f"{base_url}/audio/transcriptions",
+            headers={"Authorization": f"Bearer {api_key}"},
+            files={
+                "file": (
+                    audio_file.filename or "audio.webm",
+                    audio_file.stream,
+                    audio_file.content_type or "audio/webm",
+                )
+            },
+            data={"model": model, "language": "en"},
+            timeout=60,
+        )
+        resp.raise_for_status()
+        return jsonify(resp.json())
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"转写请求失败：{str(e)}"}), 502
+
+
 @app.route("/api/save-history", methods=["POST"])
 def save_history():
     """保存练习记录到本地 history.jsonl"""
