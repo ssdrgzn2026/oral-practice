@@ -30,7 +30,7 @@ jobs:
         with:
           host: ${{ secrets.ORAL_HOST }}
           username: ${{ secrets.ORAL_USERNAME }}
-          key: ${{ secrets.ORAL_SSH_KEY }}
+          password: ${{ secrets.ORAL_PASSWORD }}
           source: "oral-practice.tar,docker-compose.yml"
           target: "${{ env.DEPLOY_PATH }}"
           overwrite: true
@@ -40,7 +40,7 @@ jobs:
         with:
           host: ${{ secrets.ORAL_HOST }}
           username: ${{ secrets.ORAL_USERNAME }}
-          key: ${{ secrets.ORAL_SSH_KEY }}
+          password: ${{ secrets.ORAL_PASSWORD }}
           script: |
             set -e
             cd ${{ env.DEPLOY_PATH }}
