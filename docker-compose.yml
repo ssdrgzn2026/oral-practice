@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   oral-practice:
-    build: .
+    image: oral-practice:latest
     container_name: oral-practice
     restart: unless-stopped
     ports:
