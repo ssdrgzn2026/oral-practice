@@ -24,6 +24,7 @@ jobs:
         run: |
           docker build -t oral-practice:latest .
           docker save oral-practice:latest -o oral-practice.tar
+          chmod 644 oral-practice.tar
 
       - name: Copy image to server
         uses: appleboy/scp-action@v0.1.7
