@@ -1,0 +1,91 @@
+name: Deploy Oral Practice to Server
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  DEPLOY_PATH: "/opt/oral-practice"
+  SERVICE_NAME: "oral-practice"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          docker build -t oral-practice:latest .
+          docker save oral-practice:latest -o oral-practice.tar
+
+      - name: Copy image to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.ORAL_HOST }}
+          username: ${{ secrets.ORAL_USERNAME }}
+          key: ${{ secrets.ORAL_SSH_KEY }}
+          source: "oral-practice.tar,docker-compose.yml"
+          target: "${{ env.DEPLOY_PATH }}"
+          overwrite: true
+
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.ORAL_HOST }}
+          username: ${{ secrets.ORAL_USERNAME }}
+          key: ${{ secrets.ORAL_SSH_KEY }}
+          script: |
+            set -e
+            cd ${{ env.DEPLOY_PATH }}
+
+            # 加载新镜像
+            docker load -i oral-practice.tar
+            rm -f oral-practice.tar
+
+            # 确保数据目录存在
+            mkdir -p data
+
+            # 创建或覆盖环境变量文件
+            cat > .env <<EOF
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY || '' }}
+            OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL || 'https://api.openai.com/v1' }}
+            OPENAI_MODEL=${{ secrets.OPENAI_MODEL || 'gpt-4o-mini' }}
+            EOF
+
+            # 停止并重新启动容器
+            docker compose down || true
+            docker compose up -d --remove-orphans
+
+            # 等待服务启动
+            sleep 5
+
+            # 健康检查
+            for i in 1 2 3; do
+              HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/ || echo "000")
+              echo "健康检查第 $i 次: HTTP $HEALTH"
+              if [ "$HEALTH" = "200" ]; then
+                echo "✅ 部署成功"
+                exit 0
+              fi
+              sleep 3
+            done
+
+            echo "❌ 健康检查失败，请手动排查"
+            docker compose logs --tail=50
+            exit 1
+
+      - name: Notify result
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ 部署完成，访问 http://${{ secrets.ORAL_HOST }}:5000"
+          else
+            echo "❌ 部署失败"
+          fi

@@ -1,0 +1,213 @@
+{
+  "topics": [
+    {
+      "id": "t1",
+      "category": "校园生活",
+      "title": "Should college students take gap years?",
+      "hints": [
+        "pros and cons of a gap year",
+        "personal growth vs academic momentum",
+        "how to make the gap year meaningful"
+      ]
+    },
+    {
+      "id": "t2",
+      "category": "科技",
+      "title": "How has artificial intelligence changed the way we learn?",
+      "hints": [
+        "personalized learning",
+        "potential risks like over-reliance",
+        "future of education"
+      ]
+    },
+    {
+      "id": "t3",
+      "category": "社会",
+      "title": "Is remote work better than working in an office?",
+      "hints": [
+        "work-life balance",
+        "team collaboration",
+        "productivity and creativity"
+      ]
+    },
+    {
+      "id": "t4",
+      "category": "环境",
+      "title": "What can individuals do to reduce plastic waste?",
+      "hints": [
+        "daily habits",
+        "consumer choices",
+        "government and corporate responsibility"
+      ]
+    },
+    {
+      "id": "t5",
+      "category": "文化",
+      "title": "Why do young people prefer traditional culture today?",
+      "hints": [
+        "national identity",
+        "social media influence",
+        "commercialization of tradition"
+      ]
+    },
+    {
+      "id": "t6",
+      "category": "健康",
+      "title": "How can college students maintain a healthy lifestyle?",
+      "hints": [
+        "sleep and diet",
+        "exercise routines",
+        "mental health awareness"
+      ]
+    },
+    {
+      "id": "t7",
+      "category": "职业",
+      "title": "Is it better to specialize early or explore broadly in college?",
+      "hints": [
+        "job market demands",
+        "interdisciplinary skills",
+        "passion vs practicality"
+      ]
+    },
+    {
+      "id": "t8",
+      "category": "媒体",
+      "title": "Does social media make us more connected or more lonely?",
+      "hints": [
+        "instant communication",
+        "comparison culture",
+        "how to use social media healthily"
+      ]
+    },
+    {
+      "id": "t9",
+      "category": "经济",
+      "title": "Should universities offer more courses on financial literacy?",
+      "hints": [
+        "student debt and budgeting",
+        "entrepreneurship",
+        "long-term financial planning"
+      ]
+    },
+    {
+      "id": "t10",
+      "category": "伦理",
+      "title": "Should animal testing be banned for cosmetics?",
+      "hints": [
+        "ethical concerns",
+        "alternative testing methods",
+        "consumer responsibility"
+      ]
+    },
+    {
+      "id": "t11",
+      "category": "全球化",
+      "title": "What are the benefits and challenges of studying abroad?",
+      "hints": [
+        "cultural immersion",
+        "language improvement",
+        "costs and homesickness"
+      ]
+    },
+    {
+      "id": "t12",
+      "category": "创新",
+      "title": "Can creativity be taught?",
+      "hints": [
+        "role of education",
+        "practice and curiosity",
+        "examples from arts and sciences"
+      ]
+    }
+  ],
+  "expressions": [
+    {
+      "en": "From my perspective, ...",
+      "zh": "在我看来，……",
+      "example": "From my perspective, taking a gap year can help students gain clarity about their goals."
+    },
+    {
+      "en": "That being said, ...",
+      "zh": "话虽如此，……",
+      "example": "Remote work offers flexibility. That being said, it can also blur the boundary between work and life."
+    },
+    {
+      "en": "I see your point, but ...",
+      "zh": "我明白你的意思，但……",
+      "example": "I see your point, but I believe face-to-face interaction is still irreplaceable."
+    },
+    {
+      "en": "A case in point is ...",
+      "zh": "一个恰当的例子是……",
+      "example": "A case in point is the rise of short-video platforms among young learners."
+    },
+    {
+      "en": "It goes without saying that ...",
+      "zh": "毋庸置疑，……",
+      "example": "It goes without saying that mental health is just as important as physical health."
+    },
+    {
+      "en": "What I'm trying to say is ...",
+      "zh": "我想说的是……",
+      "example": "What I'm trying to say is that balance is more important than perfection."
+    },
+    {
+      "en": "On the one hand ... on the other hand ...",
+      "zh": "一方面……另一方面……",
+      "example": "On the one hand, AI saves time; on the other hand, it may reduce critical thinking."
+    },
+    {
+      "en": "To put it another way, ...",
+      "zh": "换句话说，……",
+      "example": "To put it another way, financial literacy is a survival skill in modern society."
+    },
+    {
+      "en": "I'm convinced that ...",
+      "zh": "我坚信……",
+      "example": "I'm convinced that small daily habits lead to significant long-term changes."
+    },
+    {
+      "en": "The way I see it, ...",
+      "zh": "依我看，……",
+      "example": "The way I see it, exploring different fields early in college reduces future regret."
+    },
+    {
+      "en": "There's no denying that ...",
+      "zh": "不可否认……",
+      "example": "There's no denying that social media has reshaped how we build relationships."
+    },
+    {
+      "en": "It reminds me of ...",
+      "zh": "这让我想起……",
+      "example": "It reminds me of my own experience of learning to manage my budget."
+    }
+  ],
+  "shadowing": [
+    {
+      "title": "The Value of Reading",
+      "text": "Reading is one of the most powerful habits a person can develop. It expands our vocabulary, improves our concentration, and exposes us to ideas we might never encounter in daily life. Even twenty minutes of reading a day can make a noticeable difference over time.",
+      "audioHint": "注意连读：'reading is'、'ideas we'、'difference over'。"
+    },
+    {
+      "title": "Dealing with Failure",
+      "text": "Failure is not the opposite of success; it is part of success. Every setback teaches us something valuable if we are willing to reflect. The key is not to avoid failure, but to respond to it with patience and a willingness to grow.",
+      "audioHint": "注意弱读：'is not'、'of success'、'to reflect'。"
+    },
+    {
+      "title": "The Importance of Sleep",
+      "text": "Many college students sacrifice sleep to finish assignments or prepare for exams. However, research shows that adequate sleep improves memory, creativity, and decision-making. Pulling an all-nighter may feel productive, but it often backfires the next day.",
+      "audioHint": "注意重音：'sacrifice'、'adequate'、'backfires'。"
+    },
+    {
+      "title": "Learning a New Language",
+      "text": "Learning a new language opens doors to different cultures and ways of thinking. It requires consistency rather than talent. Making mistakes is a natural part of the process, and fluent speakers are often those who practice despite feeling embarrassed.",
+      "audioHint": "注意语调：列举时升调，句末降调。"
+    },
+    {
+      "title": "Sustainable Living",
+      "text": "Sustainable living does not mean giving up comfort. It means making conscious choices, such as reducing waste, reusing items, and choosing public transport. Small actions, when multiplied by millions of people, can have a global impact.",
+      "audioHint": "注意停顿：在'such as'前后稍作停顿。"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+.venv
+__pycache__
+*.pyc
+.git
+.github
+.pytest_cache
+*.md
+!README.md
+config.bat
+configure.bat
+configure_api.py
+start.bat
