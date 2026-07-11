@@ -32,7 +32,7 @@ jobs:
           host: ${{ secrets.ORAL_HOST }}
           username: ${{ secrets.ORAL_USERNAME }}
           password: ${{ secrets.ORAL_PASSWORD }}
-          source: "oral-practice.tar,docker-compose.yml"
+          source: "oral-practice.tar,docker-compose.yml,data/topics.json"
           target: "${{ env.DEPLOY_PATH }}"
           overwrite: true
 
