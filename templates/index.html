@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>六级口语练习系统</title>
+    <title>口语练习系统</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
     <div class="app">
         <header class="header">
-            <h1>🎙️ 六级口语练习系统</h1>
+            <h1>🎙️ 口语练习系统</h1>
             <p class="subtitle">每天 15 分钟，从“看得懂”练到“说得顺”</p>
         </header>
 
@@ -26,13 +26,15 @@
             <section id="panel-chat" class="panel active">
                 <div class="panel-header">
                     <h2>AI 情景对话</h2>
-                    <select id="chat-scenario">
-                        <option value="daily">日常闲聊</option>
-                        <option value="interview">英文面试</option>
-                        <option value="debate">观点辩论</option>
-                        <option value="academic">学术讨论</option>
-                    </select>
-                    <button id="new-chat" class="btn secondary">新对话</button>
+                    <div class="panel-header-controls">
+                        <select id="chat-scenario">
+                            <option value="daily">日常闲聊</option>
+                            <option value="interview">英文面试</option>
+                            <option value="debate">观点辩论</option>
+                            <option value="academic">学术讨论</option>
+                        </select>
+                        <button id="new-chat" class="btn secondary">新对话</button>
+                    </div>
                 </div>
                 <div id="chat-messages" class="chat-messages"></div>
                 <div class="input-area">

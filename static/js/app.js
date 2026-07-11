@@ -1,4 +1,4 @@
-/* 六级口语练习系统 - 前端逻辑 */
+/* 口语练习系统 - 前端逻辑 */
 
 const API_BASE = "";
 
@@ -138,7 +138,7 @@ function appendMessage(role, text) {
 }
 
 function getScenarioPrompt(scenario) {
-    const base = "You are a friendly English tutor helping a Chinese college student at CET-6 level practice spoken English. Keep responses natural, conversational, and around 2-4 sentences. If the user makes mistakes, gently correct them.";
+    const base = "You are a friendly English tutor helping a Chinese learner practice spoken English. Keep responses natural, conversational, and around 2-4 sentences. If the user makes mistakes, gently correct them.";
     const scenarios = {
         daily: base + " Chat about daily life, hobbies, and campus.",
         interview: base + " Conduct a short English job interview. Ask one question at a time.",
@@ -389,7 +389,7 @@ async function init() {
         appendMessage("system", "⚠️ 当前浏览器不支持语音识别，请使用 Chrome 或 Edge 以获得完整体验。");
         disableMicButtons();
     } else {
-        appendMessage("system", "欢迎来到六级口语练习！点击麦克风即可开始录音说英文。");
+        appendMessage("system", "欢迎来到口语练习系统！点击麦克风即可开始录音说英文。");
     }
     await nextTopic();
     await nextShadow();
