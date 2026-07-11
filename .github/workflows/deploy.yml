@@ -55,10 +55,10 @@ jobs:
 
             # 创建或覆盖环境变量文件
             cat > .env <<EOF
-            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY || '' }}
-            OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL || 'https://api.openai.com/v1' }}
-            OPENAI_MODEL=${{ secrets.OPENAI_MODEL || 'gpt-4o-mini' }}
-            EOF
+OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY || '' }}
+OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL || 'https://api.openai.com/v1' }}
+OPENAI_MODEL=${{ secrets.OPENAI_MODEL || 'gpt-4o-mini' }}
+EOF
 
             # 停止并重新启动容器
             docker compose down || true
