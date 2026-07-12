@@ -452,6 +452,17 @@ select {
     min-height: 80px;
 }
 
+/* 录音回放 */
+.audio-wrap {
+    margin: 0.75rem 0;
+}
+
+.playback-audio {
+    width: 100%;
+    height: 44px;
+    border-radius: 0.55rem;
+}
+
 /* 每日表达 */
 .expression-card .expr-en {
     font-size: 1.2rem;

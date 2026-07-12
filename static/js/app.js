@@ -34,7 +34,7 @@ function saveHistory(mode, content) {
     postJSON("/api/save-history", { mode, content }).catch(() => {});
 }
 
-// ========== 语音识别能力检测 ==========
+// ========== 录音/识别能力检测 ==========
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const hasMediaRecorder = !!(window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 const synth = window.speechSynthesis;
@@ -46,11 +46,12 @@ let recordButton = null;
 // Web Speech API 相关
 let speechCallback = null;
 
-// MediaRecorder  fallback 相关
+// MediaRecorder 相关
 let mediaRecorder = null;
 let recordedChunks = [];
 let mediaStream = null;
 let fallbackCallback = null;
+let audioStopCallback = null;
 
 function setMicButton(btn, recording) {
     if (recording) {
@@ -129,8 +130,54 @@ function stopSpeechRecording() {
     if (recognition && isRecording) recognition.stop();
 }
 
-// ========== MediaRecorder 后端转写 fallback ==========
-async function startFallbackRecording(btn, callback) {
+// ========== MediaRecorder 纯录音（话题/跟读/表达用） ==========
+async function startAudioRecording(btn, onStop) {
+    if (isRecording) return;
+    if (!hasMediaRecorder) {
+        showStatus("当前浏览器不支持录音，请使用 Chrome/Edge 桌面版或手动输入。", "error");
+        return;
+    }
+    try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const options = {};
+        if (MediaRecorder.isTypeSupported("audio/webm")) options.mimeType = "audio/webm";
+        else if (MediaRecorder.isTypeSupported("audio/mp4")) options.mimeType = "audio/mp4";
+
+        mediaRecorder = new MediaRecorder(mediaStream, options);
+        recordedChunks = [];
+        audioStopCallback = onStop;
+
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) recordedChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+            if (mediaStream) mediaStream.getTracks().forEach((t) => t.stop());
+            setMicButton(btn, false);
+            isRecording = false;
+            recordButton = null;
+
+            const mimeType = mediaRecorder.mimeType || "audio/webm";
+            const blob = new Blob(recordedChunks, { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            if (audioStopCallback) audioStopCallback(blob, url);
+        };
+
+        mediaRecorder.start();
+        isRecording = true;
+        recordButton = btn;
+        setMicButton(btn, true);
+    } catch (e) {
+        console.error("audio recording error:", e);
+        showStatus("无法访问麦克风，请检查浏览器权限设置。", "error");
+        setMicButton(btn, false);
+        isRecording = false;
+        recordButton = null;
+    }
+}
+
+// ========== MediaRecorder + 后端 Whisper 转写（AI 对话 fallback 用） ==========
+async function startTranscribeRecording(btn, callback) {
     if (isRecording) return;
     if (!hasMediaRecorder) {
         showStatus("当前浏览器不支持录音，请使用 Chrome/Edge 桌面版或手动输入。", "error");
@@ -151,7 +198,7 @@ async function startFallbackRecording(btn, callback) {
         };
 
         mediaRecorder.onstop = async () => {
-            mediaStream.getTracks().forEach((t) => t.stop());
+            if (mediaStream) mediaStream.getTracks().forEach((t) => t.stop());
             setMicButton(btn, false);
             isRecording = false;
             recordButton = null;
@@ -168,7 +215,7 @@ async function startFallbackRecording(btn, callback) {
         recordButton = btn;
         setMicButton(btn, true);
     } catch (e) {
-        console.error("fallback recording error:", e);
+        console.error("transcribe recording error:", e);
         showStatus("无法访问麦克风，请检查浏览器权限设置。", "error");
         setMicButton(btn, false);
         isRecording = false;
@@ -176,7 +223,7 @@ async function startFallbackRecording(btn, callback) {
     }
 }
 
-function stopFallbackRecording() {
+function stopMediaRecorder() {
     if (mediaRecorder && mediaRecorder.state !== "inactive") {
         mediaRecorder.stop();
     }
@@ -195,22 +242,11 @@ async function transcribeAudio(blob, ext) {
     }
 }
 
-// ========== 统一录音入口 ==========
-function startRecording(btn, callback) {
-    if (SpeechRecognition) {
-        startSpeechRecording(btn, callback);
-    } else if (hasMediaRecorder) {
-        startFallbackRecording(btn, callback);
-    } else {
-        showStatus("当前浏览器不支持录音，请使用 Chrome/Edge 桌面版或手动输入。", "error");
-    }
-}
-
 function stopRecording() {
-    if (SpeechRecognition) {
+    if (SpeechRecognition && recognition && isRecording) {
         stopSpeechRecording();
-    } else if (hasMediaRecorder) {
-        stopFallbackRecording();
+    } else {
+        stopMediaRecorder();
     }
 }
 
@@ -221,6 +257,17 @@ function speak(text, lang = "en-US", rate = 0.9) {
     u.lang = lang;
     u.rate = rate;
     synth.speak(u);
+}
+
+function showAudioPlayer(wrapId, url) {
+    const wrap = $(`#${wrapId}`);
+    if (!wrap) return;
+    wrap.innerHTML = "";
+    const audio = document.createElement("audio");
+    audio.controls = true;
+    audio.src = url;
+    audio.className = "playback-audio";
+    wrap.appendChild(audio);
 }
 
 // ========== Tab 切换 ==========
@@ -306,13 +353,23 @@ micChat.addEventListener("click", () => {
         return;
     }
     chatInput.placeholder = "正在聆听，请说英文…";
-    startRecording(micChat, (text, isFinal) => {
-        chatInput.value = text;
-        if (isFinal) {
+    if (SpeechRecognition) {
+        startSpeechRecording(micChat, (text, isFinal) => {
+            chatInput.value = text;
+            if (isFinal) {
+                chatInput.placeholder = "输入英文，或点击麦克风录音…";
+                sendChat(text);
+            }
+        });
+    } else if (hasMediaRecorder) {
+        startTranscribeRecording(micChat, (text) => {
+            chatInput.value = text;
             chatInput.placeholder = "输入英文，或点击麦克风录音…";
-            sendChat(text);
-        }
-    });
+            if (text && !text.startsWith("（")) sendChat(text);
+        });
+    } else {
+        showStatus("当前浏览器不支持录音，请手动输入。", "error");
+    }
 });
 
 // ========== 话题独白 ==========
@@ -325,7 +382,8 @@ function renderTopic(topic) {
     $("#topic-category").textContent = topic.category;
     $("#topic-title").textContent = topic.title;
     $("#topic-hints").innerHTML = topic.hints.map((h) => `<li>${h}</li>`).join("");
-    $("#topic-result").textContent = "点击麦克风后开始作答，系统会尝试识别你的发音。";
+    $("#topic-result").textContent = "点击麦克风开始作答；无法录音时可在下方输入英文回答。";
+    $("#topic-audio-wrap").innerHTML = "";
 }
 
 async function nextTopic() {
@@ -353,7 +411,8 @@ recordTopic.addEventListener("click", () => {
     }
     topicSeconds = 0;
     $("#timer").textContent = "00:00";
-    $("#topic-result").textContent = "正在聆听…";
+    $("#topic-result").textContent = "正在录音…";
+    $("#topic-audio-wrap").innerHTML = "";
     topicTimer = setInterval(() => {
         topicSeconds++;
         const m = String(Math.floor(topicSeconds / 60)).padStart(2, "0");
@@ -361,14 +420,25 @@ recordTopic.addEventListener("click", () => {
         $("#timer").textContent = `${m}:${s}`;
     }, 1000);
     recordTopic.textContent = "⏹ 结束录音";
-    startRecording(recordTopic, (text, isFinal) => {
-        $("#topic-result").textContent = text;
-        if (isFinal) {
+
+    if (SpeechRecognition) {
+        startSpeechRecording(recordTopic, (text, isFinal) => {
+            $("#topic-result").textContent = text;
+            if (isFinal) {
+                clearInterval(topicTimer);
+                recordTopic.textContent = "🎤 开始录音";
+                saveHistory("topic", `${currentTopic.title} | ${text}`);
+            }
+        });
+    } else {
+        startAudioRecording(recordTopic, (blob) => {
             clearInterval(topicTimer);
             recordTopic.textContent = "🎤 开始录音";
-            saveHistory("topic", `${currentTopic.title} | ${text}`);
-        }
-    });
+            $("#topic-result").textContent = "录音完成，可点击下方播放回听自己的发音。";
+            showAudioPlayer("topic-audio-wrap", URL.createObjectURL(blob));
+            if (currentTopic) saveHistory("topic", `${currentTopic.title} | [录音练习]`);
+        });
+    }
 });
 
 // ========== 影子跟读 ==========
@@ -379,7 +449,8 @@ function renderShadow(shadow) {
     $("#shadow-title").textContent = shadow.title;
     $("#shadow-text").textContent = shadow.text;
     $("#shadow-hint").textContent = `💡 ${shadow.audioHint}`;
-    $("#shadow-result").textContent = "录音后会显示识别结果。";
+    $("#shadow-result").textContent = "录音后会显示识别结果；无法录音时可在下方输入跟读内容。";
+    $("#shadow-audio-wrap").innerHTML = "";
 }
 
 async function nextShadow() {
@@ -406,13 +477,23 @@ recordShadow.addEventListener("click", () => {
         stopRecording();
         return;
     }
-    $("#shadow-result").textContent = "正在聆听…";
-    startRecording(recordShadow, (text, isFinal) => {
-        $("#shadow-result").textContent = text;
-        if (isFinal && currentShadow) {
-            saveHistory("shadow", `${currentShadow.title} | ${text}`);
-        }
-    });
+    $("#shadow-result").textContent = "正在录音…";
+    $("#shadow-audio-wrap").innerHTML = "";
+
+    if (SpeechRecognition) {
+        startSpeechRecording(recordShadow, (text, isFinal) => {
+            $("#shadow-result").textContent = text;
+            if (isFinal && currentShadow) {
+                saveHistory("shadow", `${currentShadow.title} | ${text}`);
+            }
+        });
+    } else {
+        startAudioRecording(recordShadow, (blob) => {
+            $("#shadow-result").textContent = "录音完成，可点击下方播放回听自己的发音。";
+            showAudioPlayer("shadow-audio-wrap", URL.createObjectURL(blob));
+            if (currentShadow) saveHistory("shadow", `${currentShadow.title} | [录音练习]`);
+        });
+    }
 });
 
 // ========== 每日表达 ==========
@@ -423,7 +504,8 @@ function renderExpression(expr) {
     $("#expr-en").textContent = expr.en;
     $("#expr-zh").textContent = expr.zh;
     $("#expr-example").textContent = `例句：${expr.example}`;
-    $("#expr-result").textContent = "";
+    $("#expr-result").textContent = "录音后会显示识别结果；无法录音时可在下方输入造句。";
+    $("#expr-audio-wrap").innerHTML = "";
 }
 
 async function nextExpression() {
@@ -453,13 +535,23 @@ recordExpression.addEventListener("click", () => {
         stopRecording();
         return;
     }
-    $("#expr-result").textContent = "正在聆听…";
-    startRecording(recordExpression, (text, isFinal) => {
-        $("#expr-result").textContent = text;
-        if (isFinal && currentExpr) {
-            saveHistory("expression", `${currentExpr.en} | ${text}`);
-        }
-    });
+    $("#expr-result").textContent = "正在录音…";
+    $("#expr-audio-wrap").innerHTML = "";
+
+    if (SpeechRecognition) {
+        startSpeechRecording(recordExpression, (text, isFinal) => {
+            $("#expr-result").textContent = text;
+            if (isFinal && currentExpr) {
+                saveHistory("expression", `${currentExpr.en} | ${text}`);
+            }
+        });
+    } else {
+        startAudioRecording(recordExpression, (blob) => {
+            $("#expr-result").textContent = "录音完成，可点击下方播放回听自己的发音。";
+            showAudioPlayer("expr-audio-wrap", URL.createObjectURL(blob));
+            if (currentExpr) saveHistory("expression", `${currentExpr.en} | [录音练习]`);
+        });
+    }
 });
 
 // ========== 练习记录 ==========
@@ -503,11 +595,12 @@ function setupBrowserTip() {
         tip.style.display = "block";
     } else if (!SpeechRecognition && isWeChat) {
         tip.innerHTML =
-            "⚠️ 微信内置浏览器不支持实时语音识别。安卓用户请点击右上角 ··· → 在浏览器打开（Chrome/Edge）。<br>" +
-            "iPhone 用户可继续点击录音按钮，使用录音上传转写（需配置 API Key）。";
+            "⚠️ 微信内置浏览器不支持实时语音识别。话题独白、影子跟读、每日表达已启用录音回放功能（无需 API Key）。<br>" +
+            "AI 对话如需语音输入，仍需配置 API Key 或在浏览器中打开。";
         tip.style.display = "block";
     } else if (!SpeechRecognition && isIOS) {
-        tip.textContent = "⚠️ iOS 浏览器不支持实时语音识别。可点击录音按钮使用录音上传转写（需配置 API Key）。";
+        tip.textContent =
+            "⚠️ iOS 浏览器不支持实时语音识别。话题独白、影子跟读、每日表达可点击录音按钮练习并发音回听（无需 API Key）。";
         tip.style.display = "block";
     }
 }
@@ -523,7 +616,7 @@ function setupMicButtons() {
             btn.style.opacity = "0.6";
             btn.style.cursor = "not-allowed";
         } else if (!SpeechRecognition && hasMediaRecorder) {
-            btn.title = "当前浏览器使用录音上传转写（需配置 API Key）";
+            btn.title = "当前浏览器不支持实时识别，将录音并支持回听";
         }
     });
 }
@@ -536,7 +629,7 @@ async function init() {
     if (!SpeechRecognition && !hasMediaRecorder) {
         appendMessage("system", "⚠️ 当前浏览器不支持语音识别和录音，请使用 Chrome/Edge 桌面版，或手动输入英文。");
     } else if (!SpeechRecognition && hasMediaRecorder) {
-        appendMessage("system", "当前浏览器使用录音上传转写，点击麦克风录音，说完后点击停止（需配置 API Key）。");
+        appendMessage("system", "当前浏览器不支持实时语音识别，但可录音回听。话题独白、影子跟读、每日表达可直接使用。");
     } else {
         appendMessage("system", "欢迎来到口语练习系统！点击麦克风即可开始录音说英文。");
     }
