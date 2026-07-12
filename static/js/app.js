@@ -335,6 +335,14 @@ async function nextTopic() {
 
 $("#next-topic").addEventListener("click", nextTopic);
 
+$("#submit-topic").addEventListener("click", () => {
+    const text = $("#topic-answer").value.trim();
+    if (!text) return;
+    $("#topic-result").textContent = text;
+    if (currentTopic) saveHistory("topic", `${currentTopic.title} | ${text}`);
+    $("#topic-answer").value = "";
+});
+
 const recordTopic = $("#record-topic");
 recordTopic.addEventListener("click", () => {
     if (isRecording) {
@@ -384,6 +392,14 @@ $("#play-shadow").addEventListener("click", () => {
     if (currentShadow) speak(currentShadow.text, "en-US", 0.85);
 });
 
+$("#submit-shadow").addEventListener("click", () => {
+    const text = $("#shadow-answer").value.trim();
+    if (!text) return;
+    $("#shadow-result").textContent = text;
+    if (currentShadow) saveHistory("shadow", `${currentShadow.title} | ${text}`);
+    $("#shadow-answer").value = "";
+});
+
 const recordShadow = $("#record-shadow");
 recordShadow.addEventListener("click", () => {
     if (isRecording) {
@@ -421,6 +437,14 @@ $("#play-expression").addEventListener("click", () => {
         speak(currentExpr.en, "en-US", 0.85);
         setTimeout(() => speak(currentExpr.example, "en-US", 0.85), 1500);
     }
+});
+
+$("#submit-expression").addEventListener("click", () => {
+    const text = $("#expr-answer").value.trim();
+    if (!text) return;
+    $("#expr-result").textContent = text;
+    if (currentExpr) saveHistory("expression", `${currentExpr.en} | ${text}`);
+    $("#expr-answer").value = "";
 });
 
 const recordExpression = $("#record-expression");

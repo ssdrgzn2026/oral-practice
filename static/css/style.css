@@ -428,6 +428,30 @@ select {
     word-break: break-word;
 }
 
+/* 无法录音时的手动输入 fallback */
+.text-fallback {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.text-fallback textarea,
+.text-fallback input {
+    width: 100%;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 0.55rem;
+    font-size: 1rem;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 46px;
+}
+
+.text-fallback textarea {
+    min-height: 80px;
+}
+
 /* 每日表达 */
 .expression-card .expr-en {
     font-size: 1.2rem;
