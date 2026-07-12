@@ -260,13 +260,15 @@ function stopRecording() {
     }
 }
 
-function speak(text, lang = "en-US", rate = 0.9) {
-    if (!synth) return;
+function speak(text, lang = "en-US", rate = 0.9, onend) {
+    if (!synth) return null;
     if (synth.speaking) synth.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = lang;
     u.rate = rate;
+    if (onend) u.onend = onend;
     synth.speak(u);
+    return u;
 }
 
 function unlockSpeech() {
@@ -309,6 +311,8 @@ const chatInput = $("#chat-input");
 const chatScenario = $("#chat-scenario");
 let chatHistory = [];
 let autoSpeakEnabled = true;
+let chatVoiceMode = false;
+let chatInterimBubble = null;
 
 function appendMessage(role, text) {
     const div = document.createElement("div");
@@ -316,6 +320,7 @@ function appendMessage(role, text) {
     div.textContent = text;
     chatMessages.appendChild(div);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+    return div;
 }
 
 function getScenarioPrompt(scenario) {
@@ -336,6 +341,10 @@ Do not lecture, do not repeat yourself, and do not change the topic unexpectedly
 
 async function sendChat(text) {
     if (!text.trim()) return;
+    if (chatInterimBubble) {
+        chatInterimBubble.remove();
+        chatInterimBubble = null;
+    }
     appendMessage("user", text);
     chatInput.value = "";
     saveHistory("chat", text);
@@ -394,28 +403,87 @@ async function sendChat(text) {
 
         if (fullText) {
             chatHistory.push({ role: "assistant", content: fullText });
-            if (autoSpeakEnabled) speak(fullText, "en-US", 0.95);
+            if (chatVoiceMode) {
+                if (autoSpeakEnabled) {
+                    speak(fullText, "en-US", 0.95, () => startChatListening());
+                } else {
+                    setTimeout(() => startChatListening(), 300);
+                }
+            } else if (autoSpeakEnabled) {
+                speak(fullText, "en-US", 0.95);
+            }
         } else {
             aiMsgDiv.textContent = "Sorry, I didn't get that.";
+            if (chatVoiceMode) setTimeout(() => startChatListening(), 300);
         }
     } catch (e) {
         aiMsgDiv.textContent = "⚠️ 请求失败，请检查后端是否启动或 API 配置是否正确。";
     }
 }
 
+function updateChatInterim(text) {
+    if (!chatInterimBubble) {
+        chatInterimBubble = appendMessage("user interim", text);
+    } else {
+        chatInterimBubble.textContent = text;
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+}
+
+function startChatListening() {
+    if (isRecording) return;
+    if (!canUseSpeechRecognition && !hasMediaRecorder) {
+        showStatus("当前浏览器不支持录音，请手动输入。", "error");
+        return;
+    }
+    chatVoiceMode = true;
+    chatInput.placeholder = "正在聆听，请说英文…";
+    micChat.classList.add("recording");
+    if (canUseSpeechRecognition) {
+        startSpeechRecording(micChat, (text, isFinal) => {
+            updateChatInterim(text);
+            if (isFinal) {
+                const finalText = chatInterimBubble ? chatInterimBubble.textContent : text;
+                chatInput.placeholder = "输入英文，或点击麦克风录音…";
+                sendChat(finalText);
+            }
+        });
+    } else {
+        updateChatInterim("正在聆听…");
+        startTranscribeRecording(micChat, (text) => {
+            if (chatInterimBubble) {
+                chatInterimBubble.remove();
+                chatInterimBubble = null;
+            }
+            chatInput.placeholder = "输入英文，或点击麦克风录音…";
+            micChat.classList.remove("recording");
+            if (text && !text.startsWith("（")) sendChat(text);
+        });
+    }
+}
+
 $("#send-chat").addEventListener("click", () => {
     unlockSpeech();
+    chatVoiceMode = false;
     sendChat(chatInput.value);
 });
 chatInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
         unlockSpeech();
+        chatVoiceMode = false;
         sendChat(chatInput.value);
     }
 });
 
 $("#new-chat").addEventListener("click", () => {
+    if (isRecording) stopRecording();
+    if (synth && synth.speaking) synth.cancel();
     chatHistory = [];
+    chatVoiceMode = false;
+    if (chatInterimBubble) {
+        chatInterimBubble.remove();
+        chatInterimBubble = null;
+    }
     chatMessages.innerHTML = "";
     appendMessage("system", "开始新对话。选择场景后输入或说出英文。");
 });
@@ -436,24 +504,10 @@ micChat.addEventListener("click", () => {
         return;
     }
     unlockSpeech();
-    chatInput.placeholder = "正在聆听，请说英文…";
-    if (canUseSpeechRecognition) {
-        startSpeechRecording(micChat, (text, isFinal) => {
-            chatInput.value = text;
-            if (isFinal) {
-                chatInput.placeholder = "输入英文，或点击麦克风录音…";
-                sendChat(text);
-            }
-        });
-    } else if (hasMediaRecorder) {
-        startTranscribeRecording(micChat, (text) => {
-            chatInput.value = text;
-            chatInput.placeholder = "输入英文，或点击麦克风录音…";
-            if (text && !text.startsWith("（")) sendChat(text);
-        });
-    } else {
-        showStatus("当前浏览器不支持录音，请手动输入。", "error");
+    if (synth && synth.speaking) {
+        synth.cancel();
     }
+    startChatListening();
 });
 
 // ========== 雅思口语 ==========

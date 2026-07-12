@@ -392,6 +392,13 @@ select {
     padding: 0.4rem 0.7rem;
 }
 
+.message.user.interim {
+    align-self: flex-end;
+    background: #e2e8f0;
+    color: #64748b;
+    border-bottom-right-radius: 0.2rem;
+}
+
 /* 计时器 */
 .timer-box {
     display: flex;
