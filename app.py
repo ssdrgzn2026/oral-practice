@@ -111,11 +111,11 @@ def transcribe():
     audio_file = request.files["audio"]
     whisper_model = os.environ.get("OPENAI_WHISPER_MODEL", "")
     chat_model = os.environ.get("OPENAI_MODEL", "")
+    # 转写模型不能 fallback 到聊天模型，否则 SiliconFlow 会报 403
     model = (
         request.form.get("model")
         or whisper_model
-        or chat_model
-        or "whisper-1"
+        or "FunAudioLLM/SenseVoiceSmall"
     )
     app.logger.info("transcribe: whisper_env=%r chat_env=%r final_model=%r", whisper_model, chat_model, model)
 
