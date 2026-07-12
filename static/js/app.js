@@ -321,7 +321,7 @@ async function sendChat(text) {
     const systemMsg = chatMessages.lastElementChild;
 
     try {
-        const data = await postJSON("/api/chat", { messages: chatHistory, model: "gpt-4o-mini" });
+        const data = await postJSON("/api/chat", { messages: chatHistory });
         systemMsg.remove();
         if (data.error) {
             appendMessage("system", `⚠️ ${data.error}`);
