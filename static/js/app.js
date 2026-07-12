@@ -244,7 +244,7 @@ async function transcribeAudio(blob, ext) {
 }
 
 function stopRecording() {
-    if (SpeechRecognition && recognition && isRecording) {
+    if (canUseSpeechRecognition && recognition && isRecording) {
         stopSpeechRecording();
     } else {
         stopMediaRecorder();
@@ -623,7 +623,7 @@ function setupMicButtons() {
 }
 
 async function init() {
-    recognition = initRecognition();
+    recognition = canUseSpeechRecognition ? initRecognition() : null;
     setupBrowserTip();
     setupMicButtons();
 
