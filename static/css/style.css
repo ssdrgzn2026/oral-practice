@@ -262,6 +262,39 @@ body {
     animation: pulse 1.2s infinite;
 }
 
+.btn.danger {
+    background: var(--danger);
+    color: #fff;
+}
+
+.btn.danger:hover,
+.btn.danger:active {
+    background: #dc2626;
+}
+
+.user-id-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 0.55rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+}
+
+.user-id-bar code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: var(--text);
+    background: #fff;
+    padding: 0.15rem 0.4rem;
+    border-radius: 0.3rem;
+    border: 1px solid var(--border);
+}
+
 .btn:disabled {
     opacity: 0.55;
     cursor: not-allowed;

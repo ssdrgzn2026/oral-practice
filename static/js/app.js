@@ -915,6 +915,27 @@ async function loadHistory() {
 
 $("#refresh-history").addEventListener("click", loadHistory);
 
+function renderUserId() {
+    const display = $("#user-id-display");
+    if (display) display.textContent = getUserId();
+}
+
+const clearHistoryBtn = $("#clear-history");
+if (clearHistoryBtn) {
+    clearHistoryBtn.addEventListener("click", async () => {
+        if (!confirm("确定要清除本机所有练习记录吗？此操作不可恢复。")) return;
+        const uid = getUserId();
+        try {
+            await postJSON("/api/clear-history", { user_id: uid });
+        } catch (e) {
+            console.error("clear history error", e);
+        }
+        localStorage.removeItem("oral_user_id");
+        loadHistory();
+        renderUserId();
+    });
+}
+
 function escapeHtml(text) {
     const div = document.createElement("div");
     div.textContent = text;
@@ -1028,6 +1049,7 @@ async function init() {
     recognition = canUseSpeechRecognition ? initRecognition() : null;
     setupBrowserTip();
     setupMicButtons();
+    renderUserId();
 
     appendMessage("system", "欢迎来到口语AI伴侣！点击麦克风说英文，AI 会文字回复并自动朗读。");
 

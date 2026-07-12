@@ -194,6 +194,31 @@ def get_history():
     return jsonify(records[-50:])
 
 
+@app.route("/api/clear-history", methods=["POST"])
+def clear_history():
+    """按 user_id 删除该用户的练习记录"""
+    body = request.get_json(silent=True) or {}
+    user_id = body.get("user_id", "")
+    history_file = DATA_DIR / "history.jsonl"
+    if not history_file.exists() or not user_id:
+        return jsonify({"ok": True})
+    with open(history_file, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    kept = []
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        try:
+            if json.loads(stripped).get("user_id") != user_id:
+                kept.append(line)
+        except json.JSONDecodeError:
+            kept.append(line)
+    with open(history_file, "w", encoding="utf-8") as f:
+        f.writelines(kept)
+    return jsonify({"ok": True})
+
+
 if __name__ == "__main__":
     host = os.environ.get("FLASK_HOST", "127.0.0.1")
     port = int(os.environ.get("FLASK_PORT", "5000"))
