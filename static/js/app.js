@@ -468,12 +468,17 @@ recordTopic.addEventListener("click", () => {
             }
         });
     } else {
-        startAudioRecording(recordTopic, (blob) => {
+        startAudioRecording(recordTopic, async (blob) => {
             clearInterval(topicTimer);
             recordTopic.textContent = "🎤 开始录音";
-            $("#topic-result").textContent = "录音完成，可点击下方播放回听自己的发音。";
+            $("#topic-result").textContent = "正在转写…";
             showAudioPlayer("topic-audio-wrap", URL.createObjectURL(blob));
-            if (currentTopic) saveHistory("topic", `${currentTopic.title} | [录音练习]`);
+            const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+            const text = await transcribeAudio(blob, ext);
+            $("#topic-result").textContent = text || "（未能识别到文字）";
+            if (currentTopic && text && !text.startsWith("（")) {
+                saveHistory("topic", `${currentTopic.title} | ${text}`);
+            }
         });
     }
 });
@@ -529,10 +534,15 @@ recordShadow.addEventListener("click", () => {
             }
         });
     } else {
-        startAudioRecording(recordShadow, (blob) => {
-            $("#shadow-result").textContent = "录音完成，可点击下方播放回听自己的发音。";
+        startAudioRecording(recordShadow, async (blob) => {
+            $("#shadow-result").textContent = "正在转写…";
             showAudioPlayer("shadow-audio-wrap", URL.createObjectURL(blob));
-            if (currentShadow) saveHistory("shadow", `${currentShadow.title} | [录音练习]`);
+            const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+            const text = await transcribeAudio(blob, ext);
+            $("#shadow-result").textContent = text || "（未能识别到文字）";
+            if (currentShadow && text && !text.startsWith("（")) {
+                saveHistory("shadow", `${currentShadow.title} | ${text}`);
+            }
         });
     }
 });
@@ -591,10 +601,15 @@ recordExpression.addEventListener("click", () => {
             }
         });
     } else {
-        startAudioRecording(recordExpression, (blob) => {
-            $("#expr-result").textContent = "录音完成，可点击下方播放回听自己的发音。";
+        startAudioRecording(recordExpression, async (blob) => {
+            $("#expr-result").textContent = "正在转写…";
             showAudioPlayer("expr-audio-wrap", URL.createObjectURL(blob));
-            if (currentExpr) saveHistory("expression", `${currentExpr.en} | [录音练习]`);
+            const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+            const text = await transcribeAudio(blob, ext);
+            $("#expr-result").textContent = text || "（未能识别到文字）";
+            if (currentExpr && text && !text.startsWith("（")) {
+                saveHistory("expression", `${currentExpr.en} | ${text}`);
+            }
         });
     }
 });
