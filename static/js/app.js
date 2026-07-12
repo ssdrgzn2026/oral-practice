@@ -339,23 +339,60 @@ async function sendChat(text) {
     }
     chatHistory.push({ role: "user", content: text });
 
-    appendMessage("system", "AI 正在思考…");
-    const systemMsg = chatMessages.lastElementChild;
+    appendMessage("ai", "AI 正在思考…");
+    const aiMsgDiv = chatMessages.lastElementChild;
 
     try {
-        const data = await postJSON("/api/chat", { messages: chatHistory });
-        systemMsg.remove();
-        if (data.error) {
-            appendMessage("system", `⚠️ ${data.error}`);
+        const res = await fetch(API_BASE + "/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ messages: chatHistory, stream: true }),
+        });
+
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            aiMsgDiv.textContent = `⚠️ ${data.error || "请求失败"}`;
             return;
         }
-        const reply = data.choices?.[0]?.message?.content || "Sorry, I didn't get that.";
-        appendMessage("ai", reply);
-        chatHistory.push({ role: "assistant", content: reply });
-        if (autoSpeakEnabled) speak(reply, "en-US", 0.95);
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = "";
+        let buffer = "";
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop(); // keep incomplete line
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed.startsWith("data:")) continue;
+                const dataStr = trimmed.slice(5).trim();
+                if (dataStr === "[DONE]") continue;
+                try {
+                    const data = JSON.parse(dataStr);
+                    const delta = data.choices?.[0]?.delta?.content || "";
+                    if (delta) {
+                        fullText += delta;
+                        aiMsgDiv.textContent = fullText || "…";
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    }
+                } catch (e) {
+                    // ignore malformed SSE chunks
+                }
+            }
+        }
+
+        if (fullText) {
+            chatHistory.push({ role: "assistant", content: fullText });
+            if (autoSpeakEnabled) speak(fullText, "en-US", 0.95);
+        } else {
+            aiMsgDiv.textContent = "Sorry, I didn't get that.";
+        }
     } catch (e) {
-        systemMsg.remove();
-        appendMessage("system", "⚠️ 请求失败，请检查后端是否启动或 API 配置是否正确。");
+        aiMsgDiv.textContent = "⚠️ 请求失败，请检查后端是否启动或 API 配置是否正确。";
     }
 }
 

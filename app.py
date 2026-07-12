@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 import requests
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request, stream_with_context
 from flask_cors import CORS
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
@@ -71,10 +71,11 @@ def chat():
         return jsonify({"error": "未配置 OPENAI_API_KEY，请在 start.bat 中设置后重启。"}), 401
 
     model = body.get("model") or os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+    stream = body.get("stream", False)
     payload = {
         "model": model,
         "messages": messages,
-        "stream": False,
+        "stream": stream,
         "temperature": 0.8,
         "max_tokens": 120,
     }
@@ -87,9 +88,23 @@ def chat():
                 "Content-Type": "application/json",
             },
             json=payload,
+            stream=stream,
             timeout=60,
         )
         resp.raise_for_status()
+
+        if stream:
+            def generate():
+                for line in resp.iter_lines():
+                    if line:
+                        yield line + b"\n\n"
+
+            return Response(
+                stream_with_context(generate()),
+                mimetype="text/event-stream",
+                headers={"X-Accel-Buffering": "no"},
+            )
+
         return jsonify(resp.json())
     except requests.exceptions.RequestException as e:
         return jsonify({"error": f"请求失败：{str(e)}"}), 502

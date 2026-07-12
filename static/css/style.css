@@ -530,6 +530,11 @@ select {
     line-height: 1.5;
 }
 
+.footer .icp {
+    font-size: 0.65rem;
+    margin-top: 0.25rem;
+}
+
 /* ===== 平板 / 桌面端 ===== */
 @media (min-width: 640px) {
     .header {
