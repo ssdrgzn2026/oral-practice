@@ -745,13 +745,23 @@ $("#play-shadow").addEventListener("click", () => {
     if (currentShadow) speak(currentShadow.text, "en-US", 0.85);
 });
 
+function showShadowResult(text) {
+    if (!currentShadow) {
+        $("#shadow-result").textContent = text;
+        return;
+    }
+    const score = scoreShadowing(currentShadow.text, text);
+    const comment = shadowingComment(score);
+    $("#shadow-result").innerHTML = `${escapeHtml(text)}<br><strong>得分：${score}/10</strong> · ${comment}`;
+}
+
 $("#submit-shadow").addEventListener("click", () => {
     const text = $("#shadow-answer").value.trim();
     if (!text) {
         showStatus("请输入跟读内容后再提交。", "error");
         return;
     }
-    $("#shadow-result").textContent = `✅ 已提交：${text}`;
+    showShadowResult(text);
     if (currentShadow) saveHistory("shadow", `${currentShadow.title} | ${text}`);
     $("#shadow-answer").value = "";
     showStatus("跟读内容已保存到练习记录。", "system");
@@ -771,6 +781,7 @@ recordShadow.addEventListener("click", () => {
             $("#shadow-result").textContent = text;
             if (isFinal) {
                 $("#shadow-answer").value = text;
+                showShadowResult(text);
                 if (currentShadow) saveHistory("shadow", `${currentShadow.title} | ${text}`);
             }
         });
@@ -780,10 +791,12 @@ recordShadow.addEventListener("click", () => {
             showAudioPlayer("shadow-audio-wrap", URL.createObjectURL(blob));
             const ext = blob.type.includes("mp4") ? "mp4" : "webm";
             const text = await transcribeAudio(blob, ext);
-            $("#shadow-result").textContent = text || "（未能识别到文字）";
             if (text && !text.startsWith("（")) {
                 $("#shadow-answer").value = text;
+                showShadowResult(text);
                 if (currentShadow) saveHistory("shadow", `${currentShadow.title} | ${text}`);
+            } else {
+                $("#shadow-result").textContent = text || "（未能识别到文字）";
             }
         });
     }
@@ -887,6 +900,50 @@ function escapeHtml(text) {
     const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
+}
+
+// 影子跟读评分：基于词级别的 Levenshtein 距离，0-10 分
+function normalizeWords(text) {
+    return text
+        .toLowerCase()
+        .replace(/[^\w\s']/g, " ")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+}
+
+function levenshteinDistance(a, b) {
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            matrix[i][j] =
+                b[i - 1] === a[j - 1]
+                    ? matrix[i - 1][j - 1]
+                    : Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+        }
+    }
+    return matrix[b.length][a.length];
+}
+
+function scoreShadowing(original, spoken) {
+    const origWords = normalizeWords(original);
+    const spokenWords = normalizeWords(spoken);
+    if (origWords.length === 0) return 0;
+    const maxLen = Math.max(origWords.length, spokenWords.length);
+    if (maxLen === 0) return 0;
+    const dist = levenshteinDistance(origWords, spokenWords);
+    const similarity = 1 - dist / maxLen;
+    return Math.min(10, Math.max(0, Math.round(similarity * 10)));
+}
+
+function shadowingComment(score) {
+    if (score >= 9) return "Excellent! 几乎和原文一致。";
+    if (score >= 7) return "Good job! 只漏掉或说错了少量词。";
+    if (score >= 5) return "Not bad. 继续练习，注意漏掉的词。";
+    if (score >= 3) return "Keep practicing. 和原文还有不少差距。";
+    return "Try again. 再多听几遍范文再跟读。";
 }
 
 // ========== 初始化 ==========
