@@ -661,6 +661,12 @@ select {
         justify-content: flex-end;
     }
 
+    .panel-header-controls select {
+        flex: 0 0 auto;
+        min-width: 120px;
+        width: auto;
+    }
+
     .panel-header > .btn {
         align-self: center;
     }
