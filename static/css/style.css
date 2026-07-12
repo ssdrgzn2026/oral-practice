@@ -535,6 +535,23 @@ select {
     margin-top: 0.25rem;
 }
 
+/* 手机端隐藏文字输入框和发送按钮，只留麦克风 */
+@media (max-width: 639px) {
+    .input-area input,
+    .input-area #send-chat {
+        display: none;
+    }
+
+    .input-area {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .input-area .mic {
+        width: 100%;
+    }
+}
+
 /* ===== 平板 / 桌面端 ===== */
 @media (min-width: 640px) {
     .header {
