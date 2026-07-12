@@ -20,6 +20,7 @@
             <button class="tab" data-mode="topic">话题独白</button>
             <button class="tab" data-mode="shadow">影子跟读</button>
             <button class="tab" data-mode="expression">每日表达</button>
+            <button class="tab" data-mode="ielts">雅思口语</button>
             <button class="tab" data-mode="history">练习记录</button>
         </nav>
 
@@ -31,7 +32,6 @@
                     <div class="panel-header-controls">
                         <select id="chat-scenario">
                             <option value="daily">日常闲聊</option>
-                            <option value="ielts">雅思口语</option>
                             <option value="interview">英文面试</option>
                             <option value="debate">观点辩论</option>
                             <option value="academic">学术讨论</option>
@@ -124,6 +124,29 @@
                 <div class="text-fallback">
                     <input type="text" id="expr-answer" placeholder="当前无法录音？用这个表达造句…">
                     <button id="submit-expression" class="btn primary">提交造句</button>
+                </div>
+            </section>
+
+            <!-- 雅思口语 -->
+            <section id="panel-ielts" class="panel">
+                <div class="panel-header">
+                    <h2>雅思口语</h2>
+                    <div class="panel-header-controls">
+                        <span id="ielts-part-badge" class="ielts-badge">未开始</span>
+                        <button id="start-ielts" class="btn primary">开始模拟</button>
+                    </div>
+                </div>
+                <div id="ielts-status" class="browser-tip" style="display:block;">点击“开始模拟”启动雅思口语全流程练习：Part 1 → Part 2 话题卡 → Part 3</div>
+                <div id="ielts-card" class="card" style="display:none;">
+                    <h3 id="ielts-part-title"></h3>
+                    <p id="ielts-question" class="result-text"></p>
+                    <ul id="ielts-points"></ul>
+                </div>
+                <div id="ielts-messages" class="chat-messages"></div>
+                <div class="input-area">
+                    <button id="mic-ielts" class="btn mic">🎤 开始录音</button>
+                    <input type="text" id="ielts-input" placeholder="输入英文，或点击麦克风录音…">
+                    <button id="send-ielts" class="btn primary">发送</button>
                 </div>
             </section>
 

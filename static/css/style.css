@@ -535,20 +535,51 @@ select {
     margin-top: 0.25rem;
 }
 
+/* 雅思口语 */
+.ielts-badge {
+    display: inline-block;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    background: #e0e7ff;
+    color: #4f46e5;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+#ielts-card {
+    margin-bottom: 0.75rem;
+}
+
+#ielts-card h3 {
+    margin-bottom: 0.5rem;
+    color: #4f46e5;
+}
+
+#ielts-points {
+    margin-top: 0.5rem;
+    padding-left: 1.2rem;
+    color: var(--text);
+}
+
+#ielts-points li {
+    margin-bottom: 0.25rem;
+}
+
 /* 手机端隐藏文字输入框和发送按钮，只留麦克风 */
 @media (max-width: 639px) {
     .input-area input,
-    .input-area #send-chat {
+    .input-area .btn {
         display: none;
+    }
+
+    .input-area .mic {
+        display: block;
+        width: 100%;
     }
 
     .input-area {
         flex-direction: column;
         gap: 0;
-    }
-
-    .input-area .mic {
-        width: 100%;
     }
 }
 

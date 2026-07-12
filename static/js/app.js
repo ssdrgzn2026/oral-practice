@@ -318,7 +318,6 @@ Only correct grammar if the mistake changes the meaning; keep corrections brief 
 Do not lecture, do not repeat yourself, and do not change the topic unexpectedly.`;
     const scenarios = {
         daily: base + " Talk about daily life, hobbies, food, travel, school, or anything the user brings up.",
-        ielts: "You are an IELTS speaking examiner. Conduct a realistic IELTS Speaking test. Start with Part 1 warm-up questions, then move to Part 2 (give a cue card topic and let the user speak for 1-2 minutes), then Part 3 (ask deeper discussion questions). Keep questions natural, one at a time. After the user answers, you may give brief, encouraging feedback and then ask the next question. Do not interrupt the user or change topics abruptly.",
         interview: base + " You are the interviewer. Ask one common job interview question at a time, then react naturally to the answer.",
         debate: base + " You are debating a topic. Give a short opinion and ask what the user thinks about the same topic.",
         academic: base + " Discuss academic topics at a college level. Use clear language, but keep it like a real conversation, not a lecture.",
@@ -442,6 +441,202 @@ micChat.addEventListener("click", () => {
             chatInput.value = text;
             chatInput.placeholder = "输入英文，或点击麦克风录音…";
             if (text && !text.startsWith("（")) sendChat(text);
+        });
+    } else {
+        showStatus("当前浏览器不支持录音，请手动输入。", "error");
+    }
+});
+
+// ========== 雅思口语 ==========
+const ieltsMessages = $("#ielts-messages");
+const ieltsInput = $("#ielts-input");
+const ieltsPartBadge = $("#ielts-part-badge");
+const ieltsCard = $("#ielts-card");
+const ieltsPartTitle = $("#ielts-part-title");
+const ieltsQuestion = $("#ielts-question");
+const ieltsPoints = $("#ielts-points");
+const ieltsStatus = $("#ielts-status");
+
+let ieltsHistory = [];
+let ieltsPart = 0;
+let ieltsStep = 0;
+let ieltsInProgress = false;
+
+const IELTS_SYSTEM = `You are a professional IELTS Speaking examiner conducting a realistic mock test in English.
+Rules:
+- Ask exactly ONE question at a time.
+- Part 1: ask 3 short warm-up questions one by one.
+- Part 2: present ONE cue card topic with 4 bullet points, then tell the candidate to speak for 1-2 minutes.
+- Part 3: ask 3 deeper discussion questions related to the Part 2 topic.
+- After the last Part 3 answer, give brief encouraging feedback and end the test.
+- Keep your language natural and examiner-like. Do not dump all questions at once.`;
+
+function appendIeltsMessage(role, text) {
+    const div = document.createElement("div");
+    div.className = `message ${role}`;
+    div.textContent = text;
+    ieltsMessages.appendChild(div);
+    ieltsMessages.scrollTop = ieltsMessages.scrollHeight;
+}
+
+function updateIeltsCard(title, question, points = []) {
+    ieltsPartTitle.textContent = title;
+    ieltsQuestion.textContent = question;
+    ieltsPoints.innerHTML = points.map((p) => `<li>${p}</li>`).join("");
+    ieltsCard.style.display = "block";
+}
+
+function getIeltsInstruction() {
+    if (ieltsPart === 1) return `Now at Part 1, question ${ieltsStep + 1} of 3. Ask the next warm-up question naturally. Only one question.`;
+    if (ieltsPart === 2) return `Now at Part 2. Present ONE cue card topic with 4 bullet points. Then say: "You have one minute to prepare if you wish, then please speak for 1 to 2 minutes."`;
+    if (ieltsPart === 3) return `Now at Part 3, question ${ieltsStep + 1} of 3. Ask a deeper discussion question related to the Part 2 topic. Only one question.`;
+    return "The test is complete. Give brief overall feedback and say goodbye.";
+}
+
+async function streamIeltsReply(messages) {
+    const res = await fetch(API_BASE + "/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages, stream: true }),
+    });
+
+    if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        appendIeltsMessage("system", `⚠️ ${data.error || "请求失败"}`);
+        return "";
+    }
+
+    appendIeltsMessage("ai", "AI 正在思考…");
+    const aiMsgDiv = ieltsMessages.lastElementChild;
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = "";
+    let buffer = "";
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop();
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith("data:")) continue;
+            const dataStr = trimmed.slice(5).trim();
+            if (dataStr === "[DONE]") continue;
+            try {
+                const data = JSON.parse(dataStr);
+                const delta = data.choices?.[0]?.delta?.content || "";
+                if (delta) {
+                    fullText += delta;
+                    aiMsgDiv.textContent = fullText || "…";
+                    ieltsMessages.scrollTop = ieltsMessages.scrollHeight;
+                }
+            } catch (e) {
+                // ignore malformed chunks
+            }
+        }
+    }
+
+    if (!fullText) {
+        aiMsgDiv.textContent = "Sorry, I didn't get that.";
+    }
+    return fullText;
+}
+
+async function askIeltsQuestion() {
+    const messages = [
+        { role: "system", content: IELTS_SYSTEM + " " + getIeltsInstruction() },
+        ...ieltsHistory,
+    ];
+    const reply = await streamIeltsReply(messages);
+    if (reply) {
+        ieltsHistory.push({ role: "assistant", content: reply });
+        if (autoSpeakEnabled) speak(reply, "en-US", 0.95);
+    }
+}
+
+async function startIelts() {
+    ieltsHistory = [];
+    ieltsPart = 1;
+    ieltsStep = 0;
+    ieltsInProgress = true;
+    ieltsMessages.innerHTML = "";
+    ieltsPartBadge.textContent = "Part 1";
+    ieltsStatus.style.display = "none";
+    updateIeltsCard("Part 1", "我会先问你 3 个简单的热身问题，请用英语回答。");
+    await askIeltsQuestion();
+}
+
+async function submitIeltsAnswer(text) {
+    if (!text.trim() || !ieltsInProgress) return;
+    appendIeltsMessage("user", text);
+    ieltsHistory.push({ role: "user", content: text });
+
+    ieltsStep++;
+    if (ieltsPart === 1 && ieltsStep >= 3) {
+        ieltsPart = 2;
+        ieltsStep = 0;
+        ieltsPartBadge.textContent = "Part 2";
+        updateIeltsCard("Part 2 话题卡", "请根据话题卡准备并连续说 1-2 分钟。");
+    } else if (ieltsPart === 2 && ieltsStep >= 1) {
+        ieltsPart = 3;
+        ieltsStep = 0;
+        ieltsPartBadge.textContent = "Part 3";
+        updateIeltsCard("Part 3", "接下来是 3 个与话题相关的深入讨论问题。");
+    } else if (ieltsPart === 3 && ieltsStep >= 3) {
+        ieltsInProgress = false;
+        ieltsPartBadge.textContent = "已完成";
+        updateIeltsCard("考试结束", "下面是考官的整体反馈。");
+    }
+
+    await askIeltsQuestion();
+}
+
+$("#start-ielts").addEventListener("click", () => {
+    unlockSpeech();
+    startIelts();
+});
+
+$("#send-ielts").addEventListener("click", () => {
+    unlockSpeech();
+    submitIeltsAnswer(ieltsInput.value);
+    ieltsInput.value = "";
+});
+ieltsInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+        unlockSpeech();
+        submitIeltsAnswer(ieltsInput.value);
+        ieltsInput.value = "";
+    }
+});
+
+const micIelts = $("#mic-ielts");
+micIelts.addEventListener("click", () => {
+    if (isRecording) {
+        stopRecording();
+        return;
+    }
+    if (!ieltsInProgress) {
+        showStatus("请先点击“开始模拟”启动雅思口语考试。", "error");
+        return;
+    }
+    unlockSpeech();
+    ieltsInput.placeholder = "正在聆听，请说英文…";
+    if (canUseSpeechRecognition) {
+        startSpeechRecording(micIelts, (text, isFinal) => {
+            ieltsInput.value = text;
+            if (isFinal) {
+                ieltsInput.placeholder = "输入英文，或点击麦克风录音…";
+                submitIeltsAnswer(text);
+            }
+        });
+    } else if (hasMediaRecorder) {
+        startTranscribeRecording(micIelts, (text) => {
+            ieltsInput.value = text;
+            ieltsInput.placeholder = "输入英文，或点击麦克风录音…";
+            if (text && !text.startsWith("（")) submitIeltsAnswer(text);
         });
     } else {
         showStatus("当前浏览器不支持录音，请手动输入。", "error");
