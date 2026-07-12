@@ -76,6 +76,7 @@ def chat():
         "messages": messages,
         "stream": False,
         "temperature": 0.8,
+        "max_tokens": 120,
     }
 
     try:
