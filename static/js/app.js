@@ -396,10 +396,14 @@ $("#next-topic").addEventListener("click", nextTopic);
 
 $("#submit-topic").addEventListener("click", () => {
     const text = $("#topic-answer").value.trim();
-    if (!text) return;
-    $("#topic-result").textContent = text;
+    if (!text) {
+        showStatus("请输入你的英文回答后再提交。", "error");
+        return;
+    }
+    $("#topic-result").textContent = `✅ 已提交：${text}`;
     if (currentTopic) saveHistory("topic", `${currentTopic.title} | ${text}`);
     $("#topic-answer").value = "";
+    showStatus("回答已保存到练习记录。", "system");
 });
 
 const recordTopic = $("#record-topic");
@@ -466,10 +470,14 @@ $("#play-shadow").addEventListener("click", () => {
 
 $("#submit-shadow").addEventListener("click", () => {
     const text = $("#shadow-answer").value.trim();
-    if (!text) return;
-    $("#shadow-result").textContent = text;
+    if (!text) {
+        showStatus("请输入跟读内容后再提交。", "error");
+        return;
+    }
+    $("#shadow-result").textContent = `✅ 已提交：${text}`;
     if (currentShadow) saveHistory("shadow", `${currentShadow.title} | ${text}`);
     $("#shadow-answer").value = "";
+    showStatus("跟读内容已保存到练习记录。", "system");
 });
 
 const recordShadow = $("#record-shadow");
@@ -524,10 +532,14 @@ $("#play-expression").addEventListener("click", () => {
 
 $("#submit-expression").addEventListener("click", () => {
     const text = $("#expr-answer").value.trim();
-    if (!text) return;
-    $("#expr-result").textContent = text;
+    if (!text) {
+        showStatus("请输入造句后再提交。", "error");
+        return;
+    }
+    $("#expr-result").textContent = `✅ 已提交：${text}`;
     if (currentExpr) saveHistory("expression", `${currentExpr.en} | ${text}`);
     $("#expr-answer").value = "";
+    showStatus("造句已保存到练习记录。", "system");
 });
 
 const recordExpression = $("#record-expression");

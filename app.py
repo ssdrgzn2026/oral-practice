@@ -109,12 +109,15 @@ def transcribe():
         return jsonify({"error": "未配置 OPENAI_API_KEY，无法使用语音转写。"}), 401
 
     audio_file = request.files["audio"]
+    whisper_model = os.environ.get("OPENAI_WHISPER_MODEL", "")
+    chat_model = os.environ.get("OPENAI_MODEL", "")
     model = (
         request.form.get("model")
-        or os.environ.get("OPENAI_WHISPER_MODEL")
-        or os.environ.get("OPENAI_MODEL")
+        or whisper_model
+        or chat_model
         or "whisper-1"
     )
+    app.logger.info("transcribe: whisper_env=%r chat_env=%r final_model=%r", whisper_model, chat_model, model)
 
     try:
         resp = requests.post(
@@ -133,7 +136,13 @@ def transcribe():
         resp.raise_for_status()
         return jsonify(resp.json())
     except requests.exceptions.RequestException as e:
-        return jsonify({"error": f"转写请求失败：{str(e)}"}), 502
+        app.logger.error("transcribe error: %s", e)
+        return jsonify({
+            "error": f"转写请求失败：{str(e)}",
+            "model": model,
+            "whisper_env": whisper_model,
+            "chat_env": chat_model,
+        }), 502
 
 
 @app.route("/api/save-history", methods=["POST"])
