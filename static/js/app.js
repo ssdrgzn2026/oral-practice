@@ -30,8 +30,17 @@ async function getJSON(url) {
     return await res.json();
 }
 
+function getUserId() {
+    let uid = localStorage.getItem("oral_user_id");
+    if (!uid) {
+        uid = "u_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem("oral_user_id", uid);
+    }
+    return uid;
+}
+
 function saveHistory(mode, content) {
-    postJSON("/api/save-history", { mode, content }).catch(() => {});
+    postJSON("/api/save-history", { mode, content, user_id: getUserId() }).catch(() => {});
 }
 
 // ========== 录音/识别能力检测 ==========
@@ -886,7 +895,7 @@ async function loadHistory() {
     const list = $("#history-list");
     list.innerHTML = "<p>加载中…</p>";
     try {
-        const records = await getJSON("/api/history");
+        const records = await getJSON("/api/history?user_id=" + encodeURIComponent(getUserId()));
         if (records.length === 0) {
             list.innerHTML = "<p>还没有记录，去练一练吧！</p>";
             return;

@@ -163,12 +163,13 @@ def transcribe():
 
 @app.route("/api/save-history", methods=["POST"])
 def save_history():
-    """保存练习记录到本地 history.jsonl"""
+    """保存练习记录到本地 history.jsonl，按 user_id 隔离"""
     body = request.get_json(silent=True) or {}
     record = {
         "time": datetime.now().isoformat(timespec="seconds"),
         "mode": body.get("mode", "unknown"),
         "content": body.get("content", ""),
+        "user_id": body.get("user_id", ""),
     }
     history_file = DATA_DIR / "history.jsonl"
     with open(history_file, "a", encoding="utf-8") as f:
@@ -178,6 +179,7 @@ def save_history():
 
 @app.route("/api/history")
 def get_history():
+    user_id = request.args.get("user_id", "")
     history_file = DATA_DIR / "history.jsonl"
     if not history_file.exists():
         return jsonify([])
@@ -186,7 +188,9 @@ def get_history():
         for line in f:
             line = line.strip()
             if line:
-                records.append(json.loads(line))
+                rec = json.loads(line)
+                if user_id and rec.get("user_id") == user_id:
+                    records.append(rec)
     return jsonify(records[-50:])
 
 
