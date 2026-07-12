@@ -664,16 +664,21 @@ async function nextTopic() {
 
 $("#next-topic").addEventListener("click", nextTopic);
 
-$("#submit-topic").addEventListener("click", () => {
-    const text = $("#topic-answer").value.trim();
-    if (!text) {
+async function submitTopicAnswer(text) {
+    if (!text.trim()) {
         showStatus("请输入你的英文回答后再提交。", "error");
         return;
     }
-    $("#topic-result").textContent = `✅ 已提交：${text}`;
-    if (currentTopic) saveHistory("topic", `${currentTopic.title} | ${text}`);
+    $("#topic-result").textContent = "正在评分…";
+    const prompt = `Topic: ${currentTopic ? currentTopic.title : ""}\nUser's answer: ${text}\nPlease evaluate the answer based on relevance to the topic, grammar correctness, vocabulary use, and completeness. Return score 0-10.`;
+    const result = await evaluateAnswer(prompt);
+    $("#topic-result").innerHTML = `${escapeHtml(text)}<br><strong>得分：${result.score}/10</strong> · ${result.comment}`;
+    if (currentTopic) saveHistory("topic", `${currentTopic.title} | ${text} | 得分：${result.score}`);
     $("#topic-answer").value = "";
-    showStatus("回答已保存到练习记录。", "system");
+}
+
+$("#submit-topic").addEventListener("click", () => {
+    submitTopicAnswer($("#topic-answer").value);
 });
 
 const recordTopic = $("#record-topic");
@@ -703,7 +708,7 @@ recordTopic.addEventListener("click", () => {
                 clearInterval(topicTimer);
                 recordTopic.textContent = "🎤 开始录音";
                 $("#topic-answer").value = text;
-                saveHistory("topic", `${currentTopic.title} | ${text}`);
+                if (isMobileDevice()) submitTopicAnswer(text);
             }
         });
     } else {
@@ -717,7 +722,7 @@ recordTopic.addEventListener("click", () => {
             $("#topic-result").textContent = text || "（未能识别到文字）";
             if (text && !text.startsWith("（")) {
                 $("#topic-answer").value = text;
-                if (currentTopic) saveHistory("topic", `${currentTopic.title} | ${text}`);
+                if (isMobileDevice()) submitTopicAnswer(text);
             }
         });
     }
@@ -827,16 +832,21 @@ $("#play-expression").addEventListener("click", () => {
     }
 });
 
-$("#submit-expression").addEventListener("click", () => {
-    const text = $("#expr-answer").value.trim();
-    if (!text) {
+async function submitExpressionAnswer(text) {
+    if (!text.trim()) {
         showStatus("请输入造句后再提交。", "error");
         return;
     }
-    $("#expr-result").textContent = `✅ 已提交：${text}`;
-    if (currentExpr) saveHistory("expression", `${currentExpr.en} | ${text}`);
+    $("#expr-result").textContent = "正在评分…";
+    const prompt = `Expression: ${currentExpr ? currentExpr.en : ""}\nUser's sentence: ${text}\nPlease evaluate whether the expression is used correctly and naturally. Return score 0-10.`;
+    const result = await evaluateAnswer(prompt);
+    $("#expr-result").innerHTML = `${escapeHtml(text)}<br><strong>得分：${result.score}/10</strong> · ${result.comment}`;
+    if (currentExpr) saveHistory("expression", `${currentExpr.en} | ${text} | 得分：${result.score}`);
     $("#expr-answer").value = "";
-    showStatus("造句已保存到练习记录。", "system");
+}
+
+$("#submit-expression").addEventListener("click", () => {
+    submitExpressionAnswer($("#expr-answer").value);
 });
 
 const recordExpression = $("#record-expression");
@@ -853,7 +863,7 @@ recordExpression.addEventListener("click", () => {
             $("#expr-result").textContent = text;
             if (isFinal) {
                 $("#expr-answer").value = text;
-                if (currentExpr) saveHistory("expression", `${currentExpr.en} | ${text}`);
+                if (isMobileDevice()) submitExpressionAnswer(text);
             }
         });
     } else {
@@ -865,7 +875,7 @@ recordExpression.addEventListener("click", () => {
             $("#expr-result").textContent = text || "（未能识别到文字）";
             if (text && !text.startsWith("（")) {
                 $("#expr-answer").value = text;
-                if (currentExpr) saveHistory("expression", `${currentExpr.en} | ${text}`);
+                if (isMobileDevice()) submitExpressionAnswer(text);
             }
         });
     }
@@ -944,6 +954,42 @@ function shadowingComment(score) {
     if (score >= 5) return "Not bad. 继续练习，注意漏掉的词。";
     if (score >= 3) return "Keep practicing. 和原文还有不少差距。";
     return "Try again. 再多听几遍范文再跟读。";
+}
+
+// AI 评分：根据回答内容和主题/表达的相关性、语法、完整性打分
+async function evaluateAnswer(prompt) {
+    try {
+        const res = await fetch(API_BASE + "/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                messages: [
+                    { role: "system", content: "You are a strict but fair English teacher. Evaluate the user's answer and return ONLY a JSON object like {\"score\": 7, \"comment\": \"...\"}. Score must be 0-10. Comment should be in Chinese, 1-2 sentences." },
+                    { role: "user", content: prompt },
+                ],
+                stream: false,
+            }),
+        });
+        const data = await res.json();
+        const content = data.choices?.[0]?.message?.content || "";
+        const match = content.match(/\{[\s\S]*?\}/);
+        if (match) return JSON.parse(match[0]);
+    } catch (e) {
+        console.error("evaluate error:", e);
+    }
+    return { score: 0, comment: "评分失败，请重试。" };
+}
+
+function evaluationComment(score) {
+    if (score >= 9) return "非常出色！";
+    if (score >= 7) return "表现不错，继续加油。";
+    if (score >= 5) return "基本达标，还有提升空间。";
+    if (score >= 3) return "需要多练习。";
+    return "建议再试一次。";
+}
+
+function isMobileDevice() {
+    return isIOS || isWeChat || window.innerWidth < 640;
 }
 
 // ========== 初始化 ==========
