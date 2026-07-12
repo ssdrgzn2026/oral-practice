@@ -37,6 +37,7 @@ function saveHistory(mode, content) {
 // ========== 录音/识别能力检测 ==========
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const hasMediaRecorder = !!(window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+const canUseSpeechRecognition = !!(SpeechRecognition && !isIOS && !isWeChat);
 const synth = window.speechSynthesis;
 
 let recognition = null;
@@ -353,7 +354,7 @@ micChat.addEventListener("click", () => {
         return;
     }
     chatInput.placeholder = "正在聆听，请说英文…";
-    if (SpeechRecognition) {
+    if (canUseSpeechRecognition) {
         startSpeechRecording(micChat, (text, isFinal) => {
             chatInput.value = text;
             if (isFinal) {
@@ -421,7 +422,7 @@ recordTopic.addEventListener("click", () => {
     }, 1000);
     recordTopic.textContent = "⏹ 结束录音";
 
-    if (SpeechRecognition) {
+    if (canUseSpeechRecognition) {
         startSpeechRecording(recordTopic, (text, isFinal) => {
             $("#topic-result").textContent = text;
             if (isFinal) {
@@ -480,7 +481,7 @@ recordShadow.addEventListener("click", () => {
     $("#shadow-result").textContent = "正在录音…";
     $("#shadow-audio-wrap").innerHTML = "";
 
-    if (SpeechRecognition) {
+    if (canUseSpeechRecognition) {
         startSpeechRecording(recordShadow, (text, isFinal) => {
             $("#shadow-result").textContent = text;
             if (isFinal && currentShadow) {
@@ -538,7 +539,7 @@ recordExpression.addEventListener("click", () => {
     $("#expr-result").textContent = "正在录音…";
     $("#expr-audio-wrap").innerHTML = "";
 
-    if (SpeechRecognition) {
+    if (canUseSpeechRecognition) {
         startSpeechRecording(recordExpression, (text, isFinal) => {
             $("#expr-result").textContent = text;
             if (isFinal && currentExpr) {
@@ -590,23 +591,23 @@ function setupBrowserTip() {
     const tip = $("#browser-tip");
     if (!tip) return;
 
-    if (!SpeechRecognition && !hasMediaRecorder) {
+    if (!canUseSpeechRecognition && !hasMediaRecorder) {
         tip.textContent = "⚠️ 当前浏览器不支持语音识别和录音，建议使用 Chrome/Edge 桌面版，或手动输入英文。";
         tip.style.display = "block";
-    } else if (!SpeechRecognition && isWeChat) {
+    } else if (!canUseSpeechRecognition && isWeChat) {
         tip.innerHTML =
-            "⚠️ 微信内置浏览器不支持实时语音识别。话题独白、影子跟读、每日表达已启用录音回放功能（无需 API Key）。<br>" +
+            "⚠️ 当前浏览器不支持实时语音识别。话题独白、影子跟读、每日表达已启用录音回放功能（无需 API Key）。<br>" +
             "AI 对话如需语音输入，仍需配置 API Key 或在浏览器中打开。";
         tip.style.display = "block";
-    } else if (!SpeechRecognition && isIOS) {
+    } else if (!canUseSpeechRecognition && isIOS) {
         tip.textContent =
-            "⚠️ iOS 浏览器不支持实时语音识别。话题独白、影子跟读、每日表达可点击录音按钮练习并发音回听（无需 API Key）。";
+            "⚠️ 当前浏览器不支持实时语音识别。话题独白、影子跟读、每日表达可点击录音按钮练习并发音回听（无需 API Key）。";
         tip.style.display = "block";
     }
 }
 
 function setupMicButtons() {
-    const canRecord = SpeechRecognition || hasMediaRecorder;
+    const canRecord = canUseSpeechRecognition || hasMediaRecorder;
     ["#mic-chat", "#record-topic", "#record-shadow", "#record-expression"].forEach((sel) => {
         const btn = $(sel);
         if (!btn) return;
@@ -615,7 +616,7 @@ function setupMicButtons() {
             btn.title = "当前浏览器不支持录音，请使用 Chrome/Edge 桌面版";
             btn.style.opacity = "0.6";
             btn.style.cursor = "not-allowed";
-        } else if (!SpeechRecognition && hasMediaRecorder) {
+        } else if (!canUseSpeechRecognition && hasMediaRecorder) {
             btn.title = "当前浏览器不支持实时识别，将录音并支持回听";
         }
     });
@@ -626,9 +627,9 @@ async function init() {
     setupBrowserTip();
     setupMicButtons();
 
-    if (!SpeechRecognition && !hasMediaRecorder) {
+    if (!canUseSpeechRecognition && !hasMediaRecorder) {
         appendMessage("system", "⚠️ 当前浏览器不支持语音识别和录音，请使用 Chrome/Edge 桌面版，或手动输入英文。");
-    } else if (!SpeechRecognition && hasMediaRecorder) {
+    } else if (!canUseSpeechRecognition && hasMediaRecorder) {
         appendMessage("system", "当前浏览器不支持实时语音识别，但可录音回听。话题独白、影子跟读、每日表达可直接使用。");
     } else {
         appendMessage("system", "欢迎来到口语练习系统！点击麦克风即可开始录音说英文。");

@@ -17,3 +17,11 @@ data/history.jsonl
 # OS
 .DS_Store
 Thumbs.db
+
+# SSL certificates
+*.pem
+*.key
+
+# Misc
+相关文件/
+
