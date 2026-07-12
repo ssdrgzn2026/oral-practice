@@ -1,4 +1,4 @@
-# 口语练习系统 - Docker 镜像
+# 口语AI伴侣 - Docker 镜像
 FROM python:3.12-slim
 
 WORKDIR /app

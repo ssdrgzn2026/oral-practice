@@ -1,4 +1,4 @@
-/* 口语练习系统 - 前端逻辑 */
+/* 口语AI伴侣 - 前端逻辑 */
 
 const API_BASE = "";
 
@@ -260,6 +260,20 @@ function speak(text, lang = "en-US", rate = 0.9) {
     synth.speak(u);
 }
 
+function unlockSpeech() {
+    // iOS / 微信需要在用户手势内激活 speechSynthesis，否则异步回调里无法播放
+    if (!synth) return;
+    try {
+        if (synth.paused) synth.resume();
+        // 部分浏览器需要 speak 一次才能真正解锁
+        const u = new SpeechSynthesisUtterance(" ");
+        u.volume = 0;
+        synth.speak(u);
+    } catch (e) {
+        console.error("unlock speech failed:", e);
+    }
+}
+
 function showAudioPlayer(wrapId, url) {
     const wrap = $(`#${wrapId}`);
     if (!wrap) return;
@@ -285,6 +299,7 @@ const chatMessages = $("#chat-messages");
 const chatInput = $("#chat-input");
 const chatScenario = $("#chat-scenario");
 let chatHistory = [];
+let autoSpeakEnabled = true;
 
 function appendMessage(role, text) {
     const div = document.createElement("div");
@@ -330,15 +345,22 @@ async function sendChat(text) {
         const reply = data.choices?.[0]?.message?.content || "Sorry, I didn't get that.";
         appendMessage("ai", reply);
         chatHistory.push({ role: "assistant", content: reply });
+        if (autoSpeakEnabled) speak(reply, "en-US", 0.95);
     } catch (e) {
         systemMsg.remove();
         appendMessage("system", "⚠️ 请求失败，请检查后端是否启动或 API 配置是否正确。");
     }
 }
 
-$("#send-chat").addEventListener("click", () => sendChat(chatInput.value));
+$("#send-chat").addEventListener("click", () => {
+    unlockSpeech();
+    sendChat(chatInput.value);
+});
 chatInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") sendChat(chatInput.value);
+    if (e.key === "Enter") {
+        unlockSpeech();
+        sendChat(chatInput.value);
+    }
 });
 
 $("#new-chat").addEventListener("click", () => {
@@ -347,12 +369,22 @@ $("#new-chat").addEventListener("click", () => {
     appendMessage("system", "开始新对话。选择场景后输入或说出英文。");
 });
 
+const ttsToggle = $("#tts-toggle");
+if (ttsToggle) {
+    ttsToggle.addEventListener("click", () => {
+        autoSpeakEnabled = !autoSpeakEnabled;
+        ttsToggle.textContent = autoSpeakEnabled ? "🔊" : "🔇";
+        ttsToggle.title = autoSpeakEnabled ? "自动朗读 AI 回复（已开启）" : "自动朗读 AI 回复（已关闭）";
+    });
+}
+
 const micChat = $("#mic-chat");
 micChat.addEventListener("click", () => {
     if (isRecording) {
         stopRecording();
         return;
     }
+    unlockSpeech();
     chatInput.placeholder = "正在聆听，请说英文…";
     if (canUseSpeechRecognition) {
         startSpeechRecording(micChat, (text, isFinal) => {
@@ -600,22 +632,9 @@ function escapeHtml(text) {
 
 // ========== 初始化 ==========
 function setupBrowserTip() {
+    // 现在录音+后端转写已支持所有浏览器，不再显示能力警告
     const tip = $("#browser-tip");
-    if (!tip) return;
-
-    if (!canUseSpeechRecognition && !hasMediaRecorder) {
-        tip.textContent = "⚠️ 当前浏览器不支持语音识别和录音，建议使用 Chrome/Edge 桌面版，或手动输入英文。";
-        tip.style.display = "block";
-    } else if (!canUseSpeechRecognition && isWeChat) {
-        tip.innerHTML =
-            "⚠️ 当前浏览器不支持实时语音识别。话题独白、影子跟读、每日表达已启用录音回放功能（无需 API Key）。<br>" +
-            "AI 对话如需语音输入，仍需配置 API Key 或在浏览器中打开。";
-        tip.style.display = "block";
-    } else if (!canUseSpeechRecognition && isIOS) {
-        tip.textContent =
-            "⚠️ 当前浏览器不支持实时语音识别。话题独白、影子跟读、每日表达可点击录音按钮练习并发音回听（无需 API Key）。";
-        tip.style.display = "block";
-    }
+    if (tip) tip.style.display = "none";
 }
 
 function setupMicButtons() {
@@ -639,13 +658,7 @@ async function init() {
     setupBrowserTip();
     setupMicButtons();
 
-    if (!canUseSpeechRecognition && !hasMediaRecorder) {
-        appendMessage("system", "⚠️ 当前浏览器不支持语音识别和录音，请使用 Chrome/Edge 桌面版，或手动输入英文。");
-    } else if (!canUseSpeechRecognition && hasMediaRecorder) {
-        appendMessage("system", "当前浏览器不支持实时语音识别，但可录音回听。话题独白、影子跟读、每日表达可直接使用。");
-    } else {
-        appendMessage("system", "欢迎来到口语练习系统！点击麦克风即可开始录音说英文。");
-    }
+    appendMessage("system", "欢迎来到口语AI伴侣！点击麦克风说英文，AI 会文字回复并自动朗读。");
 
     await nextTopic();
     await nextShadow();

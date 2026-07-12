@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>口语练习系统</title>
+    <title>口语AI伴侣</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
     <div class="app">
         <header class="header">
-            <h1>🎙️ 口语练习系统</h1>
+            <h1>🎙️ 口语AI伴侣</h1>
             <p class="subtitle">每天 15 分钟，从“看得懂”练到“说得顺”</p>
         </header>
 
@@ -36,6 +36,7 @@
                             <option value="academic">学术讨论</option>
                         </select>
                         <button id="new-chat" class="btn secondary">新对话</button>
+                        <button id="tts-toggle" class="btn secondary" title="自动朗读 AI 回复">🔊</button>
                     </div>
                 </div>
                 <div id="chat-messages" class="chat-messages"></div>
@@ -44,7 +45,7 @@
                     <input type="text" id="chat-input" placeholder="输入英文，或点击麦克风录音…">
                     <button id="send-chat" class="btn primary">发送</button>
                 </div>
-                <p class="tip">💡 想用 AI 对话请双击 configure.bat 配置 API Key；不配置也可使用话题独白、影子跟读、每日表达。</p>
+                <p class="tip">💡 点击麦克风即可语音输入，AI 会自动朗读回复。</p>
             </section>
 
             <!-- 话题独白 -->
