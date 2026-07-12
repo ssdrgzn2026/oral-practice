@@ -464,6 +464,7 @@ recordTopic.addEventListener("click", () => {
             if (isFinal) {
                 clearInterval(topicTimer);
                 recordTopic.textContent = "🎤 开始录音";
+                $("#topic-answer").value = text;
                 saveHistory("topic", `${currentTopic.title} | ${text}`);
             }
         });
@@ -476,8 +477,9 @@ recordTopic.addEventListener("click", () => {
             const ext = blob.type.includes("mp4") ? "mp4" : "webm";
             const text = await transcribeAudio(blob, ext);
             $("#topic-result").textContent = text || "（未能识别到文字）";
-            if (currentTopic && text && !text.startsWith("（")) {
-                saveHistory("topic", `${currentTopic.title} | ${text}`);
+            if (text && !text.startsWith("（")) {
+                $("#topic-answer").value = text;
+                if (currentTopic) saveHistory("topic", `${currentTopic.title} | ${text}`);
             }
         });
     }
@@ -529,8 +531,9 @@ recordShadow.addEventListener("click", () => {
     if (canUseSpeechRecognition) {
         startSpeechRecording(recordShadow, (text, isFinal) => {
             $("#shadow-result").textContent = text;
-            if (isFinal && currentShadow) {
-                saveHistory("shadow", `${currentShadow.title} | ${text}`);
+            if (isFinal) {
+                $("#shadow-answer").value = text;
+                if (currentShadow) saveHistory("shadow", `${currentShadow.title} | ${text}`);
             }
         });
     } else {
@@ -540,8 +543,9 @@ recordShadow.addEventListener("click", () => {
             const ext = blob.type.includes("mp4") ? "mp4" : "webm";
             const text = await transcribeAudio(blob, ext);
             $("#shadow-result").textContent = text || "（未能识别到文字）";
-            if (currentShadow && text && !text.startsWith("（")) {
-                saveHistory("shadow", `${currentShadow.title} | ${text}`);
+            if (text && !text.startsWith("（")) {
+                $("#shadow-answer").value = text;
+                if (currentShadow) saveHistory("shadow", `${currentShadow.title} | ${text}`);
             }
         });
     }
@@ -596,8 +600,9 @@ recordExpression.addEventListener("click", () => {
     if (canUseSpeechRecognition) {
         startSpeechRecording(recordExpression, (text, isFinal) => {
             $("#expr-result").textContent = text;
-            if (isFinal && currentExpr) {
-                saveHistory("expression", `${currentExpr.en} | ${text}`);
+            if (isFinal) {
+                $("#expr-answer").value = text;
+                if (currentExpr) saveHistory("expression", `${currentExpr.en} | ${text}`);
             }
         });
     } else {
@@ -607,8 +612,9 @@ recordExpression.addEventListener("click", () => {
             const ext = blob.type.includes("mp4") ? "mp4" : "webm";
             const text = await transcribeAudio(blob, ext);
             $("#expr-result").textContent = text || "（未能识别到文字）";
-            if (currentExpr && text && !text.startsWith("（")) {
-                saveHistory("expression", `${currentExpr.en} | ${text}`);
+            if (text && !text.startsWith("（")) {
+                $("#expr-answer").value = text;
+                if (currentExpr) saveHistory("expression", `${currentExpr.en} | ${text}`);
             }
         });
     }
