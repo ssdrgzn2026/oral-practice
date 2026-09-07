@@ -51,23 +51,34 @@ def _save_ip_cache():
         pass
 
 
+def _is_internal(ip):
+    if not ip:
+        return True
+    if ip.startswith(("127.", "10.", "192.168.")):
+        return True
+    if ip.startswith("172."):
+        try:
+            return 16 <= int(ip.split(".")[1]) <= 31
+        except (IndexError, ValueError):
+            return False
+    return False
+
+
 def geo_lookup(ip):
-    """查询 IP 归属地（ip-api.com，免费 45 次/分钟），结果本地缓存。失败返回空串。"""
-    if not ip or ip.startswith(("127.", "10.", "192.168.", "172.16.")):
+    """查询 IP 归属地（ipwho.is，支持 https，容器内可达），结果本地缓存。失败返回空串。"""
+    if _is_internal(ip):
         return "内网"
     cache = _load_ip_cache()
-    if ip in cache:
+    if ip in cache and cache[ip] not in ("未知", "查询中"):
         return cache[ip]
 
     def worker():
         try:
-            r = requests.get(
-                f"http://ip-api.com/json/{ip}?lang=zh-CN&fields=status,country,regionName,city,isp",
-                timeout=5,
-            )
+            r = requests.get(f"https://ipwho.is/{ip}?lang=zh-CN", timeout=5)
             d = r.json()
-            if d.get("status") == "success":
-                loc = " ".join(x for x in [d.get("country"), d.get("regionName"), d.get("city"), d.get("isp")] if x)
+            if d.get("success"):
+                isp = (d.get("connection") or {}).get("isp", "")
+                loc = " ".join(x for x in [d.get("country"), d.get("region"), d.get("city"), isp] if x)
             else:
                 loc = ""
         except requests.RequestException:
@@ -87,6 +98,8 @@ def client_ip():
 def log_pageview():
     """记录一次页面访问（GET 且属于被跟踪页面）"""
     ip = client_ip()
+    if _is_internal(ip):
+        return  # 跳过健康检查等内网请求
     _append_jsonl(VISITS_FILE, {
         "time": datetime.now().isoformat(timespec="seconds"),
         "ip": ip,
