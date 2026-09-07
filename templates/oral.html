@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>口语AI伴侣 · MiscHub</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>🎙️ 口语AI伴侣</h1>
+            <p class="subtitle">每天 15 分钟，从“看得懂”练到“说得顺”</p>
+            <p class="back-home"><a href="/">← 返回 MiscHub 首页</a></p>
+        </header>
+
+        <div id="browser-tip" class="browser-tip" style="display:none;"></div>
+
+        <nav class="tabs">
+            <button class="tab active" data-mode="chat">AI 情景对话</button>
+            <button class="tab" data-mode="topic">话题独白</button>
+            <button class="tab" data-mode="shadow">影子跟读</button>
+            <button class="tab" data-mode="expression">每日表达</button>
+            <button class="tab" data-mode="ielts">雅思口语</button>
+            <button class="tab" data-mode="history">练习记录</button>
+        </nav>
+
+        <main class="main">
+            <!-- AI 情景对话 -->
+            <section id="panel-chat" class="panel active">
+                <div class="panel-header">
+                    <h2>AI 情景对话</h2>
+                    <div class="panel-header-controls">
+                        <select id="chat-scenario">
+                            <option value="daily">日常闲聊</option>
+                            <option value="interview">英文面试</option>
+                            <option value="debate">观点辩论</option>
+                            <option value="academic">学术讨论</option>
+                        </select>
+                        <button id="new-chat" class="btn secondary">新对话</button>
+                        <button id="tts-toggle" class="btn secondary" title="自动朗读 AI 回复">🔊</button>
+                    </div>
+                </div>
+                <div id="chat-messages" class="chat-messages"></div>
+                <div class="input-area">
+                    <button id="mic-chat" class="btn mic">🎤 开始录音</button>
+                    <input type="text" id="chat-input" placeholder="输入英文，或点击麦克风录音…">
+                    <button id="send-chat" class="btn primary">发送</button>
+                </div>
+
+            </section>
+
+            <!-- 话题独白 -->
+            <section id="panel-topic" class="panel">
+                <div class="panel-header">
+                    <h2>话题独白</h2>
+                    <button id="next-topic" class="btn primary">换一题</button>
+                </div>
+                <div class="card">
+                    <span id="topic-category" class="tag"></span>
+                    <h3 id="topic-title"></h3>
+                    <ul id="topic-hints"></ul>
+                </div>
+                <div class="timer-box">
+                    <span id="timer">00:00</span>
+                    <button id="record-topic" class="btn mic">🎤 开始录音</button>
+                </div>
+                <div class="result-box">
+                    <h4>识别结果</h4>
+                    <p id="topic-result" class="result-text">点击麦克风后开始作答，系统会尝试识别你的发音；无法录音时可在下方输入英文回答。</p>
+                </div>
+                <div id="topic-audio-wrap" class="audio-wrap"></div>
+                <div class="text-fallback">
+                    <textarea id="topic-answer" rows="3" placeholder="当前浏览器无法录音？在这里输入你的英文回答…"></textarea>
+                    <button id="submit-topic" class="btn primary">提交回答</button>
+                </div>
+            </section>
+
+            <!-- 影子跟读 -->
+            <section id="panel-shadow" class="panel">
+                <div class="panel-header">
+                    <h2>影子跟读</h2>
+                    <button id="next-shadow" class="btn primary">换一段</button>
+                </div>
+                <div class="card">
+                    <h3 id="shadow-title"></h3>
+                    <p id="shadow-text" class="shadow-text"></p>
+                    <p id="shadow-hint" class="hint"></p>
+                </div>
+                <div class="actions">
+                    <button id="play-shadow" class="btn secondary">🔊 朗读范文</button>
+                    <button id="record-shadow" class="btn mic">🎤 跟读录音</button>
+                </div>
+                <div class="result-box">
+                    <h4>你的跟读</h4>
+                    <p id="shadow-result" class="result-text">录音后会显示识别结果；无法录音时可在下方输入跟读内容。</p>
+                </div>
+                <div id="shadow-audio-wrap" class="audio-wrap"></div>
+                <div class="text-fallback">
+                    <input type="text" id="shadow-answer" placeholder="当前无法录音？输入你听到的内容…">
+                    <button id="submit-shadow" class="btn primary">提交跟读</button>
+                </div>
+            </section>
+
+            <!-- 每日表达 -->
+            <section id="panel-expression" class="panel">
+                <div class="panel-header">
+                    <h2>每日表达</h2>
+                    <button id="next-expression" class="btn primary">换一个</button>
+                </div>
+                <div class="card expression-card">
+                    <p id="expr-en" class="expr-en"></p>
+                    <p id="expr-zh" class="expr-zh"></p>
+                    <p id="expr-example" class="expr-example"></p>
+                </div>
+                <div class="actions">
+                    <button id="play-expression" class="btn secondary">🔊 朗读表达</button>
+                    <button id="record-expression" class="btn mic">🎤 用表达造句</button>
+                </div>
+                <div class="result-box">
+                    <h4>识别结果</h4>
+                    <p id="expr-result" class="result-text">录音后会显示识别结果；无法录音时可在下方输入造句。</p>
+                </div>
+                <div id="expr-audio-wrap" class="audio-wrap"></div>
+                <div class="text-fallback">
+                    <input type="text" id="expr-answer" placeholder="当前无法录音？用这个表达造句…">
+                    <button id="submit-expression" class="btn primary">提交造句</button>
+                </div>
+            </section>
+
+            <!-- 雅思口语 -->
+            <section id="panel-ielts" class="panel">
+                <div class="panel-header">
+                    <h2>雅思口语</h2>
+                    <div class="panel-header-controls">
+                        <span id="ielts-part-badge" class="ielts-badge">未开始</span>
+                        <button id="start-ielts" class="btn primary">开始模拟</button>
+                    </div>
+                </div>
+                <div id="ielts-status" class="browser-tip" style="display:block;">点击“开始模拟”启动雅思口语全流程练习：Part 1 → Part 2 话题卡 → Part 3</div>
+                <div id="ielts-card" class="card" style="display:none;">
+                    <h3 id="ielts-part-title"></h3>
+                    <p id="ielts-question" class="result-text"></p>
+                    <ul id="ielts-points"></ul>
+                </div>
+                <div id="ielts-messages" class="chat-messages"></div>
+                <div class="input-area">
+                    <button id="mic-ielts" class="btn mic">🎤 开始录音</button>
+                    <input type="text" id="ielts-input" placeholder="输入英文，或点击麦克风录音…">
+                    <button id="send-ielts" class="btn primary">发送</button>
+                </div>
+            </section>
+
+            <!-- 练习记录 -->
+            <section id="panel-history" class="panel">
+                <div class="panel-header">
+                    <h2>练习记录</h2>
+                    <button id="refresh-history" class="btn secondary">刷新</button>
+                </div>
+                <div class="user-id-bar">
+                    <span>用户ID：<code id="user-id-display"></code></span>
+                    <button id="clear-history" class="btn danger">清除本机记录</button>
+                </div>
+                <div id="history-list" class="history-list"></div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>MiscHub｜杂具小栈 · 一站式零散工具工作台</p>
+            <p class="icp">京ICP备2026035074号-1 | 京公网安备11010802048950号</p>
+        </footer>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

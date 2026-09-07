@@ -1,4 +1,4 @@
-name: Deploy Oral Practice to Server
+name: Deploy MiscHub to Server
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 env:
   DEPLOY_PATH: "/opt/oral-practice"
-  SERVICE_NAME: "oral-practice"
+  SERVICE_NAME: "mischub"
 
 jobs:
   build-and-deploy:
@@ -22,9 +22,9 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t oral-practice:latest .
-          docker save oral-practice:latest -o oral-practice.tar
-          chmod 644 oral-practice.tar
+          docker build -t mischub:latest .
+          docker save mischub:latest -o mischub.tar
+          chmod 644 mischub.tar
 
       - name: Copy image to server
         uses: appleboy/scp-action@v0.1.7
@@ -32,7 +32,7 @@ jobs:
           host: ${{ secrets.ORAL_HOST }}
           username: ${{ secrets.ORAL_USERNAME }}
           password: ${{ secrets.ORAL_PASSWORD }}
-          source: "oral-practice.tar,docker-compose.yml,data/topics.json"
+          source: "mischub.tar,docker-compose.yml,data/topics.json"
           target: "${{ env.DEPLOY_PATH }}"
           overwrite: true
 
@@ -47,8 +47,8 @@ jobs:
             cd ${{ env.DEPLOY_PATH }}
 
             # 加载新镜像
-            docker load -i oral-practice.tar
-            rm -f oral-practice.tar
+            docker load -i mischub.tar
+            rm -f mischub.tar
 
             # 确保数据目录存在
             mkdir -p data

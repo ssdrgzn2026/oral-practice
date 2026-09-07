@@ -714,3 +714,92 @@ select {
         font-size: 1.8rem;
     }
 }
+
+/* ===== MiscHub 首页模块卡片 ===== */
+.module-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    padding: 24px 0;
+}
+
+.module-card {
+    display: block;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 28px 22px;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    position: relative;
+}
+
+.module-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.module-icon {
+    font-size: 2.4rem;
+    margin-bottom: 12px;
+}
+
+.module-card h2 {
+    margin: 0 0 8px;
+    font-size: 1.25rem;
+}
+
+.module-card p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.92rem;
+    line-height: 1.6;
+}
+
+.module-status {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    font-size: 0.75rem;
+    padding: 2px 10px;
+    border-radius: 999px;
+}
+
+.module-status.available {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.module-status.coming {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.placeholder-box {
+    background: #fff;
+    border: 1px dashed #d1d5db;
+    border-radius: 12px;
+    padding: 48px 24px;
+    text-align: center;
+    color: #6b7280;
+}
+
+.placeholder-box p {
+    margin: 8px 0;
+}
+
+.back-home {
+    margin-top: 8px;
+    font-size: 0.85rem;
+}
+
+.back-home a {
+    color: #6366f1;
+    text-decoration: none;
+}
+
+.back-home a:hover {
+    text-decoration: underline;
+}

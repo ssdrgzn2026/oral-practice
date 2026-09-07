@@ -1,4 +1,4 @@
-# 口语AI伴侣 - Docker 镜像
+# MiscHub｜杂具小栈 - Docker 镜像
 FROM python:3.12-slim
 
 WORKDIR /app

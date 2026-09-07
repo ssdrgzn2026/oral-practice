@@ -1,7 +1,7 @@
 services:
-  oral-practice:
-    image: oral-practice:latest
-    container_name: oral-practice
+  mischub:
+    image: mischub:latest
+    container_name: mischub
     restart: unless-stopped
     ports:
       - "127.0.0.1:5000:5000"

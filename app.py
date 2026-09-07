@@ -1,7 +1,10 @@
 """
-口语AI伴侣
-一个基于 Flask + 浏览器 Web Speech API 的口语练习工具。
-支持：AI 情景对话、话题独白、影子跟读、每日表达。
+MiscHub｜杂具小栈 —— 一站式零散工具工作台
+模块：
+- /        工具导航首页
+- /oral    口语AI伴侣（Flask + 浏览器 Web Speech API 的口语练习工具）
+- /convert 格式转换系统（开发中）
+- /dcf     DCF 估值工具（开发中）
 """
 
 import json
@@ -29,6 +32,21 @@ def load_json(filename):
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/oral")
+def oral():
+    return render_template("oral.html")
+
+
+@app.route("/convert")
+def convert():
+    return render_template("convert.html")
+
+
+@app.route("/dcf")
+def dcf():
+    return render_template("dcf.html")
 
 
 @app.route("/api/random-topic")
