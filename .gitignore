@@ -13,6 +13,7 @@ venv/
 # Data
 config.bat
 口语AI伴侣/data/history.jsonl
+stats/
 格式转换系统/output/
 格式转换系统/我的数据/
 

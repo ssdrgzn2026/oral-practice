@@ -17,6 +17,7 @@ services:
       - OPENAI_WHISPER_MODEL=${OPENAI_WHISPER_MODEL:-FunAudioLLM/SenseVoiceSmall}
     volumes:
       - ./口语AI伴侣/data:/app/口语AI伴侣/data
+      - ./stats:/app/stats
 
   mischub-convert:
     build:

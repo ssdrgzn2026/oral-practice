@@ -12,8 +12,10 @@ import importlib.util
 import os
 from pathlib import Path
 
-from flask import Flask, redirect, render_template
+from flask import Flask, jsonify, redirect, render_template, request
 from flask_cors import CORS
+
+import stats_logger
 
 BASE_DIR = Path(__file__).parent
 
@@ -29,6 +31,18 @@ _module = importlib.util.module_from_spec(_spec)
 sys.modules["oral_blueprint"] = _module  # 让 Flask 能定位 Blueprint 的资源目录
 _spec.loader.exec_module(_module)
 app.register_blueprint(_module.oral_bp)
+
+
+@app.before_request
+def track_pageview():
+    if stats_logger.should_track(request.path, request.method):
+        stats_logger.log_pageview()
+
+
+@app.route("/api/visit-beat", methods=["POST"])
+def visit_beat():
+    stats_logger.log_beat(request.get_json(silent=True) or {})
+    return jsonify({"ok": True})
 
 
 @app.route("/")
