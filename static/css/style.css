@@ -803,3 +803,22 @@ select {
 .back-home a:hover {
     text-decoration: underline;
 }
+
+/* ===== 首页水墨背景 ===== */
+body.home-bg {
+    background: #f5f5f4 url('/static/img/bg.jpg') center 30% / cover no-repeat fixed;
+}
+
+body.home-bg .header h1,
+body.home-bg .header .subtitle {
+    text-shadow: 0 1px 8px rgba(255, 255, 255, 0.9), 0 0 3px rgba(255, 255, 255, 0.9);
+}
+
+body.home-bg .module-card {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(2px);
+}
+
+body.home-bg .footer {
+    text-shadow: 0 1px 6px rgba(255, 255, 255, 0.9);
+}
