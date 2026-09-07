@@ -60,6 +60,18 @@ def main():
     visits = read_jsonl(STATS_DIR / "visits.jsonl")
     beats = read_jsonl(STATS_DIR / "beats.jsonl")
 
+    # 用 IP 归属地缓存补全历史记录中的“查询中”
+    ip_cache = {}
+    cache_file = STATS_DIR / "ip_cache.json"
+    if cache_file.exists():
+        try:
+            ip_cache = json.loads(cache_file.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            pass
+    for row in visits + beats:
+        if row.get("geo") in (None, "", "查询中") and ip_cache.get(row.get("ip")):
+            row["geo"] = ip_cache[row["ip"]]
+
     if args.beats:
         for b in beats:
             print(f"{b.get('time')}  {b.get('ip'):<16} {b.get('geo',''):<14} {b.get('event'):<6} {b.get('path')}")
