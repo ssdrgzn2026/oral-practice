@@ -12,7 +12,13 @@ venv/
 
 # Data
 config.bat
-data/history.jsonl
+口语AI伴侣/data/history.jsonl
+格式转换系统/output/
+格式转换系统/我的数据/
+
+# Archives
+*.zip
+*.7z
 
 # OS
 .DS_Store

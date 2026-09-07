@@ -1,0 +1,14 @@
+﻿python : C:\veighna_studio\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.5.0) or ch
+ardet (7.4.3)/charset_normalizer (3.4.4) doesn't match a supported version!
+所在位置 行:1 字符: 28
++ cd "d:\AI\程序猿\DCF估值分析系统" ; python -c "
++                            ~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\veighna_stud...ported version!:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  warnings.warn(
+stock_financial_analysis_indicator shape: (0, 0)
+Columns: []
+Empty DataFrame
+Columns: []
+Index: []

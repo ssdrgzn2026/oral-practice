@@ -1,0 +1,27 @@
+# MiscHub Streamlit 模块镜像（格式转换系统 + DCF 估值工具共用）
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# OpenCV / 音视频处理所需系统库
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装两个 Streamlit 系统的依赖（阿里云镜像加速）
+COPY 格式转换系统/requirements.txt /tmp/req_convert.txt
+COPY DCF估值分析系统/requirements.txt /tmp/req_dcf.txt
+RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ \
+    -r /tmp/req_convert.txt -r /tmp/req_dcf.txt
+
+# 复制应用代码
+COPY . .
+
+EXPOSE 8501 8502

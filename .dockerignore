@@ -10,3 +10,12 @@ config.bat
 configure.bat
 configure_api.py
 start.bat
+*.zip
+*.7z
+*.pem
+*.key
+相关文件/
+格式转换系统/我的数据/
+格式转换系统/output/
+DCF估值分析系统/__pycache__/
+口语AI伴侣/data/history.jsonl

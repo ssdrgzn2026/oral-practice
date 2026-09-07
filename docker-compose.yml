@@ -1,5 +1,8 @@
 services:
   mischub:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: mischub:latest
     container_name: mischub
     restart: unless-stopped
@@ -13,4 +16,41 @@ services:
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
       - OPENAI_WHISPER_MODEL=${OPENAI_WHISPER_MODEL:-FunAudioLLM/SenseVoiceSmall}
     volumes:
-      - ./data:/app/data
+      - ./口语AI伴侣/data:/app/口语AI伴侣/data
+
+  mischub-convert:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    image: mischub-streamlit:latest
+    container_name: mischub-convert
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8501:8501"
+    command: >
+      streamlit run 格式转换系统/app.py
+      --server.port=8501
+      --server.address=0.0.0.0
+      --server.baseUrlPath=convert
+      --server.enableCORS=false
+      --server.enableXsrfProtection=false
+      --server.maxUploadSize=200
+      --browser.gatherUsageStats=false
+
+  mischub-dcf:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    image: mischub-streamlit:latest
+    container_name: mischub-dcf
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8502:8502"
+    command: >
+      streamlit run DCF估值分析系统/streamlit_app.py
+      --server.port=8502
+      --server.address=0.0.0.0
+      --server.baseUrlPath=dcf
+      --server.enableCORS=false
+      --server.enableXsrfProtection=false
+      --browser.gatherUsageStats=false

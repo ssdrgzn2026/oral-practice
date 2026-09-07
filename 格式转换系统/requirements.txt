@@ -1,0 +1,12 @@
+streamlit>=1.30.0
+python-docx>=1.1.0
+pdf2docx>=0.5.13
+PyMuPDF>=1.24.0
+Pillow==11.3.0
+rapidocr_onnxruntime
+qrcode
+moviepy
+pydub
+openpyxl
+numpy==2.3.5
+opencv-python-headless

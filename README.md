@@ -4,11 +4,11 @@
 
 ## 功能模块
 
-| 模块 | 路径 | 说明 | 状态 |
-|------|------|------|------|
-| **口语AI伴侣** | `/oral` | AI 情景对话、话题独白、影子跟读、每日表达、雅思口语、练习记录 | ✅ 可用 |
-| **格式转换系统** | `/convert` | 文档、图片、音视频等常见格式互转 | 🚧 开发中 |
-| **DCF 工具** | `/dcf` | 现金流折现估值工具 | 🚧 开发中 |
+| 模块 | 路径 | 技术栈 | 说明 |
+|------|------|--------|------|
+| **口语AI伴侣** | `/oral` | Flask Blueprint + Web Speech API | AI 情景对话、话题独白、影子跟读、每日表达、雅思口语、练习记录 |
+| **格式转换系统** | `/convert/` | Streamlit | PDF / Word / 图片 / 音视频等 18+ 种格式互转，本地处理，隐私安全 |
+| **DCF 工具** | `/dcf/` | Streamlit | 两阶段/三阶段现金流折现估值，敏感性分析，支持年报数据自动抓取 |
 
 ### 口语AI伴侣子功能
 
@@ -21,150 +21,98 @@
 
 ## 环境要求
 
-- Python 3.10+
-- Windows 10/11
+- Python 3.10+（本地运行口语模块）
+- 格式转换 / DCF 模块建议直接用 Docker 运行
 - 浏览器：**Chrome 或 Edge**（语音识别依赖 Web Speech API）
 
-## 快速启动
+## 快速启动（本地）
+
+口语模块（主站）：
 
 1. 双击运行 `start.bat`
 2. 等待浏览器自动打开 `http://127.0.0.1:5000`
-3. 选择练习模块开始
 
-首次启动会自动创建 `.venv` 虚拟环境并安装依赖。
+格式转换 / DCF 模块（本地开发，可选）：
+
+```bash
+pip install -r 格式转换系统/requirements.txt
+streamlit run 格式转换系统/app.py --server.port=8501
+
+pip install -r DCF估值分析系统/requirements.txt
+streamlit run DCF估值分析系统/streamlit_app.py --server.port=8502
+```
+
+启动后首页点击对应卡片会自动跳转到本地 8501 / 8502 端口。
 
 ## 配置 AI 对话（可选）
 
-如果只想用本地练习功能（话题独白、影子跟读、每日表达），**无需任何配置**。
-
-若要使用 AI 对话，双击 `configure.bat`，按提示输入 API Key 和 Base URL，然后重新启动系统即可。
-
-支持任意 OpenAI 兼容接口，例如 Kimi、DeepSeek、OpenAI 等。
+若要使用 AI 对话，双击 `configure.bat`，按提示输入 API Key 和 Base URL，然后重新启动系统即可。支持任意 OpenAI 兼容接口（Kimi、DeepSeek、OpenAI 等）。
 
 ## 项目结构
 
 ```
 MiscHub/
-├── app.py                 # Flask 后端（首页导航 + 各模块路由）
-├── requirements.txt       # 依赖
-├── Dockerfile             # Docker 镜像
-├── docker-compose.yml     # Docker 部署配置
+├── app.py                 # Flask 主应用（首页导航 + 加载口语 Blueprint）
+├── requirements.txt       # 主应用依赖
+├── Dockerfile             # 主应用镜像（Flask + gunicorn）
+├── Dockerfile.streamlit   # Streamlit 模块镜像（格式转换 + DCF 共用）
+├── docker-compose.yml     # 三个服务：mischub / mischub-convert / mischub-dcf
 ├── start.bat              # 本地一键启动脚本
 ├── configure.bat          # 本地 API 配置入口
 ├── configure_api.py       # 本地 API 配置脚本
-├── config.bat             # 生成的本地 API 配置（由 configure.bat 生成）
 ├── .github/workflows/     # GitHub Actions 自动部署
-├── data/
-│   ├── topics.json        # 口语题库与素材
-│   └── history.jsonl      # 练习记录（自动生成）
-├── static/
-│   ├── css/style.css      # 样式
-│   └── js/app.js          # 口语模块前端逻辑
-└── templates/
-    ├── index.html         # MiscHub 工具导航首页
-    ├── oral.html          # 口语AI伴侣
-    ├── convert.html       # 格式转换系统（占位）
-    └── dcf.html           # DCF 工具（占位）
+├── templates/index.html   # MiscHub 工具导航首页
+├── static/css/style.css   # 首页样式
+├── 口语AI伴侣/            # 口语模块（Flask Blueprint）
+│   ├── blueprint.py       # 口语模块路由与 API
+│   ├── templates/oral.html
+│   ├── static/css|js/
+│   └── data/topics.json   # 题库与素材（history.jsonl 自动生成）
+├── 格式转换系统/          # Streamlit 应用
+│   ├── app.py
+│   └── converter.py       # 转换核心逻辑
+└── DCF估值分析系统/       # Streamlit 应用
+    ├── streamlit_app.py
+    └── core/              # DCF 计算引擎与数据抓取
 ```
 
-## 部署到服务器（最小可行版）
+## 部署架构
 
-### 1. 本地准备
-
-```bash
-git add .
-git commit -m "init oral practice system"
+```
+浏览器
+  │  https://oral.pingxu.xin
+  ▼
+nginx (443)
+  ├── /          → mischub (Flask, 127.0.0.1:5000)
+  ├── /convert/  → mischub-convert (Streamlit, 127.0.0.1:8501, WebSocket)
+  └── /dcf/      → mischub-dcf (Streamlit, 127.0.0.1:8502, WebSocket)
 ```
 
-### 2. 在 GitHub 创建仓库
+每次 push 到 `main` 分支，GitHub Actions 会将源码上传到服务器（`/opt/oral-practice`），在服务器上构建镜像并用 docker compose 重启三个服务。
 
-登录 GitHub，新建一个仓库（例如 `oral-practice`），不要初始化 README。
-
-### 3. 推送代码
-
-```bash
-git remote add origin https://github.com/你的用户名/oral-practice.git
-git push -u origin main
-```
-
-### 4. 配置 GitHub Secrets
-
-进入仓库 → Settings → Secrets and variables → Actions → New repository secret，添加：
+### GitHub Secrets
 
 | Secret 名 | 说明 |
 |---|---|
-| `ORAL_HOST` | 平叙平台服务器 IP 地址 |
-| `ORAL_USERNAME` | SSH 用户名（通常是 root 或 ubuntu） |
-| `ORAL_SSH_KEY` | SSH 私钥（~/.ssh/id_rsa 的内容） |
+| `ORAL_HOST` | 服务器地址 |
+| `ORAL_USERNAME` | SSH 用户名 |
+| `ORAL_PASSWORD` | SSH 密码 |
 | `OPENAI_API_KEY` | （可选）AI 对话 API Key |
-| `OPENAI_BASE_URL` | （可选）API Base URL，默认 `https://api.openai.com/v1` |
+| `OPENAI_BASE_URL` | （可选）API Base URL |
 | `OPENAI_MODEL` | （可选）模型名，默认 `gpt-4o-mini` |
-
-### 5. 服务器上准备目录
-
-SSH 登录服务器，执行：
-
-```bash
-sudo mkdir -p /opt/oral-practice
-sudo chown $USER:$USER /opt/oral-practice
-```
-
-确保服务器已安装 Docker 和 Docker Compose：
-
-```bash
-docker --version
-docker compose version
-```
-
-### 6. 自动部署
-
-每次 push 到 `main` 分支，GitHub Actions 会自动：
-- 构建 Docker 镜像
-- 上传到服务器
-- 启动/重启容器
-
-部署完成后，访问：
-
-```
-http://服务器IP:5000
-```
-
-手机浏览器打开同一个链接即可使用。
-
-### 7. 协作开发
-
-其他电脑：
-
-```bash
-git clone https://github.com/你的用户名/oral-practice.git
-cd oral-practice
-# 修改代码
-git add .
-git commit -m "update"
-git push origin main
-```
-
-push 后会自动部署到服务器。
-
-## 使用建议
-
-- **每天坚持 15 分钟**：话题独白 5 分钟 + 影子跟读 5 分钟 + 每日表达 5 分钟。
-- **大声说出来**：语音识别只能识别你真正说出的内容，不要默念。
-- **回看记录**：定期在“练习记录”里回顾自己的表达，找出重复错误。
+| `OPENAI_WHISPER_MODEL` | （可选）语音转写模型 |
 
 ## 常见问题
 
-**Q：麦克风没反应？**  
+**Q：麦克风没反应？**
 A：请使用 Chrome 或 Edge，并确保浏览器已授权麦克风权限。
 
-**Q：AI 对话提示未配置 API？**  
-A：双击 `configure.bat` 配置 API 后重启；不配置也能使用其他三个模块。
+**Q：AI 对话提示未配置 API？**
+A：双击 `configure.bat` 配置 API 后重启；不配置也能使用口语模块的其他功能。
 
-**Q：识别准确率不高？**  
-A：尽量在安静环境练习，语速适中，发音清晰。识别结果仅供参考，重点是开口说。
+**Q：格式转换 / DCF 页面打不开？**
+A：生产环境检查 `docker ps` 确认 `mischub-convert` / `mischub-dcf` 容器在运行；本地开发需先按上文手动启动对应的 Streamlit 服务。
 
 ## 许可证
 
 仅供个人学习使用。
-
-
