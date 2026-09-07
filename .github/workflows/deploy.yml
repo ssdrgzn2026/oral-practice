@@ -21,6 +21,7 @@ jobs:
           tar --exclude=.git \
               --exclude=.venv \
               --exclude=__pycache__ \
+              --exclude=mischub-src.tar.gz \
               --exclude="*.zip" \
               --exclude="*.7z" \
               --exclude="*.pem" \
