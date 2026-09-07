@@ -14,7 +14,7 @@ services:
       - FLASK_PORT=5000
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
-      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - OPENAI_MODEL=${OPENAI_MODEL:-Qwen/Qwen3-8B}
       - OPENAI_WHISPER_MODEL=${OPENAI_WHISPER_MODEL:-FunAudioLLM/SenseVoiceSmall}
     volumes:
       - ./口语AI伴侣/data:/app/口语AI伴侣/data

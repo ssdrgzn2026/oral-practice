@@ -49,12 +49,10 @@ jobs:
 
             mkdir -p 口语AI伴侣/data
 
-            # 创建或覆盖环境变量文件
+            # 创建或覆盖环境变量文件（模型配置走 docker-compose.yml 的默认值，不再由 secret 覆盖）
             cat > .env <<EOF
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY || '' }}
             OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL || 'https://api.openai.com/v1' }}
-            OPENAI_MODEL=${{ secrets.OPENAI_MODEL || 'gpt-4o-mini' }}
-            OPENAI_WHISPER_MODEL=${{ secrets.OPENAI_WHISPER_MODEL || 'FunAudioLLM/SenseVoiceSmall' }}
             EOF
 
             # 在服务器上构建镜像并重启服务

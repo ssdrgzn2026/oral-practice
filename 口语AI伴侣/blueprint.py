@@ -73,7 +73,7 @@ def chat():
     if not api_key:
         return jsonify({"error": "未配置 OPENAI_API_KEY，请在 start.bat 中设置后重启。"}), 401
 
-    model = body.get("model") or os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+    model = body.get("model") or os.environ.get("OPENAI_MODEL", "Qwen/Qwen3-8B")
     stream = body.get("stream", False)
     payload = {
         "model": model,
@@ -82,6 +82,9 @@ def chat():
         "temperature": 0.8,
         "max_tokens": 120,
     }
+    # Qwen3 系列默认开启思考模式，口语对话不需要，关掉可提速数倍
+    if model.startswith("Qwen/Qwen3"):
+        payload["chat_template_kwargs"] = {"enable_thinking": False}
 
     try:
         resp = requests.post(
