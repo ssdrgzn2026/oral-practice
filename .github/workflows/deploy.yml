@@ -18,19 +18,9 @@ jobs:
 
       - name: Pack source
         run: |
-          tar --exclude=.git \
-              --exclude=.venv \
-              --exclude=__pycache__ \
-              --exclude=mischub-src.tar.gz \
-              --exclude="*.zip" \
-              --exclude="*.7z" \
-              --exclude="*.pem" \
-              --exclude="*.key" \
-              --exclude=相关文件 \
-              --exclude=格式转换系统/我的数据 \
-              --exclude=格式转换系统/output \
-              -czf mischub-src.tar.gz .
+          git archive --format=tar.gz -o mischub-src.tar.gz HEAD
           chmod 644 mischub-src.tar.gz
+          ls -lh mischub-src.tar.gz
 
       - name: Copy source to server
         uses: appleboy/scp-action@v0.1.7
