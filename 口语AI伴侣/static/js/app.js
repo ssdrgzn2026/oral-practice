@@ -260,12 +260,43 @@ function stopRecording() {
     }
 }
 
+// ========== 美式发音：挑选最优 en-US 语音 ==========
+// 优先级：Edge/Chrome 的在线自然语音 > iOS 的增强语音 > 系统自带美式语音
+let cachedVoice = null;
+function pickBestUSVoice() {
+    if (!synth) return null;
+    const voices = synth.getVoices().filter((v) => v.lang.replace("_", "-").startsWith("en-US"));
+    if (!voices.length) return null;
+    const preferred = [
+        "Aria", "Jenny", "Guy", "Christopher", "Eric",   // Edge 在线自然语音
+        "Google US English",                              // Chrome 网络语音
+        "Samantha", "Ava", "Allison", "Zoe", "Evan",      // iOS/macOS 美式
+        "Zira", "David", "Mark",                          // Windows SAPI
+    ];
+    for (const key of preferred) {
+        const hit = voices.find((v) => v.name.includes(key));
+        if (hit) return hit;
+    }
+    return voices.find((v) => /natural|enhanced|online/i.test(v.name)) || voices[0];
+}
+function getUSVoice() {
+    if (!cachedVoice) cachedVoice = pickBestUSVoice();
+    return cachedVoice;
+}
+if (synth) {
+    synth.onvoiceschanged = () => { cachedVoice = pickBestUSVoice(); };
+}
+
 function speak(text, lang = "en-US", rate = 0.9, onend) {
     if (!synth) return null;
     if (synth.speaking) synth.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = lang;
     u.rate = rate;
+    if (lang.startsWith("en")) {
+        const v = getUSVoice();
+        if (v) u.voice = v;
+    }
     if (onend) u.onend = onend;
     synth.speak(u);
     return u;
@@ -1186,6 +1217,8 @@ $("#cet6-play").addEventListener("click", () => {
         const u = new SpeechSynthesisUtterance(p.transcript);
         u.lang = "en-US";
         u.rate = rate;
+        const v = getUSVoice();
+        if (v) u.voice = v;
         cet6Utterances.push(u);
         synth.speak(u);
     });
