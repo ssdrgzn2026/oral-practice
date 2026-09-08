@@ -111,6 +111,35 @@ def _save_subs(subs):
         SUBS_FILE.write_text(json.dumps(subs, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
+# ========== 模块使用计数 ==========
+CARD_CLICKS_FILE = stats_logger.STATS_DIR / "card_clicks.json"
+
+
+@app.route("/api/card-stats")
+def card_stats():
+    try:
+        return jsonify(json.loads(CARD_CLICKS_FILE.read_text(encoding="utf-8")))
+    except (OSError, json.JSONDecodeError):
+        return jsonify({})
+
+
+@app.route("/api/card-click", methods=["POST"])
+def card_click():
+    body = request.get_json(silent=True) or {}
+    module = str(body.get("module", ""))[:32]
+    if not module:
+        return jsonify({"error": "module required"}), 400
+    stats_logger.STATS_DIR.mkdir(exist_ok=True)
+    with stats_logger._write_lock:
+        try:
+            data = json.loads(CARD_CLICKS_FILE.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            data = {}
+        data[module] = data.get(module, 0) + 1
+        CARD_CLICKS_FILE.write_text(json.dumps(data), encoding="utf-8")
+    return jsonify({"ok": True, "count": data[module]})
+
+
 @app.route("/tickets")
 def tickets():
     return render_template("tickets.html")

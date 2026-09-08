@@ -21,29 +21,29 @@
 
         <main class="main">
             <div class="module-grid">
-                <a class="module-card" href="/oral">
+                <a class="module-card" href="/oral" data-module="oral">
                     <div class="module-icon">🎙️</div>
                     <h2>口语AI伴侣</h2>
                     <p>AI 情景对话、话题独白、影子跟读、每日表达、雅思口语，一站式口语练习。</p>
-                    <span class="module-status available">可用</span>
+                    <span class="module-status available module-count" id="count-oral">·</span>
                 </a>
-                <a class="module-card" href="/convert/">
+                <a class="module-card" href="/convert/" data-module="convert">
                     <div class="module-icon">🔄</div>
                     <h2>格式转换系统</h2>
                     <p>PDF / Word / 图片 / 音视频等 18+ 种格式互转，本地处理，隐私安全。</p>
-                    <span class="module-status available">可用</span>
+                    <span class="module-status available module-count" id="count-convert">·</span>
                 </a>
-                <a class="module-card" href="/tickets">
+                <a class="module-card" href="/tickets" data-module="tickets">
                     <div class="module-icon">⏰</div>
                     <h2>票务提醒</h2>
                     <p>医院放号、演出开票前 2 分钟微信提醒，可查北京各大医院放号规律。</p>
-                    <span class="module-status available">可用</span>
+                    <span class="module-status available module-count" id="count-tickets">·</span>
                 </a>
-                <a class="module-card" href="/dcf/">
+                <a class="module-card" href="/dcf/" data-module="dcf">
                     <div class="module-icon">📈</div>
                     <h2>DCF 工具</h2>
                     <p>现金流折现估值系统，支持两阶段/三阶段模型与敏感性分析。</p>
-                    <span class="module-status available">可用</span>
+                    <span class="module-status available module-count" id="count-dcf">·</span>
                 </a>
             </div>
         </main>
@@ -54,6 +54,32 @@
         </footer>
     </div>
     <script src="/static/js/track.js"></script>
+    <script>
+    // 模块使用计数：点击上报 + 展示累计次数
+    (function () {
+        fetch("/api/card-stats").then(function (r) { return r.json(); }).then(function (d) {
+            Object.keys(d).forEach(function (m) {
+                var el = document.getElementById("count-" + m);
+                if (el) el.textContent = d[m] + " 次使用";
+            });
+        }).catch(function () {});
+
+        document.querySelectorAll(".module-card[data-module]").forEach(function (card) {
+            card.addEventListener("click", function () {
+                var m = card.dataset.module;
+                var el = document.getElementById("count-" + m);
+                fetch("/api/card-click", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ module: m }),
+                    keepalive: true,
+                }).then(function (r) { return r.json(); }).then(function (d) {
+                    if (el && d.count) el.textContent = d.count + " 次使用";
+                }).catch(function () {});
+            });
+        });
+    })();
+    </script>
     <script src="/static/js/pwa.js"></script>
     <script>
         if ("serviceWorker" in navigator) {
