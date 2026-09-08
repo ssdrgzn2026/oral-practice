@@ -73,7 +73,7 @@ def chat():
     if not api_key:
         return jsonify({"error": "未配置 OPENAI_API_KEY，请在 start.bat 中设置后重启。"}), 401
 
-    model = body.get("model") or os.environ.get("OPENAI_MODEL", "Qwen/Qwen3-8B")
+    model = body.get("model") or os.environ.get("OPENAI_MODEL", "Qwen/Qwen3-14B")
     stream = body.get("stream", False)
     payload = {
         "model": model,
@@ -137,7 +137,7 @@ def transcribe():
     model = (
         request.form.get("model")
         or whisper_model
-        or "FunAudioLLM/SenseVoiceSmall"
+        or "Qwen/Qwen3-ASR-1.7B"
     )
 
     try:
