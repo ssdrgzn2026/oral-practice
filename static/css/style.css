@@ -822,3 +822,49 @@ body.home-bg .module-card {
 body.home-bg .footer {
     text-shadow: 0 1px 6px rgba(255, 255, 255, 0.9);
 }
+
+/* ===== PWA 安装提示条 ===== */
+#a2hs-banner {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(79, 70, 229, 0.97);
+    color: #fff;
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    font-size: 0.88rem;
+    line-height: 1.5;
+    animation: a2hs-up 0.3s ease;
+}
+
+@keyframes a2hs-up {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+#a2hs-banner .a2hs-text { flex: 1; }
+
+#a2hs-banner .a2hs-btn {
+    background: #fff;
+    color: #4f46e5;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+#a2hs-banner .a2hs-close {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.3rem;
+    line-height: 1;
+    padding: 4px;
+}
