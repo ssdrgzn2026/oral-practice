@@ -20,6 +20,7 @@ services:
       - ./口语AI伴侣/data:/app/口语AI伴侣/data
       - ./stats:/app/stats
       - ./downloads:/app/downloads
+      - ./reminder-data:/app/reminder-data
 
   mischub-convert:
     build:
@@ -67,3 +68,17 @@ services:
       --server.enableCORS=false
       --server.enableXsrfProtection=false
       --browser.gatherUsageStats=false
+
+  mischub-reminder:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mischub:latest
+    container_name: mischub-reminder
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
+      - MISC_REMINDER_DIR=/app/reminder-data
+    volumes:
+      - ./reminder-data:/app/reminder-data
+    command: ["python", "scripts/reminder_worker.py"]

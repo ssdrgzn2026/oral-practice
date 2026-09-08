@@ -9,7 +9,11 @@ MiscHub｜杂具小栈 —— 一站式零散工具工作台
 """
 
 import importlib.util
+import json
 import os
+import threading
+import uuid
+from datetime import datetime
 from pathlib import Path
 
 from flask import Flask, jsonify, redirect, render_template, request, send_from_directory
@@ -83,6 +87,107 @@ def convert():
 def dcf():
     # 生产环境由 nginx 将 /dcf/ 反代到 Streamlit（8502），不会走到这里
     return redirect("http://127.0.0.1:8502/")
+
+
+# ========== 票务提醒 ==========
+REMINDER_DIR = Path(os.environ.get("MISC_REMINDER_DIR", str(BASE_DIR / "reminder-data")))
+REMINDER_DIR.mkdir(exist_ok=True)
+SUBS_FILE = REMINDER_DIR / "subscriptions.json"
+_subs_lock = threading.Lock()
+
+
+def _load_subs():
+    with _subs_lock:
+        if not SUBS_FILE.exists():
+            return []
+        try:
+            return json.loads(SUBS_FILE.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return []
+
+
+def _save_subs(subs):
+    with _subs_lock:
+        SUBS_FILE.write_text(json.dumps(subs, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
+@app.route("/tickets")
+def tickets():
+    return render_template("tickets.html")
+
+
+@app.route("/api/hospital-rules")
+def hospital_rules():
+    q = request.args.get("q", "").strip()
+    try:
+        data = json.loads((BASE_DIR / "data" / "hospital_rules.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return jsonify([])
+    hospitals = data.get("hospitals", [])
+    if q:
+        hospitals = [h for h in hospitals
+                     if q in h["name"] or any(q in k for k in h.get("keywords", []))]
+    return jsonify(hospitals[:10])
+
+
+@app.route("/api/tickets/subscribe", methods=["POST"])
+def tickets_subscribe():
+    body = request.get_json(silent=True) or {}
+    uid = str(body.get("uid", ""))[:64]
+    kind = body.get("kind")
+    sendkey = str(body.get("sendkey", "")).strip()[:64]
+    if not uid or not sendkey:
+        return jsonify({"error": "缺少用户标识或 SendKey"}), 400
+
+    sub = {"id": uuid.uuid4().hex[:12], "uid": uid, "kind": kind, "sendkey": sendkey}
+    if kind == "hospital":
+        hospital = str(body.get("hospital", "")).strip()[:64]
+        release_time = str(body.get("release_time", "")).strip()[:5]
+        if not hospital or not release_time:
+            return jsonify({"error": "缺少医院名称或放号时间"}), 400
+        sub.update({
+            "hospital": hospital,
+            "doctor": str(body.get("doctor", "")).strip()[:32],
+            "release_time": release_time,
+            "last_fired": "",
+        })
+    elif kind == "event":
+        title = str(body.get("title", "")).strip()[:128]
+        event_time = str(body.get("event_time", "")).strip()[:16]
+        if not title or not event_time:
+            return jsonify({"error": "缺少活动名称或开票时间"}), 400
+        sub.update({
+            "title": title,
+            "event_time": event_time,
+            "link": str(body.get("link", "")).strip()[:256],
+            "fired": False,
+        })
+    else:
+        return jsonify({"error": "未知类型"}), 400
+
+    subs = _load_subs()
+    subs.append(sub)
+    _save_subs(subs)
+    return jsonify({"ok": True, "id": sub["id"]})
+
+
+@app.route("/api/tickets/list")
+def tickets_list():
+    uid = request.args.get("uid", "")
+    subs = [s for s in _load_subs() if s.get("uid") == uid]
+    # 不回传 sendkey
+    for s in subs:
+        s.pop("sendkey", None)
+    return jsonify(subs)
+
+
+@app.route("/api/tickets/delete", methods=["POST"])
+def tickets_delete():
+    body = request.get_json(silent=True) or {}
+    uid, sub_id = body.get("uid", ""), body.get("id", "")
+    subs = _load_subs()
+    _save_subs([s for s in subs if not (s.get("uid") == uid and s.get("id") == sub_id)])
+    return jsonify({"ok": True})
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ IP_CACHE_FILE = STATS_DIR / "ip_cache.json"
 _write_lock = threading.Lock()
 _ip_cache = None
 # nginx 反代到 Flask 的路径才统计页面访问；/convert/ /dcf/ 由 nginx 直接转发，见 nginx 访问日志
-_TRACKED_PAGES = {"/", "/oral"}
+_TRACKED_PAGES = {"/", "/oral", "/tickets"}
 
 
 def _append_jsonl(path, record):

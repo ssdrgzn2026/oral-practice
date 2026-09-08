@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>票务提醒 · MiscHub</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>⏰ 票务提醒</h1>
+            <p class="subtitle">放号/开票前 2 分钟微信提醒，不错过每一个机会</p>
+            <p class="back-home"><a href="/">← 返回 MiscHub 首页</a></p>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab active" data-tab="hospital">🏥 医院挂号</button>
+            <button class="tab" data-tab="event">🎫 演出展览</button>
+            <button class="tab" data-tab="mine">📋 我的提醒</button>
+        </nav>
+
+        <main class="main">
+            <!-- 医院挂号 -->
+            <section id="tab-hospital" class="panel active">
+                <div class="card">
+                    <h3>查医院放号时间</h3>
+                    <div class="input-area">
+                        <input type="text" id="h-search" placeholder="输入医院名称，如：协和、安定、儿研所…">
+                        <button id="h-search-btn" class="btn primary">查询</button>
+                    </div>
+                    <div id="h-results"></div>
+                </div>
+
+                <div class="card">
+                    <h3>订阅放号提醒</h3>
+                    <p class="hint">到该医院放号时间前 2 分钟，微信推送提醒你打开 114 挂号</p>
+                    <div class="form-grid">
+                        <input type="text" id="h-name" placeholder="医院名称（必填）">
+                        <input type="text" id="h-doctor" placeholder="医生姓名（选填，写进提醒内容）">
+                        <input type="time" id="h-time" value="08:00">
+                        <input type="text" id="h-sendkey" placeholder="Server酱 SendKey（见页面底部说明）">
+                    </div>
+                    <button id="h-sub-btn" class="btn primary">订阅每日提醒</button>
+                </div>
+            </section>
+
+            <!-- 演出展览 -->
+            <section id="tab-event" class="panel">
+                <div class="card">
+                    <h3>订阅开票提醒</h3>
+                    <p class="hint">把大麦/猫眼/秀动页面上的开票时间填进来，开票前 2 分钟微信提醒</p>
+                    <div class="form-grid">
+                        <input type="text" id="e-title" placeholder="活动名称，如：周杰伦演唱会北京站">
+                        <input type="datetime-local" id="e-time">
+                        <input type="text" id="e-link" placeholder="购票链接（选填）">
+                        <input type="text" id="e-sendkey" placeholder="Server酱 SendKey（见页面底部说明）">
+                    </div>
+                    <button id="e-sub-btn" class="btn primary">订阅开票提醒</button>
+                </div>
+            </section>
+
+            <!-- 我的提醒 -->
+            <section id="tab-mine" class="panel">
+                <div class="card">
+                    <h3>我的提醒</h3>
+                    <div id="my-list"><p class="hint">暂无订阅</p></div>
+                </div>
+            </section>
+
+            <div class="card" style="margin-top:16px;">
+                <h4>🔑 如何获取 SendKey（30 秒）</h4>
+                <p class="hint" style="line-height:1.8;">
+                    1. 微信扫码或打开 <a href="https://sct.ftqq.com" target="_blank" rel="noopener">sct.ftqq.com</a> 登录「Server酱」<br>
+                    2. 登录后复制你的 SendKey（以 SCT 开头）粘贴到上方输入框<br>
+                    3. 提醒会推送到你的微信，无需装任何 App<br>
+                    SendKey 会保存在本机浏览器，仅用于给你自己发提醒。
+                </p>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>MiscHub｜杂具小栈 · 一站式零散工具工作台</p>
+            <p class="icp">京ICP备2026035074号-1 | 京公网安备11010802048950号</p>
+        </footer>
+    </div>
+
+    <script>
+    (function () {
+        // 匿名用户标识
+        var uid = localStorage.getItem("mischub_uid");
+        if (!uid) {
+            uid = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+            localStorage.setItem("mischub_uid", uid);
+        }
+        // SendKey 本机记忆
+        ["h-sendkey", "e-sendkey"].forEach(function (id) {
+            var el = document.getElementById(id);
+            el.value = localStorage.getItem("mischub_sendkey") || "";
+            el.addEventListener("change", function () {
+                localStorage.setItem("mischub_sendkey", el.value);
+            });
+        });
+
+        // Tab 切换
+        document.querySelectorAll(".tab").forEach(function (t) {
+            t.addEventListener("click", function () {
+                document.querySelectorAll(".tab").forEach(function (x) { x.classList.remove("active"); });
+                document.querySelectorAll(".panel").forEach(function (x) { x.classList.remove("active"); });
+                t.classList.add("active");
+                document.getElementById("tab-" + t.dataset.tab).classList.add("active");
+                if (t.dataset.tab === "mine") loadMine();
+            });
+        });
+
+        function post(url, body) {
+            return fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            }).then(function (r) { return r.json(); });
+        }
+
+        // 医院查询
+        function searchHospitals() {
+            var q = document.getElementById("h-search").value.trim();
+            fetch("/api/hospital-rules?q=" + encodeURIComponent(q))
+                .then(function (r) { return r.json(); })
+                .then(function (list) {
+                    var box = document.getElementById("h-results");
+                    if (!list.length) {
+                        box.innerHTML = "<p class='hint'>没查到这家医院的放号规律。可以在下方手动填放号时间订阅提醒；也可到 " +
+                            "<a href='https://www.114yygh.com' target='_blank' rel='noopener'>114 预约挂号平台</a> 查询出诊信息。</p>";
+                        return;
+                    }
+                    box.innerHTML = list.map(function (h) {
+                        return "<div class='rule-card'>" +
+                            "<b>" + h.name + "</b>" +
+                            "<span class='rule-time'>每天 " + h.release_time + " 放号（可约 " + h.advance_days + " 天内）</span>" +
+                            "<span class='hint'>" + (h.note || "") + "</span>" +
+                            "<button class='btn secondary rule-use' data-name='" + h.name + "' data-time='" + h.release_time + "'>用这个时间订阅</button>" +
+                            "</div>";
+                    }).join("");
+                    box.querySelectorAll(".rule-use").forEach(function (b) {
+                        b.addEventListener("click", function () {
+                            document.getElementById("h-name").value = b.dataset.name;
+                            document.getElementById("h-time").value = b.dataset.time;
+                            window.scrollTo({ top: document.getElementById("h-sub-btn").offsetTop - 200, behavior: "smooth" });
+                        });
+                    });
+                });
+        }
+        document.getElementById("h-search-btn").addEventListener("click", searchHospitals);
+        document.getElementById("h-search").addEventListener("keydown", function (e) {
+            if (e.key === "Enter") searchHospitals();
+        });
+
+        // 订阅-医院
+        document.getElementById("h-sub-btn").addEventListener("click", function () {
+            var body = {
+                uid: uid,
+                kind: "hospital",
+                hospital: document.getElementById("h-name").value.trim(),
+                doctor: document.getElementById("h-doctor").value.trim(),
+                release_time: document.getElementById("h-time").value,
+                sendkey: document.getElementById("h-sendkey").value.trim(),
+            };
+            if (!body.hospital || !body.release_time || !body.sendkey) {
+                alert("请填写医院名称、放号时间和 SendKey"); return;
+            }
+            post("/api/tickets/subscribe", body).then(function (r) {
+                alert(r.ok ? "✅ 订阅成功！每天 " + body.release_time + " 前 2 分钟会微信提醒你" : ("失败：" + (r.error || "")));
+            });
+        });
+
+        // 订阅-演出
+        document.getElementById("e-sub-btn").addEventListener("click", function () {
+            var body = {
+                uid: uid,
+                kind: "event",
+                title: document.getElementById("e-title").value.trim(),
+                event_time: document.getElementById("e-time").value,
+                link: document.getElementById("e-link").value.trim(),
+                sendkey: document.getElementById("e-sendkey").value.trim(),
+            };
+            if (!body.title || !body.event_time || !body.sendkey) {
+                alert("请填写活动名称、开票时间和 SendKey"); return;
+            }
+            post("/api/tickets/subscribe", body).then(function (r) {
+                alert(r.ok ? "✅ 订阅成功！开票前 2 分钟会微信提醒你" : ("失败：" + (r.error || "")));
+            });
+        });
+
+        // 我的提醒
+        function loadMine() {
+            fetch("/api/tickets/list?uid=" + encodeURIComponent(uid))
+                .then(function (r) { return r.json(); })
+                .then(function (list) {
+                    var box = document.getElementById("my-list");
+                    if (!list.length) { box.innerHTML = "<p class='hint'>暂无订阅</p>"; return; }
+                    box.innerHTML = list.map(function (s) {
+                        var desc = s.kind === "hospital"
+                            ? "🏥 " + s.hospital + (s.doctor ? " · " + s.doctor : "") + "　每天 " + s.release_time + " 前 2 分钟提醒"
+                            : "🎫 " + s.title + "　开票时间 " + (s.event_time || "").replace("T", " ") + "，前 2 分钟提醒";
+                        return "<div class='rule-card'><span>" + desc + "</span>" +
+                            "<button class='btn danger rule-del' data-id='" + s.id + "'>删除</button></div>";
+                    }).join("");
+                    box.querySelectorAll(".rule-del").forEach(function (b) {
+                        b.addEventListener("click", function () {
+                            post("/api/tickets/delete", { uid: uid, id: b.dataset.id }).then(loadMine);
+                        });
+                    });
+                });
+        }
+    })();
+    </script>
+    <script src="/static/js/track.js"></script>
+    <script src="/static/js/pwa.js"></script>
+</body>
+</html>
