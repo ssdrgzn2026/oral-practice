@@ -117,7 +117,8 @@ def fetch_financial_data(stock_code, years=4):
             result["error"] = "未能解析出有效的年度财务数据"
             return result
 
-        # 2. 个股信息（总股本、市值、行业）- 通常0.3-0.5秒
+        # 2. 个股信息（名称、最新价、总股本）
+        # 东方财富接口对云服务器 IP 有风控，失败时回退到腾讯行情接口
         try:
             info_df = ak.stock_individual_info_em(symbol=code)
             if info_df is not None and not info_df.empty:
@@ -129,6 +130,23 @@ def fetch_financial_data(stock_code, years=4):
                 result["company_name"] = str(info_dict.get("股票简称", code))
         except Exception:
             pass
+
+        if result["latest_price"] is None:
+            try:
+                import requests as _rq
+                prefix = "sh" if code.startswith(("6", "9")) else ("bj" if code.startswith(("4", "8")) else "sz")
+                r = _rq.get(f"https://qt.gtimg.cn/q={prefix}{code}", timeout=8)
+                r.encoding = "gbk"
+                parts = r.text.split("=", 1)[1].strip('";').split("~")
+                if len(parts) > 45 and parts[1]:
+                    result["company_name"] = parts[1]
+                    price = _safe_float(parts[3])
+                    total_mv_yi = _safe_float(parts[45])  # 总市值（亿元）
+                    result["latest_price"] = price or None
+                    if price > 0 and total_mv_yi > 0:
+                        result["shares"] = round(total_mv_yi / price, 2)
+            except Exception:
+                pass
 
     except Exception as e:
         result["error"] = f"数据抓取失败: {str(e)}"
