@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件下载 · MiscHub</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>📦 文件已就绪</h1>
+            <p class="subtitle">{{ filename }}</p>
+        </header>
+
+        <main class="main">
+            <div class="card" style="text-align:center; padding:32px 20px;">
+                <button id="save-btn" class="btn primary" style="font-size:1.05rem; padding:14px 28px;">
+                    ⬇️ 保存 / 分享文件
+                </button>
+                <p id="save-tip" class="hint" style="margin-top:12px;">
+                    iPhone：点上方按钮后选「存储到文件」或用 WPS 打开
+                </p>
+                <p class="hint" style="margin-top:16px;">
+                    <a id="raw-link" href="{{ raw_url }}">如果按钮没反应，点这里直接下载</a>
+                </p>
+            </div>
+            <div class="card" style="text-align:center;">
+                <a href="/convert/" style="color:#4f46e5; font-weight:600;">← 返回格式转换系统</a>
+                &nbsp;&nbsp;
+                <a href="/" style="color:#4f46e5; font-weight:600;">返回 MiscHub 首页</a>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>MiscHub｜杂具小栈 · 一站式零散工具工作台</p>
+            <p class="icp">京ICP备2026035074号-1 | 京公网安备11010802048950号</p>
+        </footer>
+    </div>
+
+    <script>
+    (function () {
+        var rawUrl = {{ raw_url | tojson }};
+        var filename = {{ filename | tojson }};
+        var btn = document.getElementById("save-btn");
+        var tip = document.getElementById("save-tip");
+
+        btn.addEventListener("click", function () {
+            btn.disabled = true;
+            btn.textContent = "正在准备文件…";
+            fetch(rawUrl)
+                .then(function (r) { return r.blob(); })
+                .then(function (blob) {
+                    var file = new File([blob], filename, { type: blob.type });
+                    // 优先用系统分享浮层（页面不被顶掉）
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        return navigator.share({ files: [file], title: filename }).catch(function () {});
+                    }
+                    // 不支持分享则退回直接下载
+                    window.location.href = rawUrl;
+                })
+                .catch(function () {
+                    tip.textContent = "加载失败，请点下方链接重试";
+                })
+                .finally(function () {
+                    btn.disabled = false;
+                    btn.textContent = "⬇️ 保存 / 分享文件";
+                });
+        });
+    })();
+    </script>
+</body>
+</html>

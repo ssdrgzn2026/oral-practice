@@ -67,7 +67,12 @@ def download_file(token, filename):
     matches = list(download_dir.glob(f"{token}.*"))
     if not matches:
         return "文件已过期或不存在，请重新转换", 404
-    return send_file(matches[0], as_attachment=True, download_name=filename)
+    # ?raw=1 直接给文件；否则给中转下载页（iOS PWA 里直接下载会把页面顶掉）
+    if request.args.get("raw") == "1":
+        return send_file(matches[0], as_attachment=True, download_name=filename)
+    from urllib.parse import quote
+    return render_template("download.html", filename=filename,
+                           raw_url=f"/files/{token}/{quote(filename)}?raw=1")
 
 
 @app.route("/")
