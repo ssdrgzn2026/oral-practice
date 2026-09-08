@@ -60,7 +60,7 @@
         fetch("/api/card-stats").then(function (r) { return r.json(); }).then(function (d) {
             Object.keys(d).forEach(function (m) {
                 var el = document.getElementById("count-" + m);
-                if (el) el.textContent = d[m] + " 次使用";
+                if (el) el.textContent = d[m] ? "已用 " + d[m] + " 次" : "·";
             });
         }).catch(function () {});
 
@@ -74,7 +74,7 @@
                     body: JSON.stringify({ module: m }),
                     keepalive: true,
                 }).then(function (r) { return r.json(); }).then(function (d) {
-                    if (el && d.count) el.textContent = d.count + " 次使用";
+                    if (el && d.count) el.textContent = "已用 " + d.count + " 次";
                 }).catch(function () {});
             });
         });
