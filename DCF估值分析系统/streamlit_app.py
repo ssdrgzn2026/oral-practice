@@ -78,8 +78,14 @@ st.markdown("""
     [data-testid="stSidebar"] h3 {
         color: #FFFFFF !important;
     }
-    h1 { color: #4f46e5 !important; font-weight: 700 !important; }
+    h1 { color: #4f46e5 !important; font-weight: 700 !important; font-size: 1.75rem !important; }
     h2, h3 { color: #6366f1 !important; font-weight: 600 !important; }
+    /* 手机端标题再缩小，避免两行 */
+    @media (max-width: 640px) {
+        h1 { font-size: 1.3rem !important; white-space: nowrap; }
+        h2 { font-size: 1.15rem !important; }
+        h3 { font-size: 1.05rem !important; }
+    }
     .stButton > button {
         background: linear-gradient(135deg, #4f46e5 0%, #8b5cf6 100%) !important;
         color: white !important; border: none !important; border-radius: 10px !important;
