@@ -58,7 +58,7 @@ def dl(label, data, filename, key=None):
     (DOWNLOAD_DIR / f"{token}{suffix}").write_bytes(bytes(data))
     url = f"/files/{token}/{quote(str(filename))}"
     st.markdown(
-        f"<a href='{url}' download style='display:inline-block;background:#4f46e5;color:#fff;"
+        f"<a href='{url}' style='display:inline-block;background:#4f46e5;color:#fff;"
         f"padding:10px 22px;border-radius:8px;text-decoration:none;font-weight:600;margin:6px 0;'>"
         f"{label}</a>",
         unsafe_allow_html=True,
