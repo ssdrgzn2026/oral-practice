@@ -14,6 +14,25 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# ============ 统一排版（与 MiscHub 全站一致） ============
+st.markdown("""
+<style>
+    html, body, [class*="css"] {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    h1 { font-size: 1.75rem !important; }
+    h2 { font-size: 1.4rem !important; }
+    h3 { font-size: 1.15rem !important; }
+    p, li, .stMarkdown { font-size: 1rem; line-height: 1.7; }
+    @media (max-width: 640px) {
+        h1 { font-size: 1.3rem !important; }
+        h2 { font-size: 1.15rem !important; }
+        h3 { font-size: 1.05rem !important; }
+        p, li, .stMarkdown { font-size: 0.95rem; }
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # ========== 文件链接下载 ==========
 # 把转换结果暂存到服务器，用真实链接下载（微信/iOS PWA 下 blob 下载会失败或跳走页面）
 DOWNLOAD_DIR = Path(os.environ.get("MISC_DOWNLOAD_DIR", str(Path(__file__).parent / "output" / "downloads")))
@@ -89,8 +108,8 @@ def render_home():
     # ===== Hero 横幅 =====
     st.markdown("""
     <div style='text-align:center;padding:30px 20px;background:linear-gradient(135deg,#6366f10d,#8b5cf60d);border-radius:16px;margin-bottom:20px;border:1px solid #6366f120;'>
-        <div style='font-size:48px;margin-bottom:10px;'>🔄</div>
-        <h1 style='margin:0;font-size:32px;color:#333;'>格式转换系统 v2.0</h1>
+        <div style='font-size:40px;margin-bottom:10px;'>🔄</div>
+        <h1 style='margin:0;color:#333;'>格式转换系统</h1>
         <p style='margin:8px 0 0;color:#666;font-size:16px;'>强大 · 易用 · 全场景覆盖 · 零痕迹隐私保护</p>
         <div style='margin-top:12px;'>
             <span style='background:#6366f1;color:white;padding:3px 10px;border-radius:12px;font-size:12px;margin:0 3px;'>18+ 功能</span>

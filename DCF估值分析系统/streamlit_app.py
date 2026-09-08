@@ -62,9 +62,22 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ============ 自定义主题（深蓝金融风） ============
+# ============ 自定义主题（MiscHub 紫罗兰 + 统一排版） ============
 st.markdown("""
 <style>
+    html, body, [class*="css"] {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    h1 { font-size: 1.75rem !important; }
+    h2 { font-size: 1.4rem !important; }
+    h3 { font-size: 1.15rem !important; }
+    p, li, .stMarkdown { font-size: 1rem; line-height: 1.7; }
+    @media (max-width: 640px) {
+        h1 { font-size: 1.3rem !important; }
+        h2 { font-size: 1.15rem !important; }
+        h3 { font-size: 1.05rem !important; }
+        p, li, .stMarkdown { font-size: 0.95rem; }
+    }
     [data-testid="stAppViewContainer"] {
         background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
     }

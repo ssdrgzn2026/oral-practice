@@ -903,3 +903,19 @@ body.home-bg .footer {
     align-self: flex-start;
     margin-top: 4px;
 }
+
+/* ===== 全站统一排版（Flask 页面） ===== */
+.header h1 { font-size: 1.4rem; }
+.header .subtitle { font-size: 0.85rem; }
+.panel h2 { font-size: 1.15rem; }
+.card h3 { font-size: 1.05rem; }
+.card h4 { font-size: 0.95rem; }
+body { line-height: 1.65; }
+
+@media (max-width: 639px) {
+    .header h1 { font-size: 1.25rem; }
+    .header .subtitle { font-size: 0.8rem; }
+    .panel h2 { font-size: 1.05rem; }
+    .card h3 { font-size: 1rem; }
+    body { font-size: 15px; }
+}
