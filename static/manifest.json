@@ -1,0 +1,15 @@
+{
+    "name": "MiscHub｜杂具小栈",
+    "short_name": "MiscHub",
+    "description": "一站式零散工具工作台",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#f5f5f4",
+    "theme_color": "#4f46e5",
+    "lang": "zh-CN",
+    "icons": [
+        { "src": "/static/img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+        { "src": "/static/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    ]
+}

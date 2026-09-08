@@ -12,7 +12,7 @@ import importlib.util
 import os
 from pathlib import Path
 
-from flask import Flask, jsonify, redirect, render_template, request
+from flask import Flask, jsonify, redirect, render_template, request, send_from_directory
 from flask_cors import CORS
 
 import stats_logger
@@ -43,6 +43,12 @@ def track_pageview():
 def visit_beat():
     stats_logger.log_beat(request.get_json(silent=True) or {})
     return jsonify({"ok": True})
+
+
+@app.route("/sw.js")
+def service_worker():
+    # Service Worker 必须在根路径下提供，才能接管全站作用域
+    return send_from_directory("static", "sw.js", mimetype="text/javascript")
 
 
 @app.route("/")
