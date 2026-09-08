@@ -51,6 +51,21 @@ def service_worker():
     return send_from_directory("static", "sw.js", mimetype="text/javascript")
 
 
+@app.route("/files/<token>/<path:filename>")
+def download_file(token, filename):
+    """格式转换结果的暂存文件下载（强制附件下载，文件名保留中文）"""
+    from flask import send_file
+
+    download_dir = Path(os.environ.get("MISC_DOWNLOAD_DIR", str(BASE_DIR / "downloads")))
+    # token 只允许十六进制，防目录穿越
+    if not token.isalnum():
+        return "invalid", 400
+    matches = list(download_dir.glob(f"{token}.*"))
+    if not matches:
+        return "文件已过期或不存在，请重新转换", 404
+    return send_file(matches[0], as_attachment=True, download_name=filename)
+
+
 @app.route("/")
 def index():
     return render_template("index.html")

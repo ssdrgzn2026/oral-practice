@@ -3,6 +3,9 @@ import converter
 from pathlib import Path
 import io
 import os
+import time
+import uuid
+from urllib.parse import quote
 
 st.set_page_config(
     page_title="格式转换系统 v2.0",
@@ -10,6 +13,38 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# ========== 文件链接下载 ==========
+# 把转换结果暂存到服务器，用真实链接下载（微信/iOS PWA 下 blob 下载会失败或跳走页面）
+DOWNLOAD_DIR = Path(os.environ.get("MISC_DOWNLOAD_DIR", str(Path(__file__).parent / "output" / "downloads")))
+DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _cleanup_downloads(max_age_sec=7200):
+    """清理超过 2 小时的暂存文件"""
+    now = time.time()
+    try:
+        for f in DOWNLOAD_DIR.iterdir():
+            if f.is_file() and now - f.stat().st_mtime > max_age_sec:
+                f.unlink()
+    except OSError:
+        pass
+
+
+def dl(label, data, filename, key=None):
+    """下载按钮：暂存文件并渲染真实下载链接（替代 st.download_button）"""
+    _cleanup_downloads()
+    token = uuid.uuid4().hex[:16]
+    suffix = Path(str(filename)).suffix
+    (DOWNLOAD_DIR / f"{token}{suffix}").write_bytes(bytes(data))
+    url = f"/files/{token}/{quote(str(filename))}"
+    st.markdown(
+        f"<a href='{url}' download style='display:inline-block;background:#4f46e5;color:#fff;"
+        f"padding:10px 22px;border-radius:8px;text-decoration:none;font-weight:600;margin:6px 0;'>"
+        f"{label}</a>",
+        unsafe_allow_html=True,
+    )
+
 
 # ========== 场景分类定义 ==========
 SCENES = {
@@ -247,7 +282,7 @@ def render_pdf2img():
                         for i, (data, name) in enumerate(results):
                             with cols[i % 3]:
                                 st.image(data, caption=f"第{i+1}页", use_container_width=True)
-                                st.download_button("⬇️ 下载", data, name, key=f"dl_p2i_{i}")
+                                dl("⬇️ 下载", data, name, key=f"dl_p2i_{i}")
                     else:
                         st.error("转换失败")
                 except Exception as e:
@@ -264,7 +299,7 @@ def render_pdf2img():
                     if pdf_bytes_out:
                         st.success("✅ 转换完成！")
                         st.info(f"共 {len(uploaded)} 张图片")
-                        st.download_button("⬇️ 下载PDF", pdf_bytes_out, "converted.pdf")
+                        dl("⬇️ 下载PDF", pdf_bytes_out, "converted.pdf")
                     else:
                         st.error("转换失败")
                 except Exception as e:
@@ -298,7 +333,7 @@ def render_pdf2word():
                         doc_bytes, mode_desc = result
                         st.success(f"✅ 转换完成！{mode_desc}")
                         out_name = Path(uploaded.name).stem + ".docx"
-                        st.download_button("⬇️ 下载Word", doc_bytes, out_name)
+                        dl("⬇️ 下载Word", doc_bytes, out_name)
                     else:
                         st.error("转换失败")
                 except Exception as e:
@@ -326,7 +361,7 @@ def render_pdf_merge_split():
                         pdf_bytes_out = converter.safe_run(converter.merge_pdfs, files, names)
                         if pdf_bytes_out:
                             st.success("✅ 合并完成！")
-                            st.download_button("⬇️ 下载合并PDF", pdf_bytes_out, "merged.pdf")
+                            dl("⬇️ 下载合并PDF", pdf_bytes_out, "merged.pdf")
                         else:
                             st.error("合并失败")
                     except Exception as e:
@@ -346,7 +381,7 @@ def render_pdf_merge_split():
                         if results:
                             st.success(f"✅ 拆分完成！共 {len(results)} 个文件")
                             for data, name in results:
-                                st.download_button(f"⬇️ {name}", data, name, key=f"dl_split_{name}")
+                                dl(f"⬇️ {name}", data, name, key=f"dl_split_{name}")
                         else:
                             st.error("拆分失败")
                     except Exception as e:
@@ -365,7 +400,7 @@ def render_pdf_text():
                     if text:
                         st.success("✅ 提取完成！")
                         st.text_area("提取内容", text, height=400)
-                        st.download_button("⬇️ 下载TXT", text.encode("utf-8"), uploaded.name.replace(".pdf", ".txt"))
+                        dl("⬇️ 下载TXT", text.encode("utf-8"), uploaded.name.replace(".pdf", ".txt"))
                     else:
                         st.warning("未提取到文本内容（可能是扫描件/图片PDF）")
                 except Exception as e:
@@ -384,7 +419,7 @@ def render_img2pdf():
                 if pdf_bytes_out:
                     st.success("✅ 转换完成！")
                     st.info(f"共 {len(uploaded)} 张图片")
-                    st.download_button("⬇️ 下载PDF", pdf_bytes_out, "converted.pdf")
+                    dl("⬇️ 下载PDF", pdf_bytes_out, "converted.pdf")
                 else:
                     st.error("转换失败")
             except Exception as e:
@@ -403,7 +438,7 @@ def render_img2img():
                     img_bytes_out = converter.safe_run(converter.convert_image, img_bytes, uploaded.name, fmt)
                     if img_bytes_out:
                         st.success("✅ 转换完成！")
-                        st.download_button("⬇️ 下载", img_bytes_out, f"converted.{fmt}")
+                        dl("⬇️ 下载", img_bytes_out, f"converted.{fmt}")
                     else:
                         st.error("转换失败")
                 except Exception as e:
@@ -447,7 +482,7 @@ def render_img2word():
                     doc_bytes, mode_desc = result
                     progress.progress(100, "✅ 完成！")
                     st.success(f"✅ {mode_desc}")
-                    st.download_button("⬇️ 下载Word", doc_bytes, "converted.docx")
+                    dl("⬇️ 下载Word", doc_bytes, "converted.docx")
                 else:
                     progress.empty()
                     st.error("❌ 转换失败：未能识别到文字或生成文档")
@@ -476,7 +511,7 @@ def render_merge_long():
                     if img_bytes_out:
                         st.success("✅ 拼接完成！")
                         st.image(img_bytes_out, use_container_width=True)
-                        st.download_button("⬇️ 下载长图", img_bytes_out, "merged.png")
+                        dl("⬇️ 下载长图", img_bytes_out, "merged.png")
                     else:
                         st.error("拼接失败")
                 except Exception as e:
@@ -507,7 +542,7 @@ def render_video2long():
                     if img_bytes_out:
                         st.success("✅ 转换完成！")
                         st.image(img_bytes_out, use_container_width=True)
-                        st.download_button("⬇️ 下载长图", img_bytes_out, "video_long_image.png")
+                        dl("⬇️ 下载长图", img_bytes_out, "video_long_image.png")
                     else:
                         st.error("转换失败（请检查视频格式）")
                 except Exception as e:
@@ -536,7 +571,7 @@ def render_video2gif():
                     if gif_bytes:
                         st.success("✅ 转换完成！")
                         st.image(gif_bytes, use_container_width=True)
-                        st.download_button("⬇️ 下载GIF", gif_bytes, "converted.gif")
+                        dl("⬇️ 下载GIF", gif_bytes, "converted.gif")
                     else:
                         st.error("转换失败")
                 except Exception as e:
@@ -562,7 +597,7 @@ def render_audio():
                     if audio_bytes_out:
                         st.success("✅ 转换完成！")
                         st.audio(audio_bytes_out)
-                        st.download_button("⬇️ 下载", audio_bytes_out, f"converted.{fmt}")
+                        dl("⬇️ 下载", audio_bytes_out, f"converted.{fmt}")
                     else:
                         st.error("转换失败（请检查是否已安装 ffmpeg）")
                 except Exception as e:
@@ -596,7 +631,7 @@ def render_compress_img():
                         orig_size = len(img_bytes) / 1024
                         new_size = len(img_bytes_out) / 1024
                         st.info(f"原大小: {orig_size:.1f} KB → 新大小: {new_size:.1f} KB (节省 {(1-new_size/orig_size)*100:.1f}%)")
-                        st.download_button("⬇️ 下载", img_bytes_out, "compressed.jpg")
+                        dl("⬇️ 下载", img_bytes_out, "compressed.jpg")
                     else:
                         st.error("压缩失败")
                 except Exception as e:
@@ -660,7 +695,7 @@ def render_batch_rename():
                             zf.writestr(new, f.getvalue())
                     zip_buf.seek(0)
                     st.success("✅ 打包完成！")
-                    st.download_button("⬇️ 下载ZIP", zip_buf.getvalue(), "renamed_files.zip")
+                    dl("⬇️ 下载ZIP", zip_buf.getvalue(), "renamed_files.zip")
                 except Exception as e:
                     st.error(f"打包出错: {e}")
 
@@ -680,7 +715,7 @@ def render_pdf_compress():
                         orig_size = len(pdf_bytes) / 1024
                         new_size = len(pdf_bytes_out) / 1024
                         st.info(f"原大小: {orig_size:.1f} KB → 新大小: {new_size:.1f} KB")
-                        st.download_button("⬇️ 下载优化版PDF", pdf_bytes_out, "compressed.pdf")
+                        dl("⬇️ 下载优化版PDF", pdf_bytes_out, "compressed.pdf")
                     else:
                         st.error("优化失败")
                 except Exception as e:
@@ -704,7 +739,7 @@ def render_qr():
                 if qr_bytes:
                     st.success("✅ 生成完成！")
                     st.image(qr_bytes, use_container_width=True)
-                    st.download_button("⬇️ 下载二维码", qr_bytes, "qrcode.png")
+                    dl("⬇️ 下载二维码", qr_bytes, "qrcode.png")
                 else:
                     st.error("生成失败")
             except Exception as e:
@@ -730,7 +765,7 @@ def render_remove_bg():
                         with col2:
                             st.write("去背景后")
                             st.image(img_bytes_out, use_container_width=True)
-                        st.download_button("⬇️ 下载", img_bytes_out, "nobg.png")
+                        dl("⬇️ 下载", img_bytes_out, "nobg.png")
                     else:
                         st.error("处理失败")
                 except Exception as e:
@@ -755,7 +790,7 @@ def render_office2pdf():
                     pdf_bytes_out = converter.safe_run(converter.office_to_pdf, file_bytes, uploaded.name)
                     if pdf_bytes_out:
                         st.success("✅ 转换完成！")
-                        st.download_button("⬇️ 下载PDF", pdf_bytes_out, "converted.pdf")
+                        dl("⬇️ 下载PDF", pdf_bytes_out, "converted.pdf")
                     else:
                         st.error("转换失败")
                 except Exception as e:

@@ -20,6 +20,37 @@ from core.dcf_engine import (calculate_wacc, project_financials,
                               build_full_report, recalculate_fcf_with_adjustments)
 from core.data_fetcher import fetch_financial_data
 
+# ========== 文件链接下载（微信/iOS PWA 下 blob 下载会失败或跳走页面） ==========
+import time
+import uuid
+from pathlib import Path
+from urllib.parse import quote
+
+DOWNLOAD_DIR = Path(os.environ.get("MISC_DOWNLOAD_DIR", str(Path(__file__).parent / "downloads")))
+DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def dl(label, data, filename):
+    """下载按钮：暂存文件并渲染真实下载链接（替代 st.download_button）"""
+    try:
+        now = time.time()
+        for f in DOWNLOAD_DIR.iterdir():
+            if f.is_file() and now - f.stat().st_mtime > 7200:
+                f.unlink()
+    except OSError:
+        pass
+    token = uuid.uuid4().hex[:16]
+    suffix = Path(str(filename)).suffix
+    (DOWNLOAD_DIR / f"{token}{suffix}").write_bytes(bytes(data))
+    url = f"/files/{token}/{quote(str(filename))}"
+    st.markdown(
+        f"<a href='{url}' download style='display:block;text-align:center;background:#1a237e;color:#fff;"
+        f"padding:10px 22px;border-radius:10px;text-decoration:none;font-weight:600;margin:6px 0;'>"
+        f"{label}</a>",
+        unsafe_allow_html=True,
+    )
+
+
 # 设置中文字体
 plt.rcParams["font.sans-serif"] = ["SimHei", "Microsoft YaHei", "Arial Unicode MS"]
 plt.rcParams["axes.unicode_minus"] = False
@@ -744,13 +775,7 @@ if st.session_state.get("ran_base", False):
         wb.save(output)
         output.seek(0)
         file_name = f"{company_name}_{stock_code}_DCF估值报告.xlsx".replace(" ", "_")
-        st.download_button(
-            label="📥 下载估值报告 (Excel)",
-            data=output,
-            file_name=file_name,
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
-        )
+        dl("📥 下载估值报告 (Excel)", output.getvalue(), file_name)
 
 else:
     st.info("👈 请在左侧输入公司财务数据和预测假设，然后点击 **🚀 运行估值分析**")
