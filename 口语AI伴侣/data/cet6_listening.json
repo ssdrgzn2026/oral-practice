@@ -1,0 +1,91 @@
+{
+  "note": "六级听力练习集。内置样题按六级考试风格编写；可自行往本文件添加真题（复制 set 结构即可），或在页面上上传真题音频。",
+  "sets": [
+    {
+      "id": "sample-1",
+      "title": "样题一：长对话 + 短文（六级风格）",
+      "source": "样题",
+      "passages": [
+        {
+          "type": "长对话 Conversation",
+          "transcript": "M: Hi, Sarah. I heard you joined the school's debate club. How's it going? W: Honestly, it's been tougher than I expected. I thought being good at talking would be enough, but competitive debating is a whole different game. M: What do you mean? W: Well, you have to research both sides of an argument, anticipate what your opponents will say, and respond within strict time limits. Last week I spent twelve hours preparing for a ten-minute round. M: That sounds intense. Are you thinking of quitting? W: Not at all. Actually, my professor said the skills are incredibly useful for law school, which is what I'm aiming for. M: That makes sense. Critical thinking under pressure is exactly what lawyers need. W: Exactly. Plus, I've noticed my writing has improved too — my arguments are much better structured now.",
+          "questions": [
+            {
+              "q": "What does the woman say about competitive debating?",
+              "options": {"A": "It is easier than she expected.", "B": "It is quite different from what she imagined.", "C": "It requires little preparation.", "D": "It is only suitable for law students."},
+              "answer": "B",
+              "analysis": "女士说 'it's been tougher than I expected' 和 'a whole different game'，说明与她想象不同，选 B。"
+            },
+            {
+              "q": "How long did the woman prepare for a ten-minute round last week?",
+              "options": {"A": "Ten hours.", "B": "Twelve hours.", "C": "Two hours.", "D": "Five hours."},
+              "answer": "B",
+              "analysis": "原文明确提到 'I spent twelve hours preparing for a ten-minute round'，选 B。"
+            },
+            {
+              "q": "Why does the woman want to stay in the debate club?",
+              "options": {"A": "It helps her make friends.", "B": "It improves her public image.", "C": "The skills are useful for law school.", "D": "Her professor requires it."},
+              "answer": "C",
+              "analysis": "女士引用教授的话：辩论技能对法学院非常有用（'incredibly useful for law school'），这是她的目标，选 C。"
+            }
+          ]
+        },
+        {
+          "type": "短文 Passage",
+          "transcript": "Urban gardening has become increasingly popular in recent years, and for good reason. Studies show that people who grow their own vegetables tend to eat healthier diets and report lower stress levels. But the benefits go beyond personal health. Community gardens, where neighbors share a plot of land, have been shown to strengthen social ties. In Detroit, for example, over a thousand community gardens have transformed abandoned lots into productive spaces. Residents report feeling safer and more connected to their neighborhoods. However, urban gardening faces real challenges. Soil in cities can be contaminated with lead and other pollutants, so raised beds with clean soil are often necessary. Water access can also be a problem in some areas. Despite these obstacles, city governments are increasingly supportive, offering grants and free workshops to encourage residents to start gardening.",
+          "questions": [
+            {
+              "q": "According to the passage, what is one benefit of community gardens?",
+              "options": {"A": "They increase property values.", "B": "They strengthen social ties among neighbors.", "C": "They reduce air pollution.", "D": "They provide free vegetables to all residents."},
+              "answer": "B",
+              "analysis": "原文 'have been shown to strengthen social ties'，社区花园增强邻里社会联系，选 B。"
+            },
+            {
+              "q": "What problem does urban soil often have?",
+              "options": {"A": "It lacks nutrients.", "B": "It is too dry.", "C": "It is contaminated with pollutants like lead.", "D": "It is too expensive to buy."},
+              "answer": "C",
+              "analysis": "原文 'Soil in cities can be contaminated with lead and other pollutants'，选 C。"
+            },
+            {
+              "q": "How do city governments support urban gardening?",
+              "options": {"A": "By offering grants and free workshops.", "B": "By providing free land to everyone.", "C": "By hiring professional gardeners.", "D": "By taxing those who don't garden."},
+              "answer": "A",
+              "analysis": "原文最后一句 'offering grants and free workshops'，选 A。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sample-2",
+      "title": "样题二：讲座/讲话（六级风格）",
+      "source": "样题",
+      "passages": [
+        {
+          "type": "讲座 Recording/Lecture",
+          "transcript": "Today I'd like to talk about the psychology of habit formation. Many people believe it takes twenty-one days to form a habit, but research tells a different story. A study published in the European Journal of Social Psychology found that, on average, it takes sixty-six days for a new behavior to become automatic. And the range is enormous — anywhere from eighteen to two hundred and fifty-four days, depending on the complexity of the behavior. Simple habits, like drinking a glass of water after breakfast, form quickly. Complex ones, like running five kilometers every morning, take much longer. The key finding is that missing a single day does not ruin the process. What matters is consistency over time, not perfection. So if you're trying to build a new habit, don't be discouraged by occasional slip-ups. Just get back on track the next day.",
+          "questions": [
+            {
+              "q": "According to the study mentioned, how long does it take on average to form a habit?",
+              "options": {"A": "Twenty-one days.", "B": "Sixty-six days.", "C": "Eighteen days.", "D": "Two hundred and fifty-four days."},
+              "answer": "B",
+              "analysis": "原文 'on average, it takes sixty-six days'，21 天是流传的错误说法，选 B。"
+            },
+            {
+              "q": "What determines how long a habit takes to form?",
+              "options": {"A": "A person's age.", "B": "The time of day.", "C": "The complexity of the behavior.", "D": "The person's willpower."},
+              "answer": "C",
+              "analysis": "原文 'depending on the complexity of the behavior'，选 C。"
+            },
+            {
+              "q": "What does the speaker say about missing a day?",
+              "options": {"A": "It ruins the whole process.", "B": "It does not matter much.", "C": "It doubles the time needed.", "D": "It shows a lack of discipline."},
+              "answer": "B",
+              "analysis": "原文 'missing a single day does not ruin the process'，偶尔中断没关系，选 B。"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -55,6 +55,22 @@ def random_shadow():
     return jsonify(shadow)
 
 
+@oral_bp.route("/api/cet6/sets")
+def cet6_sets():
+    data = load_json("cet6_listening.json")
+    return jsonify([{"id": s["id"], "title": s["title"], "source": s.get("source", "")}
+                    for s in data["sets"]])
+
+
+@oral_bp.route("/api/cet6/set/<set_id>")
+def cet6_set(set_id):
+    data = load_json("cet6_listening.json")
+    for s in data["sets"]:
+        if s["id"] == set_id:
+            return jsonify(s)
+    return jsonify({"error": "题集不存在"}), 404
+
+
 @oral_bp.route("/api/chat", methods=["POST"])
 def chat():
     """

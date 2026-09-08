@@ -1113,3 +1113,136 @@ async function init() {
 }
 
 init();
+
+// ========== 六级听力 ==========
+const cet6SetSel = $("#cet6-set");
+let cet6Data = null;
+let cet6Utterances = [];
+
+async function loadCet6Sets() {
+    try {
+        const sets = await getJSON("/api/cet6/sets");
+        cet6SetSel.innerHTML = "";
+        sets.forEach((s) => {
+            const opt = document.createElement("option");
+            opt.value = s.id;
+            opt.textContent = s.title + (s.source ? `（${s.source}）` : "");
+            cet6SetSel.appendChild(opt);
+        });
+        if (sets.length) await loadCet6Set(sets[0].id);
+    } catch (e) {
+        cet6SetSel.innerHTML = "<option>加载失败</option>";
+    }
+}
+
+async function loadCet6Set(id) {
+    cet6Data = await getJSON("/api/cet6/set/" + id);
+    $("#cet6-result").style.display = "none";
+    $("#cet6-transcript").style.display = "none";
+    renderCet6Questions();
+}
+
+function renderCet6Questions() {
+    const box = $("#cet6-questions");
+    box.innerHTML = "";
+    let qIndex = 0;
+    cet6Data.passages.forEach((p, pi) => {
+        const h = document.createElement("h4");
+        h.textContent = `🎧 ${p.type}（第 ${pi + 1} 篇）`;
+        h.style.margin = "14px 0 6px";
+        box.appendChild(h);
+        p.questions.forEach((q) => {
+            qIndex++;
+            const div = document.createElement("div");
+            div.className = "card";
+            div.style.margin = "8px 0";
+            let html = `<p><b>${qIndex}.</b> ${q.q}</p>`;
+            Object.entries(q.options).forEach(([k, v]) => {
+                html += `<label style="display:block;padding:4px 0;cursor:pointer;">
+                    <input type="radio" name="cet6-q${qIndex - 1}" value="${k}"> ${k}. ${v}</label>`;
+            });
+            div.innerHTML = html;
+            box.appendChild(div);
+        });
+    });
+}
+
+function cet6StopAudio() {
+    if (synth) synth.cancel();
+    cet6Utterances = [];
+    const wrap = $("#cet6-audio-wrap");
+    const audio = wrap.querySelector("audio");
+    if (audio) audio.pause();
+}
+
+$("#cet6-play").addEventListener("click", () => {
+    if (!cet6Data) return;
+    cet6StopAudio();
+    const uploaded = $("#cet6-audio-wrap").querySelector("audio");
+    if (uploaded) { uploaded.play(); return; }  // 有上传的真题音频则播放它
+    if (!synth) { alert("当前浏览器不支持语音朗读，请上传真题音频"); return; }
+    const rate = parseFloat($("#cet6-rate").value);
+    cet6Data.passages.forEach((p) => {
+        const u = new SpeechSynthesisUtterance(p.transcript);
+        u.lang = "en-US";
+        u.rate = rate;
+        cet6Utterances.push(u);
+        synth.speak(u);
+    });
+});
+
+$("#cet6-stop").addEventListener("click", cet6StopAudio);
+
+$("#cet6-audio-file").addEventListener("change", (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const wrap = $("#cet6-audio-wrap");
+    wrap.innerHTML = "";
+    const audio = document.createElement("audio");
+    audio.controls = true;
+    audio.src = URL.createObjectURL(f);
+    audio.className = "playback-audio";
+    wrap.appendChild(audio);
+});
+
+cet6SetSel.addEventListener("change", () => { cet6StopAudio(); loadCet6Set(cet6SetSel.value); });
+
+$("#cet6-toggle-transcript").addEventListener("click", () => {
+    const box = $("#cet6-transcript");
+    if (box.style.display === "none") {
+        let html = "";
+        cet6Data.passages.forEach((p, i) => {
+            html += `<h4>第 ${i + 1} 篇原文</h4><p class="result-text" style="text-align:left;">${p.transcript}</p>`;
+        });
+        box.innerHTML = html;
+        box.style.display = "block";
+        $("#cet6-toggle-transcript").textContent = "隐藏原文";
+    } else {
+        box.style.display = "none";
+        $("#cet6-toggle-transcript").textContent = "查看原文";
+    }
+});
+
+$("#cet6-submit").addEventListener("click", () => {
+    if (!cet6Data) return;
+    let idx = 0, correct = 0, total = 0;
+    let detail = "";
+    cet6Data.passages.forEach((p) => {
+        p.questions.forEach((q) => {
+            total++;
+            const sel = document.querySelector(`input[name="cet6-q${idx}"]:checked`);
+            const ans = sel ? sel.value : null;
+            if (ans === q.answer) correct++;
+            detail += `<p><b>${idx + 1}.</b> 你的答案：${ans || "未作答"}　正确答案：<b>${q.answer}</b><br>
+                <span class="hint">${q.analysis}</span></p>`;
+            idx++;
+        });
+    });
+    const box = $("#cet6-result");
+    box.style.display = "block";
+    box.innerHTML = `<h4>得分：${correct} / ${total}（${Math.round((correct / total) * 100)} 分）</h4>` + detail;
+    saveHistory("cet6", `六级听力「${cet6Data.title}」得分 ${correct}/${total}`);
+    box.scrollIntoView({ behavior: "smooth" });
+});
+
+loadCet6Sets();
