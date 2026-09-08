@@ -88,12 +88,12 @@ def render_home():
     
     # ===== Hero 横幅 =====
     st.markdown("""
-    <div style='text-align:center;padding:30px 20px;background:linear-gradient(135deg,#667eea0d,#764ba20d);border-radius:16px;margin-bottom:20px;border:1px solid #667eea20;'>
+    <div style='text-align:center;padding:30px 20px;background:linear-gradient(135deg,#6366f10d,#8b5cf60d);border-radius:16px;margin-bottom:20px;border:1px solid #6366f120;'>
         <div style='font-size:48px;margin-bottom:10px;'>🔄</div>
         <h1 style='margin:0;font-size:32px;color:#333;'>格式转换系统 v2.0</h1>
         <p style='margin:8px 0 0;color:#666;font-size:16px;'>强大 · 易用 · 全场景覆盖 · 零痕迹隐私保护</p>
         <div style='margin-top:12px;'>
-            <span style='background:#4A90D9;color:white;padding:3px 10px;border-radius:12px;font-size:12px;margin:0 3px;'>18+ 功能</span>
+            <span style='background:#6366f1;color:white;padding:3px 10px;border-radius:12px;font-size:12px;margin:0 3px;'>18+ 功能</span>
             <span style='background:#27AE60;color:white;padding:3px 10px;border-radius:12px;font-size:12px;margin:0 3px;'>4 大场景</span>
             <span style='background:#E74C3C;color:white;padding:3px 10px;border-radius:12px;font-size:12px;margin:0 3px;'>🔒 隐私优先</span>
         </div>
@@ -160,7 +160,7 @@ def render_home():
     st.subheader("📂 场景快捷入口")
     col1, col2, col3, col4 = st.columns(4)
     scene_cards = [
-        ("📄 文档处理", "PDF/Word/Excel 互转、合并拆分、OCR提取、压缩优化", "#4A90D9"),
+        ("📄 文档处理", "PDF/Word/Excel 互转、合并拆分、OCR提取、压缩优化", "#6366f1"),
         ("🖼️ 图片处理", "格式互转、压缩、去背景、长图拼接、二维码生成", "#E67E22"),
         ("🎬 音视频处理", "视频转GIF/长图、音频格式转换(MP3/WAV/FLAC/OGG/AAC/M4A)", "#27AE60"),
         ("🛠️ 实用工具", "批量重命名、PDF优化等效率工具", "#8E44AD"),

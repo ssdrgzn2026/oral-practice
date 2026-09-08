@@ -44,7 +44,7 @@ def dl(label, data, filename):
     (DOWNLOAD_DIR / f"{token}{suffix}").write_bytes(bytes(data))
     url = f"/files/{token}/{quote(str(filename))}"
     st.markdown(
-        f"<a href='{url}' download style='display:block;text-align:center;background:#1a237e;color:#fff;"
+        f"<a href='{url}' download style='display:block;text-align:center;background:#4f46e5;color:#fff;"
         f"padding:10px 22px;border-radius:10px;text-decoration:none;font-weight:600;margin:6px 0;'>"
         f"{label}</a>",
         unsafe_allow_html=True,
@@ -69,7 +69,7 @@ st.markdown("""
         background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
     }
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #1a237e 0%, #283593 100%) !important;
+        background: linear-gradient(180deg, #4f46e5 0%, #6366f1 100%) !important;
     }
     [data-testid="stSidebar"] .stMarkdown,
     [data-testid="stSidebar"] label,
@@ -78,17 +78,17 @@ st.markdown("""
     [data-testid="stSidebar"] h3 {
         color: #FFFFFF !important;
     }
-    h1 { color: #1a237e !important; font-weight: 700 !important; }
-    h2, h3 { color: #283593 !important; font-weight: 600 !important; }
+    h1 { color: #4f46e5 !important; font-weight: 700 !important; }
+    h2, h3 { color: #6366f1 !important; font-weight: 600 !important; }
     .stButton > button {
-        background: linear-gradient(135deg, #1a237e 0%, #3949ab 100%) !important;
+        background: linear-gradient(135deg, #4f46e5 0%, #8b5cf6 100%) !important;
         color: white !important; border: none !important; border-radius: 10px !important;
         font-weight: 600 !important; box-shadow: 0 4px 15px rgba(26, 35, 126, 0.3) !important;
     }
     [data-testid="stMetric"] {
         background: white !important; border-radius: 12px !important; padding: 16px !important;
         box-shadow: 0 2px 12px rgba(26, 35, 126, 0.08) !important;
-        border-left: 4px solid #1a237e !important;
+        border-left: 4px solid #4f46e5 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -96,7 +96,7 @@ st.markdown("""
 st.title("📈 DCF 估值分析系统")
 st.caption("基于上市公司年报的自由现金流折现估值模型")
 st.markdown(
-    "<a href='/' target='_self' style='color:#1a237e;text-decoration:none;font-size:14px;'>← 返回 MiscHub 首页</a>",
+    "<a href='/' target='_self' style='color:#4f46e5;text-decoration:none;font-size:14px;'>← 返回 MiscHub 首页</a>",
     unsafe_allow_html=True,
 )
 
@@ -108,7 +108,7 @@ if "_pending_company_name" in st.session_state:
 # ============ 侧边栏 ============
 with st.sidebar:
     st.markdown(
-        "<a href='/' target='_self' style='display:block;text-align:center;background:#ffffff;color:#1a237e;"
+        "<a href='/' target='_self' style='display:block;text-align:center;background:#ffffff;color:#4f46e5;"
         "padding:8px 0;border-radius:8px;text-decoration:none;font-weight:600;'>🧰 返回 MiscHub 首页</a>",
         unsafe_allow_html=True,
     )
@@ -267,7 +267,7 @@ if st.session_state.get("ran_base", False):
 
     fig, ax = plt.subplots(figsize=(10, 4))
     x = range(len(fcf_df))
-    ax.bar(x, fcf_df["自由现金流(FCF)"], color="#1a237e", alpha=0.8, label="FCF")
+    ax.bar(x, fcf_df["自由现金流(FCF)"], color="#4f46e5", alpha=0.8, label="FCF")
     ax2 = ax.twinx()
     ax2.plot(x, fcf_df["营业收入"], color="#e53935", marker="o", linewidth=2, label="营业收入")
     ax.set_xticks(x)
@@ -361,7 +361,7 @@ if st.session_state.get("ran_base", False):
 
             fig, ax = plt.subplots(figsize=(10, 4))
             x = range(len(adjusted_fcf_df))
-            ax.bar(x, adjusted_fcf_df["自由现金流(FCF)"], color="#1a237e", alpha=0.8, label="FCF")
+            ax.bar(x, adjusted_fcf_df["自由现金流(FCF)"], color="#4f46e5", alpha=0.8, label="FCF")
             ax2 = ax.twinx()
             ax2.plot(x, adjusted_fcf_df["营业收入"], color="#e53935", marker="o", linewidth=2, label="营业收入")
             ax.set_xticks(x)
@@ -391,7 +391,7 @@ if st.session_state.get("ran_base", False):
             fig2, ax2 = plt.subplots(figsize=(6, 4))
             labels = ["股权成本", "债务成本(税后)"]
             sizes = [wacc_result['股权成本'] * (1 - debt_ratio), wacc_result['债务成本(税后)'] * debt_ratio]
-            colors = ["#1a237e", "#5c6bc0"]
+            colors = ["#4f46e5", "#a78bfa"]
             ax2.pie(sizes, labels=labels, colors=colors, autopct="%1.1f%%", startangle=90)
             ax2.set_title("WACC 构成")
             plt.tight_layout()
