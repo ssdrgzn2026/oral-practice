@@ -287,9 +287,50 @@ if (synth) {
     synth.onvoiceschanged = () => { cachedVoice = pickBestUSVoice(); };
 }
 
+// ========== 高清发音（云端 TTS） ==========
+let hdAudio = null;
+const hdToggle = $("#hd-tts");
+if (hdToggle) {
+    hdToggle.checked = localStorage.getItem("oral_hd_tts") === "1";
+    hdToggle.addEventListener("change", () => {
+        localStorage.setItem("oral_hd_tts", hdToggle.checked ? "1" : "0");
+    });
+}
+function isHdTts() {
+    return !!(hdToggle && hdToggle.checked);
+}
+function stopSpeaking() {
+    if (synth) synth.cancel();
+    if (hdAudio) { hdAudio.pause(); hdAudio = null; }
+}
+
 function speak(text, lang = "en-US", rate = 0.9, onend) {
     if (!synth) return null;
-    if (synth.speaking) synth.cancel();
+    stopSpeaking();
+    if (isHdTts() && lang.startsWith("en")) {
+        // 云端合成高清美式发音
+        fetch("/api/tts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text }),
+        }).then((r) => {
+            if (!r.ok) throw new Error("tts failed");
+            return r.blob();
+        }).then((blob) => {
+            hdAudio = new Audio(URL.createObjectURL(blob));
+            hdAudio.playbackRate = rate;
+            if (onend) hdAudio.onended = onend;
+            hdAudio.play();
+        }).catch(() => {
+            // 云端失败回退到浏览器语音
+            isHdFallbackSpeak(text, lang, rate, onend);
+        });
+        return null;
+    }
+    return isHdFallbackSpeak(text, lang, rate, onend);
+}
+
+function isHdFallbackSpeak(text, lang, rate, onend) {
     const u = new SpeechSynthesisUtterance(text);
     u.lang = lang;
     u.rate = rate;
@@ -508,7 +549,7 @@ chatInput.addEventListener("keydown", (e) => {
 
 $("#new-chat").addEventListener("click", () => {
     if (isRecording) stopRecording();
-    if (synth && synth.speaking) synth.cancel();
+    stopSpeaking();
     chatHistory = [];
     chatVoiceMode = false;
     if (chatInterimBubble) {
@@ -535,9 +576,7 @@ micChat.addEventListener("click", () => {
         return;
     }
     unlockSpeech();
-    if (synth && synth.speaking) {
-        synth.cancel();
-    }
+    stopSpeaking();
     startChatListening();
 });
 
@@ -1198,21 +1237,53 @@ function renderCet6Questions() {
     });
 }
 
+let cet6HdCancelled = false;
+
 function cet6StopAudio() {
-    if (synth) synth.cancel();
+    cet6HdCancelled = true;
+    stopSpeaking();
     cet6Utterances = [];
     const wrap = $("#cet6-audio-wrap");
     const audio = wrap.querySelector("audio");
     if (audio) audio.pause();
 }
 
+// 高清模式：逐篇云端合成并顺序播放
+async function playCet6Hd(rate) {
+    cet6HdCancelled = false;
+    for (const p of cet6Data.passages) {
+        if (cet6HdCancelled) break;
+        try {
+            const r = await fetch("/api/tts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: p.transcript }),
+            });
+            if (!r.ok) throw new Error("tts failed");
+            const blob = await r.blob();
+            if (cet6HdCancelled) break;
+            await new Promise((resolve) => {
+                hdAudio = new Audio(URL.createObjectURL(blob));
+                hdAudio.playbackRate = rate;
+                hdAudio.onended = resolve;
+                hdAudio.onerror = resolve;
+                hdAudio.play();
+            });
+        } catch (e) {
+            break;
+        }
+    }
+}
+
 $("#cet6-play").addEventListener("click", () => {
     if (!cet6Data) return;
     cet6StopAudio();
+    cet6HdCancelled = false;
     const uploaded = $("#cet6-audio-wrap").querySelector("audio");
     if (uploaded) { uploaded.play(); return; }  // 有上传的真题音频则播放它
-    if (!synth) { alert("当前浏览器不支持语音朗读，请上传真题音频"); return; }
     const rate = parseFloat($("#cet6-rate").value);
+    if (isHdTts()) { playCet6Hd(rate); return; }
+    if (!synth) { alert("当前浏览器不支持语音朗读，请上传真题音频"); return; }
     cet6Data.passages.forEach((p) => {
         const u = new SpeechSynthesisUtterance(p.transcript);
         u.lang = "en-US";

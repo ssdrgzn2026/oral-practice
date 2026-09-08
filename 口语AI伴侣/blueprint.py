@@ -132,6 +132,45 @@ def chat():
         return jsonify({"error": f"请求失败：{str(e)}"}), 502
 
 
+@oral_bp.route("/api/tts", methods=["POST"])
+def tts():
+    """高清发音：代理到 OpenAI 兼容的 TTS 接口，返回 mp3 音频流"""
+    body = request.get_json(silent=True) or {}
+    text = (body.get("text") or "").strip()
+    if not text:
+        return jsonify({"error": "text is required"}), 400
+    if len(text) > 2000:
+        return jsonify({"error": "文本过长"}), 400
+
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+    if not api_key:
+        return jsonify({"error": "未配置 OPENAI_API_KEY，无法使用高清发音。"}), 401
+
+    model = os.environ.get("OPENAI_TTS_MODEL", "FunAudioLLM/CosyVoice2-0.5B")
+    voice = os.environ.get("OPENAI_TTS_VOICE", f"{model}:alex")
+
+    try:
+        resp = requests.post(
+            f"{base_url}/audio/speech",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model,
+                "input": text,
+                "voice": voice,
+                "response_format": "mp3",
+            },
+            timeout=60,
+        )
+        resp.raise_for_status()
+        return Response(resp.content, mimetype="audio/mpeg")
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"TTS 请求失败：{str(e)}"}), 502
+
+
 @oral_bp.route("/api/transcribe", methods=["POST"])
 def transcribe():
     """

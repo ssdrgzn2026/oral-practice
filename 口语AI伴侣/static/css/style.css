@@ -819,3 +819,24 @@ body { line-height: 1.65; }
     .card h3 { font-size: 1rem; }
     body { font-size: 15px; }
 }
+
+/* ===== 高清发音开关 ===== */
+.hd-toggle {
+    text-align: center;
+    margin: 8px 0;
+    font-size: 0.85rem;
+    color: #4b5563;
+}
+
+.hd-toggle label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    padding: 5px 14px;
+    cursor: pointer;
+}
+
+.hd-toggle input { accent-color: #4f46e5; }
