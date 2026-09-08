@@ -998,25 +998,14 @@ def _extract_text_rebuild(pdf_bytes: bytes) -> tuple[str, Path]:
     return total_text, out_path
 
 
-def pdf_to_word(pdf_bytes: bytes) -> tuple[Path, str]:
-    """
-    PDF 转换为 Word 文档。
-    优先提取文字重建可编辑 docx；若文本太少（扫描件）则 fallback 到 pdf2docx 图片模式。
-    返回 (输出路径, 模式说明)。
-    """
-    # 先尝试文本提取重建
-    text_content, text_path = _extract_text_rebuild(pdf_bytes)
-    
-    if text_path and len(text_content.strip()) >= 100:
-        return text_path, "文字提取模式（可编辑）"
-    
-    # Fallback: 扫描件/图片 PDF，用 pdf2docx 的图片模式
+def _pdf_to_word_pdf2docx(pdf_bytes: bytes) -> Path:
+    """用 pdf2docx 做版式还原转换（保留表格、图表、排版位置）"""
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp_pdf:
         tmp_pdf.write(pdf_bytes)
         tmp_pdf_path = tmp_pdf.name
-    
+
     out_path = _get_unique_path("converted.docx")
-    
+
     try:
         Converter = _get_pdf2docx_converter()
         cv = Converter(tmp_pdf_path)
@@ -1024,8 +1013,36 @@ def pdf_to_word(pdf_bytes: bytes) -> tuple[Path, str]:
         cv.close()
     finally:
         os.unlink(tmp_pdf_path)
-    
-    return out_path, "图片模式（扫描件，无法编辑文字）"
+
+    return out_path
+
+
+def pdf_to_word(pdf_bytes: bytes, mode: str = "auto") -> tuple[Path, str]:
+    """
+    PDF 转换为 Word 文档。
+    mode:
+      - auto    文字多的用文本重建（可编辑），扫描件 fallback 到 pdf2docx
+      - rebuild 强制文本提取重建（纯文字文档效果最好，完全可编辑）
+      - layout  强制 pdf2docx 版式还原（报表/图文混排/带图表的文档选这个）
+    返回 (输出路径, 模式说明)。
+    """
+    if mode == "layout":
+        return _pdf_to_word_pdf2docx(pdf_bytes), "版式还原模式（保留表格/图表/排版）"
+
+    if mode == "rebuild":
+        text_content, text_path = _extract_text_rebuild(pdf_bytes)
+        if text_path:
+            return text_path, "文字提取模式（可编辑）"
+        return _pdf_to_word_pdf2docx(pdf_bytes), "版式还原模式（文本过少自动切换）"
+
+    # auto：先尝试文本提取重建
+    text_content, text_path = _extract_text_rebuild(pdf_bytes)
+
+    if text_path and len(text_content.strip()) >= 100:
+        return text_path, "文字提取模式（可编辑）"
+
+    # Fallback: 扫描件/图片 PDF
+    return _pdf_to_word_pdf2docx(pdf_bytes), "版式还原模式（扫描件/图片PDF）"
 
 
 # ==================== 图像格式互转 ====================
