@@ -64,6 +64,10 @@ st.markdown("""
 
 st.title("📈 DCF 估值分析系统")
 st.caption("基于上市公司年报的自由现金流折现估值模型")
+st.markdown(
+    "<a href='/' target='_self' style='color:#1a237e;text-decoration:none;font-size:14px;'>← 返回 MiscHub 首页</a>",
+    unsafe_allow_html=True,
+)
 
 # 在侧边栏渲染前处理公司名称更新（避免组件实例化后修改 session_state）
 if "_pending_company_name" in st.session_state:
@@ -72,6 +76,11 @@ if "_pending_company_name" in st.session_state:
 
 # ============ 侧边栏 ============
 with st.sidebar:
+    st.markdown(
+        "<a href='/' target='_self' style='display:block;text-align:center;background:#ffffff;color:#1a237e;"
+        "padding:8px 0;border-radius:8px;text-decoration:none;font-weight:600;'>🧰 返回 MiscHub 首页</a>",
+        unsafe_allow_html=True,
+    )
     st.header("⚙️ 公司基本信息")
     if "company_name" not in st.session_state:
         st.session_state.company_name = "示例科技"

@@ -935,9 +935,20 @@ def main():
     except Exception:
         pass
 
+    # 顶部返回首页（移动端侧边栏默认收起，这里给一个显眼入口）
+    st.markdown(
+        "<a href='/' target='_self' style='color:#4f46e5;text-decoration:none;font-size:14px;'>← 返回 MiscHub 首页</a>",
+        unsafe_allow_html=True,
+    )
+
     # 侧边栏
     st.sidebar.title("🔄 格式转换系统")
     st.sidebar.markdown("<p style='color:#888;font-size:12px;'>v2.0 | 全场景覆盖</p>", unsafe_allow_html=True)
+    st.sidebar.markdown(
+        "<a href='/' target='_self' style='display:block;text-align:center;background:#4f46e5;color:#fff;"
+        "padding:8px 0;border-radius:8px;text-decoration:none;font-weight:600;'>🧰 返回 MiscHub 首页</a>",
+        unsafe_allow_html=True,
+    )
     st.sidebar.divider()
     
     # 初始化页面状态
