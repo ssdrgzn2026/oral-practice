@@ -1017,6 +1017,40 @@ def _pdf_to_word_pdf2docx(pdf_bytes: bytes) -> Path:
     return out_path
 
 
+def pdf_to_word_page_images(pdf_bytes: bytes, dpi: int = 150) -> Path:
+    """
+    整页图片模式：每页 PDF 渲染为图片，按原始页面尺寸铺满 Word 页面。
+    版式与 PDF 完全一致（居中、不会一页变两页），但内容不可编辑。
+    """
+    doc_pdf = fitz.open(stream=pdf_bytes, filetype="pdf")
+    docx = Document()
+    zoom = dpi / 72.0
+
+    for i, page in enumerate(doc_pdf):
+        # Word 节页面尺寸与 PDF 页面一致，零边距 → 图片铺满整页
+        sec = docx.sections[0] if i == 0 else docx.add_section(WD_SECTION.NEW_PAGE)
+        sec.page_width = Pt(page.rect.width)
+        sec.page_height = Pt(page.rect.height)
+        sec.left_margin = sec.right_margin = sec.top_margin = sec.bottom_margin = Pt(0)
+
+        pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom))
+        img_path = _get_unique_path("page.png")
+        pix.save(img_path)
+
+        p = docx.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        pf = p.paragraph_format
+        pf.space_before = pf.space_after = Pt(0)
+        pf.line_spacing = 1.0
+        run = p.add_run()
+        run.add_picture(str(img_path), width=Pt(page.rect.width), height=Pt(page.rect.height))
+        img_path.unlink()  # 🔒 图片已嵌入 docx，删除临时文件
+
+    out_path = _get_unique_path("converted.docx")
+    docx.save(out_path)
+    return out_path
+
+
 def pdf_to_word(pdf_bytes: bytes, mode: str = "auto") -> tuple[Path, str]:
     """
     PDF 转换为 Word 文档。
@@ -1024,8 +1058,12 @@ def pdf_to_word(pdf_bytes: bytes, mode: str = "auto") -> tuple[Path, str]:
       - auto    文字多的用文本重建（可编辑），扫描件 fallback 到 pdf2docx
       - rebuild 强制文本提取重建（纯文字文档效果最好，完全可编辑）
       - layout  强制 pdf2docx 版式还原（报表/图文混排/带图表的文档选这个）
+      - images  整页图片模式，版式与 PDF 完全一致，内容不可编辑
     返回 (输出路径, 模式说明)。
     """
+    if mode == "images":
+        return pdf_to_word_page_images(pdf_bytes), "整页图片模式（版式完全一致，不可编辑）"
+
     if mode == "layout":
         return _pdf_to_word_pdf2docx(pdf_bytes), "版式还原模式（保留表格/图表/排版）"
 

@@ -333,15 +333,16 @@ def render_pdf2word():
         uploaded = st.file_uploader("上传PDF文件", type=["pdf"], key="p2w")
         mode_label = st.radio(
             "转换模式",
-            ["自动（智能判断）", "文字提取（纯文字文档，完全可编辑）", "版式还原（带表格/图表的报表，排版不变）"],
+            ["自动（智能判断）", "版式还原（可编辑，尽量保留排版）", "整页图片（版式完全一致，不可编辑）", "文字提取（纯文字文档）"],
             index=0,
             key="p2w_mode",
             horizontal=True,
         )
         mode_map = {
             "自动（智能判断）": "auto",
-            "文字提取（纯文字文档，完全可编辑）": "rebuild",
-            "版式还原（带表格/图表的报表，排版不变）": "layout",
+            "版式还原（可编辑，尽量保留排版）": "layout",
+            "整页图片（版式完全一致，不可编辑）": "images",
+            "文字提取（纯文字文档）": "rebuild",
         }
         if uploaded:
             with st.spinner("转换中（智能版式还原+图文混排）..."):
