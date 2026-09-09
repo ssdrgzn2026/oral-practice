@@ -112,6 +112,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+st.markdown("<img src='/api/pv?p=dcf' style='display:none' alt=''>", unsafe_allow_html=True)
 st.title("📈 DCF 估值分析系统")
 st.caption("基于上市公司年报的自由现金流折现估值模型")
 st.markdown(

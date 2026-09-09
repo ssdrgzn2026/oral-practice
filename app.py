@@ -43,6 +43,18 @@ def track_pageview():
         stats_logger.log_pageview()
 
 
+@app.route("/api/pv")
+def pv_pixel():
+    """Streamlit 模块（格式转换/DCF）的访问统计像素：页面加载时以 <img> 形式上报"""
+    p = request.args.get("p", "")
+    allowed = {"convert": "/convert/", "dcf": "/dcf/"}
+    if p in allowed:
+        ua = request.headers.get("User-Agent", "")
+        if ua and not stats_logger._BOT_UA.search(ua):
+            stats_logger.log_pageview(path=allowed[p])
+    return ("", 204, {"Cache-Control": "no-store"})
+
+
 @app.route("/api/visit-beat", methods=["POST"])
 def visit_beat():
     stats_logger.log_beat(request.get_json(silent=True) or {})

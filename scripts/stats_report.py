@@ -59,6 +59,34 @@ def disp_width(s):
     return sum(2 if unicodedata.east_asian_width(c) in ("W", "F") else 1 for c in s)
 
 
+def geo_short(geo):
+    """归属地精简：中国留'省 市'，国外留'国家 城市'，去掉冗长运营商名"""
+    if not geo:
+        return "-"
+    parts = str(geo).split()
+    if not parts:
+        return "-"
+    if parts[0] == "中国":
+        return " ".join(parts[1:3]) if len(parts) > 1 else parts[0]
+    # 国外：国家 + 城市（第3段），无城市则国家+省
+    if len(parts) >= 3:
+        return f"{parts[0]} {parts[2]}"
+    return " ".join(parts[:2])
+
+
+PATH_NAMES = {
+    "/": "首页",
+    "/oral": "口语",
+    "/tickets": "票务",
+    "/convert/": "格式转换",
+    "/dcf/": "DCF",
+}
+
+
+def page_names(paths):
+    return "、".join(PATH_NAMES.get(p, p) for p in sorted(paths) if p)
+
+
 def pad(s, width):
     """按显示宽度对齐（中文算 2 格），超长的截断加省略号，解决中英文混排错位"""
     s = str(s)
@@ -188,9 +216,9 @@ def main():
             d["user_ids"].add(s["user_id"])
         d["pages"] |= set(s["paths"])
 
-    print(pad("最近访问", 17) + pad("IP", 17) + pad("归属地", 22) + pad("类型", 8)
-          + pad("浏览", 5) + pad("会话", 5) + pad("总停留", 10) + "页面")
-    print("-" * 110)
+    print(pad("最近访问", 17) + pad("IP", 17) + pad("归属地", 18) + pad("类型", 9)
+          + pad("浏览", 5) + pad("会话", 5) + pad("总停留", 10) + "访问过的页面")
+    print("-" * 100)
     # 按最近访问时间倒序
     rows = sorted(visitors.items(),
                   key=lambda kv: kv[1]["last"] or datetime.min, reverse=True)
@@ -198,12 +226,12 @@ def main():
         kind = "真人" if d["sessions"] > 0 else "扫描/爬虫"
         print(pad(d["last"].strftime("%m-%d %H:%M") if d["last"] else "-", 17)
               + pad(ip, 17)
-              + pad(d["geo"] or "-", 22)
-              + pad(kind, 8)
+              + pad(geo_short(d["geo"]), 18)
+              + pad(kind, 9)
               + pad(d["visits"], 5)
               + pad(d["sessions"], 5)
               + pad(fmt_duration(d["total_sec"]), 10)
-              + ",".join(sorted(p for p in d["pages"] if p)))
+              + page_names(d["pages"]))
     real = sum(1 for d in visitors.values() if d["sessions"] > 0)
     print(f"\n共 {len(visitors)} 个独立 IP（真人 {real} 个，扫描/爬虫 {len(visitors) - real} 个），"
           f"{len(visits)} 次页面浏览，{len(session_info)} 个会话")

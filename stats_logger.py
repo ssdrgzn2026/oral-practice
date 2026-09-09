@@ -96,7 +96,15 @@ def client_ip():
             or request.remote_addr or "")
 
 
-def log_pageview():
+def geo_short(geo):
+    """归属地精简：只保留 国家 省 市，去掉冗长的运营商公司名"""
+    if not geo:
+        return geo
+    parts = str(geo).split()
+    return " ".join(parts[:3]) if len(parts) > 3 else str(geo)
+
+
+def log_pageview(path=None):
     """记录一次页面访问（GET 且属于被跟踪页面）"""
     ip = client_ip()
     if _is_internal(ip):
@@ -105,7 +113,7 @@ def log_pageview():
         "time": datetime.now().isoformat(timespec="seconds"),
         "ip": ip,
         "geo": geo_lookup(ip),
-        "path": request.path,
+        "path": path or request.path,
         "ua": request.headers.get("User-Agent", "")[:200],
         "referer": request.headers.get("Referer", "")[:200],
     })

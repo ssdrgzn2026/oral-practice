@@ -1002,6 +1002,9 @@ def main():
     except Exception:
         pass
 
+    # 访问统计像素
+    st.markdown("<img src='/api/pv?p=convert' style='display:none' alt=''>", unsafe_allow_html=True)
+
     # 顶部返回首页（移动端侧边栏默认收起，这里给一个显眼入口）
     st.markdown(
         "<a href='/' target='_self' style='color:#4f46e5;text-decoration:none;font-size:14px;'>← 返回 MiscHub 首页</a>",
