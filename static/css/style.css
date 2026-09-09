@@ -935,3 +935,37 @@ body { line-height: 1.65; }
     color: #4f46e5;
     font-size: 0.9rem;
 }
+
+/* ===== 网站导航编辑模式 ===== */
+.site-card.editing {
+    cursor: default;
+}
+
+.site-card.editing:hover {
+    transform: none;
+}
+
+.site-ops {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+}
+
+.site-ops .op, .del-cat {
+    border: 1px solid #d1d5db;
+    background: #f9fafb;
+    border-radius: 6px;
+    padding: 3px 12px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.site-ops .op-del, .del-cat {
+    color: #dc2626;
+    border-color: #fecaca;
+}
+
+.del-cat {
+    margin-left: 8px;
+    font-size: 0.75rem;
+}

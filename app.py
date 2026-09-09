@@ -169,10 +169,67 @@ def portal():
 
 @app.route("/api/links")
 def api_links():
+    uid = request.args.get("uid", "")[:64]
+    if uid:
+        custom = _load_portal_custom().get(uid)
+        if custom:
+            return jsonify(custom)
     try:
         return jsonify(json.loads((BASE_DIR / "data" / "links.json").read_text(encoding="utf-8")))
     except (OSError, json.JSONDecodeError):
         return jsonify({"categories": []})
+
+
+PORTAL_FILE = REMINDER_DIR / "portal_custom.json"
+
+
+def _load_portal_custom():
+    try:
+        return json.loads(PORTAL_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+@app.route("/api/portal/save", methods=["POST"])
+def portal_save():
+    """保存用户的自定义导航（整体覆盖该用户的配置）"""
+    body = request.get_json(silent=True) or {}
+    uid = str(body.get("uid", ""))[:64]
+    cats = body.get("categories")
+    if not uid or not isinstance(cats, list):
+        return jsonify({"error": "参数不完整"}), 400
+    # 基本校验
+    clean = []
+    for c in cats[:20]:
+        sites = []
+        for s in (c.get("sites") or [])[:100]:
+            name = str(s.get("name", "")).strip()[:64]
+            url = str(s.get("url", "")).strip()[:256]
+            if not name or not url.startswith(("http://", "https://")):
+                continue
+            sites.append({
+                "name": name, "url": url,
+                "desc": str(s.get("desc", ""))[:128],
+                "icon": str(s.get("icon", "🔗"))[:8],
+            })
+        name = str(c.get("name", "")).strip()[:32]
+        if name:
+            clean.append({"name": name, "icon": str(c.get("icon", "📂"))[:8], "sites": sites})
+    data = _load_portal_custom()
+    data[uid] = {"categories": clean}
+    PORTAL_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/portal/reset", methods=["POST"])
+def portal_reset():
+    """恢复默认导航"""
+    body = request.get_json(silent=True) or {}
+    uid = str(body.get("uid", ""))[:64]
+    data = _load_portal_custom()
+    data.pop(uid, None)
+    PORTAL_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    return jsonify({"ok": True})
 
 
 @app.route("/api/hospital-rules")

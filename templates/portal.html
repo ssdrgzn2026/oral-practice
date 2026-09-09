@@ -14,6 +14,18 @@
             <p class="back-home"><a href="/">← 返回 MiscHub 首页</a></p>
         </header>
 
+        <div style="text-align:center; margin-bottom:4px;">
+            <button id="edit-toggle" class="btn secondary">✏️ 管理我的网站</button>
+            <span id="edit-bar" style="display:none;">
+                <button id="add-cat" class="btn secondary">➕ 加分类</button>
+                <button id="reset-default" class="btn danger">恢复默认</button>
+                <button id="save-btn" class="btn primary">💾 保存</button>
+            </span>
+        </div>
+        <p id="edit-tip" class="hint" style="text-align:center; display:none;">
+            编辑模式：点卡片上的 ↑↓ 调整顺序，✕ 删除；点「➕ 添加网站」收录新网站。改动记得点「保存」。
+        </p>
+
         <main class="main" id="portal-main">
         </main>
 
@@ -24,26 +36,134 @@
     </div>
 
     <script>
-    fetch("/api/links")
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            var main = document.getElementById("portal-main");
-            main.innerHTML = data.categories.map(function (cat) {
-                var sites = cat.sites.map(function (s) {
-                    return '<a class="module-card site-card" href="' + s.url + '" target="_blank" rel="noopener">' +
-                        '<div class="module-icon">' + (s.icon || "🔗") + "</div>" +
-                        "<h2>" + s.name + ' <span class="site-go">↗</span></h2>' +
-                        "<p>" + s.desc + "</p>" +
-                        "</a>";
+    (function () {
+        var uid = localStorage.getItem("mischub_uid");
+        if (!uid) {
+            uid = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+            localStorage.setItem("mischub_uid", uid);
+        }
+
+        var data = null;      // {categories: [...]}
+        var editing = false;
+        var main = document.getElementById("portal-main");
+
+        function esc(s) {
+            return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        function load() {
+            fetch("/api/links?uid=" + encodeURIComponent(uid))
+                .then(function (r) { return r.json(); })
+                .then(function (d) { data = d; render(); })
+                .catch(function () { main.innerHTML = "<p class='hint'>加载失败，请刷新重试</p>"; });
+        }
+
+        function render() {
+            main.innerHTML = data.categories.map(function (cat, ci) {
+                var sites = cat.sites.map(function (s, si) {
+                    var inner =
+                        '<div class="module-icon">' + esc(s.icon || "🔗") + "</div>" +
+                        "<h2>" + esc(s.name) + ' <span class="site-go">↗</span></h2>' +
+                        "<p>" + esc(s.desc || "") + "</p>";
+                    if (editing) {
+                        return '<div class="module-card site-card editing">' + inner +
+                            '<div class="site-ops">' +
+                            '<button data-ci="' + ci + '" data-si="' + si + '" data-op="up" class="op">↑</button>' +
+                            '<button data-ci="' + ci + '" data-si="' + si + '" data-op="down" class="op">↓</button>' +
+                            '<button data-ci="' + ci + '" data-si="' + si + '" data-op="del" class="op op-del">✕</button>' +
+                            "</div></div>";
+                    }
+                    return '<a class="module-card site-card" href="' + esc(s.url) + '" target="_blank" rel="noopener">' + inner + "</a>";
                 }).join("");
+                var addBtn = editing
+                    ? '<button class="btn secondary add-site" data-ci="' + ci + '" style="margin-top:8px;">➕ 添加网站</button>'
+                    : "";
+                var delCat = editing
+                    ? '<button class="op op-del del-cat" data-ci="' + ci + '" title="删除整个分类">✕</button>' : "";
                 return '<section class="portal-cat"><h2 class="portal-cat-title">' +
-                    (cat.icon || "") + " " + cat.name + '</h2>' +
-                    '<div class="module-grid">' + sites + "</div></section>";
+                    esc(cat.icon || "📂") + " " + esc(cat.name) + delCat + '</h2>' +
+                    '<div class="module-grid">' + sites + "</div>" + addBtn + "</section>";
             }).join("");
-        })
-        .catch(function () {
-            document.getElementById("portal-main").innerHTML = "<p class='hint'>加载失败，请刷新重试</p>";
+            bindOps();
+        }
+
+        function bindOps() {
+            main.querySelectorAll(".site-ops .op").forEach(function (b) {
+                b.addEventListener("click", function () {
+                    var ci = +b.dataset.ci, si = +b.dataset.si, op = b.dataset.op;
+                    var arr = data.categories[ci].sites;
+                    if (op === "del") arr.splice(si, 1);
+                    else if (op === "up" && si > 0) { var t = arr[si - 1]; arr[si - 1] = arr[si]; arr[si] = t; }
+                    else if (op === "down" && si < arr.length - 1) { var t2 = arr[si + 1]; arr[si + 1] = arr[si]; arr[si] = t2; }
+                    render();
+                });
+            });
+            main.querySelectorAll(".del-cat").forEach(function (b) {
+                b.addEventListener("click", function () {
+                    if (confirm("删除整个分类「" + data.categories[+b.dataset.ci].name + "」及其中所有网站？")) {
+                        data.categories.splice(+b.dataset.ci, 1);
+                        render();
+                    }
+                });
+            });
+            main.querySelectorAll(".add-site").forEach(function (b) {
+                b.addEventListener("click", function () { addSite(+b.dataset.ci); });
+            });
+        }
+
+        function addSite(ci) {
+            var name = prompt("网站名称：");
+            if (!name) return;
+            var url = prompt("网址（以 http:// 或 https:// 开头）：");
+            if (!url || !/^https?:\/\//.test(url)) { alert("网址格式不对"); return; }
+            var desc = prompt("一句话简介（可留空）：") || "";
+            var icon = prompt("图标 emoji（可留空，默认 🔗）：") || "🔗";
+            data.categories[ci].sites.push({ name: name, url: url, desc: desc, icon: icon });
+            render();
+        }
+
+        document.getElementById("edit-toggle").addEventListener("click", function () {
+            editing = !editing;
+            this.textContent = editing ? "✅ 完成编辑" : "✏️ 管理我的网站";
+            document.getElementById("edit-bar").style.display = editing ? "inline" : "none";
+            document.getElementById("edit-tip").style.display = editing ? "block" : "none";
+            render();
         });
+
+        document.getElementById("add-cat").addEventListener("click", function () {
+            var name = prompt("新分类名称：");
+            if (!name) return;
+            var icon = prompt("分类图标 emoji（可留空，默认 📂）：") || "📂";
+            data.categories.push({ name: name, icon: icon, sites: [] });
+            render();
+        });
+
+        document.getElementById("save-btn").addEventListener("click", function () {
+            fetch("/api/portal/save", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ uid: uid, categories: data.categories }),
+            }).then(function (r) { return r.json(); })
+              .then(function (d) { alert(d.ok ? "✅ 已保存，只对本机生效" : "保存失败"); });
+        });
+
+        document.getElementById("reset-default").addEventListener("click", function () {
+            if (!confirm("恢复为默认导航？你的自定义改动会全部清除。")) return;
+            fetch("/api/portal/reset", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ uid: uid }),
+            }).then(function () {
+                editing = false;
+                document.getElementById("edit-toggle").textContent = "✏️ 管理我的网站";
+                document.getElementById("edit-bar").style.display = "none";
+                document.getElementById("edit-tip").style.display = "none";
+                load();
+            });
+        });
+
+        load();
+    })();
     </script>
     <script src="/static/js/track.js"></script>
 </body>
