@@ -55,10 +55,24 @@ def fmt_duration(seconds):
     return f"{seconds // 3600}时{(seconds % 3600) // 60}分"
 
 
+def disp_width(s):
+    return sum(2 if unicodedata.east_asian_width(c) in ("W", "F") else 1 for c in s)
+
+
 def pad(s, width):
-    """按显示宽度对齐（中文算 2 格），解决中英文混排错位"""
+    """按显示宽度对齐（中文算 2 格），超长的截断加省略号，解决中英文混排错位"""
     s = str(s)
-    w = sum(2 if unicodedata.east_asian_width(c) in ("W", "F") else 1 for c in s)
+    w = disp_width(s)
+    if w > width:
+        out, cur = [], 0
+        for c in s:
+            cw = 2 if unicodedata.east_asian_width(c) in ("W", "F") else 1
+            if cur + cw > width - 1:
+                break
+            out.append(c)
+            cur += cw
+        s = "".join(out) + "…"
+        w = cur + 1
     return s + " " * max(0, width - w)
 
 

@@ -6,6 +6,7 @@
 
 import json
 import os
+import re
 import threading
 import time
 from datetime import datetime
@@ -124,5 +125,18 @@ def log_beat(body):
     })
 
 
+# 扫描器/爬虫 UA 特征：直接不记录（它们不执行 JS，对统计没意义）
+_BOT_UA = re.compile(
+    r"bot|spider|crawl|scan|python|curl/|wget/|okhttp|go-http|axios|node-|"
+    r"headless|phantom|zgrab|masscan|nmap|httpie|libwww|java/|censys|shodan",
+    re.I,
+)
+
+
 def should_track(path, method):
-    return method == "GET" and path in _TRACKED_PAGES
+    if not (method == "GET" and path in _TRACKED_PAGES):
+        return False
+    ua = request.headers.get("User-Agent", "")
+    if not ua or _BOT_UA.search(ua):
+        return False
+    return True
