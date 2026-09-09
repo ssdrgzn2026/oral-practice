@@ -919,3 +919,19 @@ body { line-height: 1.65; }
     .card h3 { font-size: 1rem; }
     body { font-size: 15px; }
 }
+
+/* ===== 网站导航 ===== */
+.portal-cat { margin-bottom: 8px; }
+
+.portal-cat-title {
+    font-size: 1.1rem;
+    color: #374151;
+    border-left: 4px solid #4f46e5;
+    padding-left: 10px;
+    margin: 16px 0 4px;
+}
+
+.site-card .site-go {
+    color: #4f46e5;
+    font-size: 0.9rem;
+}

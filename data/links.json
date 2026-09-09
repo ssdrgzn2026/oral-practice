@@ -1,0 +1,22 @@
+{
+  "categories": [
+    {
+      "name": "艺术鉴赏",
+      "icon": "🎨",
+      "sites": [
+        {
+          "name": "Artlib 世界艺术鉴赏库",
+          "url": "https://www.artlib.cn",
+          "desc": "艺术家、艺术品、艺术机构查询，可按流派/时期/国籍浏览",
+          "icon": "🖼️"
+        },
+        {
+          "name": "WikiArt 视觉艺术百科全书",
+          "url": "https://www.wikiart.org/zh",
+          "desc": "全球画作百科，按流派/学派/国籍/世纪排序，支持中文",
+          "icon": "🎨"
+        }
+      ]
+    }
+  ]
+}

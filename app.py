@@ -162,6 +162,19 @@ def tickets():
     return render_template("tickets.html")
 
 
+@app.route("/portal")
+def portal():
+    return render_template("portal.html")
+
+
+@app.route("/api/links")
+def api_links():
+    try:
+        return jsonify(json.loads((BASE_DIR / "data" / "links.json").read_text(encoding="utf-8")))
+    except (OSError, json.JSONDecodeError):
+        return jsonify({"categories": []})
+
+
 @app.route("/api/hospital-rules")
 def hospital_rules():
     q = request.args.get("q", "").strip()
