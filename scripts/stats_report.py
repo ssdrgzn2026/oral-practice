@@ -236,6 +236,15 @@ def main():
     print(f"\n共 {len(visitors)} 个独立 IP（真人 {real} 个，扫描/爬虫 {len(visitors) - real} 个），"
           f"{len(visits)} 次页面浏览，{len(session_info)} 个会话")
 
+    # 各模块访问量汇总（按页面路径统计）
+    page_counts = defaultdict(int)
+    for v in visits:
+        page_counts[v.get("path", "")] += 1
+    if page_counts:
+        print("\n各模块访问量：")
+        for p, n in sorted(page_counts.items(), key=lambda kv: kv[1], reverse=True):
+            print(f"  {PATH_NAMES.get(p, p)}：{n} 次")
+
 
 if __name__ == "__main__":
     main()
