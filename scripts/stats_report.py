@@ -78,6 +78,7 @@ PATH_NAMES = {
     "/": "首页",
     "/oral": "口语",
     "/tickets": "票务",
+    "/portal": "网站导航",
     "/convert/": "格式转换",
     "/dcf/": "DCF",
 }
