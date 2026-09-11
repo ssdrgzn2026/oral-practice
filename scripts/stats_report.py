@@ -175,10 +175,16 @@ def main():
         items.sort(key=lambda x: x[0])
         first, last = items[0], items[-1]
         meta = last[1]
+        # 时长按心跳累加：相邻心跳间隔超过 60 秒视为离开（PWA 常驻后台会虚高）
+        duration = 0.0
+        for i in range(1, len(items)):
+            gap = (items[i][0] - items[i - 1][0]).total_seconds()
+            if gap <= 60:
+                duration += gap
         session_info[sid] = {
             "start": first[0],
             "end": last[0],
-            "duration": (last[0] - first[0]).total_seconds(),
+            "duration": duration,
             "ip": meta.get("ip", ""),
             "geo": meta.get("geo", ""),
             "user_id": meta.get("user_id", ""),
@@ -217,17 +223,18 @@ def main():
             d["user_ids"].add(s["user_id"])
         d["pages"] |= set(s["paths"])
 
-    print(pad("最近访问", 17) + pad("IP", 17) + pad("归属地", 18) + pad("类型", 9)
+    print(pad("首次访问", 13) + pad("最近访问", 13) + pad("IP", 17) + pad("归属地", 14) + pad("类型", 9)
           + pad("浏览", 5) + pad("会话", 5) + pad("总停留", 10) + "访问过的页面")
-    print("-" * 100)
+    print("-" * 110)
     # 按最近访问时间倒序
     rows = sorted(visitors.items(),
                   key=lambda kv: kv[1]["last"] or datetime.min, reverse=True)
     for ip, d in rows:
         kind = "真人" if d["sessions"] > 0 else "扫描/爬虫"
-        print(pad(d["last"].strftime("%m-%d %H:%M") if d["last"] else "-", 17)
+        print(pad(d["first"].strftime("%m-%d %H:%M") if d["first"] else "-", 13)
+              + pad(d["last"].strftime("%m-%d %H:%M") if d["last"] else "-", 13)
               + pad(ip, 17)
-              + pad(geo_short(d["geo"]), 18)
+              + pad(geo_short(d["geo"]), 14)
               + pad(kind, 9)
               + pad(d["visits"], 5)
               + pad(d["sessions"], 5)
