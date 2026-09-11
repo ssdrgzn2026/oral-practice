@@ -74,6 +74,37 @@ def geo_short(geo):
     return " ".join(parts[:2])
 
 
+CARRIERS = [
+    (("telecom", "china networks"), "电信"),
+    (("mobile",), "移动"),
+    (("unicom", "china169"), "联通"),
+    (("alibaba", "aliyun"), "阿里云"),
+    (("tencent",), "腾讯云"),
+    (("huawei",), "华为云"),
+    (("google",), "谷歌云"),
+    (("amazon",), "亚马逊云"),
+    (("microsoft",), "微软云"),
+    (("akamai",), "Akamai"),
+    (("digitalocean",), "DigitalOcean"),
+    (("ucloud",), "UCloud"),
+    (("huashu",), "华数"),
+]
+
+
+def carrier_of(geo):
+    """从归属地字符串的 ISP 部分识别运营商"""
+    if not geo:
+        return "-"
+    parts = str(geo).split()
+    isp = " ".join(parts[3:]).lower() if len(parts) > 3 else ""
+    if not isp:
+        return "-"
+    for keys, name in CARRIERS:
+        if any(k in isp for k in keys):
+            return name
+    return parts[3][:12]  # 其他给第一段简称
+
+
 PATH_NAMES = {
     "/": "首页",
     "/oral": "口语",
@@ -223,9 +254,9 @@ def main():
             d["user_ids"].add(s["user_id"])
         d["pages"] |= set(s["paths"])
 
-    print(pad("首次访问", 13) + pad("最近访问", 13) + pad("IP", 17) + pad("归属地", 14) + pad("类型", 9)
+    print(pad("首次访问", 13) + pad("最近访问", 13) + pad("IP", 17) + pad("归属地", 14) + pad("运营商", 8) + pad("类型", 9)
           + pad("浏览", 5) + pad("会话", 5) + pad("总停留", 10) + "访问过的页面")
-    print("-" * 110)
+    print("-" * 118)
     # 按最近访问时间倒序
     rows = sorted(visitors.items(),
                   key=lambda kv: kv[1]["last"] or datetime.min, reverse=True)
@@ -235,6 +266,7 @@ def main():
               + pad(d["last"].strftime("%m-%d %H:%M") if d["last"] else "-", 13)
               + pad(ip, 17)
               + pad(geo_short(d["geo"]), 14)
+              + pad(carrier_of(d["geo"]), 8)
               + pad(kind, 9)
               + pad(d["visits"], 5)
               + pad(d["sessions"], 5)
