@@ -452,7 +452,12 @@
             {
               "id": "transistor",
               "name": "晶体管",
-              "desc": "半导体的开关与放大，信息时代的基石"
+              "desc": "半导体的开关与放大，信息时代的基石",
+              "demo": {
+                "type": "canvas",
+                "anim": "transistor",
+                "title": "小信号如何被放大"
+              }
             }
           ],
           "nobel": [
@@ -471,7 +476,12 @@
               "who": "赤崎勇、天野浩、中村修二",
               "for": "蓝光 LED（高效白色光源）"
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "lattice",
+            "title": "晶体点阵：原子规则排列，电子穿行"
+          }
         },
         {
           "id": "superconductivity",
@@ -481,12 +491,22 @@
             {
               "id": "bcs",
               "name": "BCS 理论",
-              "desc": "库珀对解释常规超导的微观机制"
+              "desc": "库珀对解释常规超导的微观机制",
+              "demo": {
+                "type": "canvas",
+                "anim": "cooper",
+                "title": "库珀对如何结成"
+              }
             },
             {
               "id": "high-tc",
               "name": "高温超导",
-              "desc": "铜氧化物等非常规超导体，机制至今未完全解决"
+              "desc": "铜氧化物等非常规超导体，机制至今未完全解决",
+              "demo": {
+                "type": "canvas",
+                "anim": "supercond",
+                "title": "高温超导：更大的临界温度"
+              }
             }
           ],
           "nobel": [
@@ -520,7 +540,12 @@
               "who": "阿布里科索夫、金兹堡、莱格特",
               "for": "超导超流理论"
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "supercond",
+            "title": "电阻-温度曲线：Tc 处骤降为零"
+          }
         },
         {
           "id": "magnetic-mat",
@@ -530,7 +555,12 @@
             {
               "id": "gmr",
               "name": "巨磁阻",
-              "desc": "磁性多层膜电阻剧变，硬盘容量的革命"
+              "desc": "磁性多层膜电阻剧变，硬盘容量的革命",
+              "demo": {
+                "type": "canvas",
+                "anim": "domains",
+                "title": "巨磁阻的磁性层取向"
+              }
             }
           ],
           "nobel": [
@@ -544,7 +574,12 @@
               "who": "费尔、格林贝格",
               "for": "巨磁阻效应（硬盘读取原理）"
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "domains",
+            "title": "磁畴：从杂乱到取向一致"
+          }
         },
         {
           "id": "topo",
@@ -554,12 +589,22 @@
             {
               "id": "graphene",
               "name": "石墨烯",
-              "desc": "单层碳原子，最薄最强的新材料"
+              "desc": "单层碳原子，最薄最强的新材料",
+              "demo": {
+                "type": "canvas",
+                "anim": "graphene",
+                "title": "石墨烯的蜂窝晶格"
+              }
             },
             {
               "id": "qhall",
               "name": "量子霍尔效应",
-              "desc": "霍尔电导的量子化平台"
+              "desc": "霍尔电导的量子化平台",
+              "demo": {
+                "type": "canvas",
+                "anim": "qhall",
+                "title": "量子霍尔平台：电阻的阶梯"
+              }
             }
           ],
           "nobel": [
@@ -583,7 +628,12 @@
               "who": "索利斯、霍尔丹、科斯特利茨",
               "for": "拓扑相变与拓扑物态"
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "qhall",
+            "title": "量子霍尔平台：电阻的阶梯"
+          }
         },
         {
           "id": "softmatter",
@@ -595,7 +645,12 @@
               "who": "德热纳",
               "for": "软物质（液晶、聚合物）"
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "lcd",
+            "title": "液晶分子：加电前后的排列"
+          }
         }
       ]
     },

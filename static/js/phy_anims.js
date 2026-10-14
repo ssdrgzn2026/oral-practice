@@ -286,59 +286,323 @@ window.PhyAnims = (function () {
             ctx.textAlign = "center";
 
             var panels = [
-                { name: "导体", gap: 0.02, elec: 0.9, note: "能带重叠，自由移动" },
-                { name: "半导体", gap: 0.14, elec: 0.25, note: "带隙小，少量跃迁" },
-                { name: "绝缘体", gap: 0.30, elec: 0.02, note: "带隙大，几乎不导电" },
+                { name: "导体", gapRatio: -0.12, elec: 8, note: "能带重叠，自由移动", espeed: 50 },
+                { name: "半导体", gapRatio: 0.30, elec: 2, note: "带隙小，少量跃迁", espeed: 15 },
+                { name: "绝缘体", gapRatio: 0.60, elec: 0, note: "带隙大，几乎不导电", espeed: 0 },
             ];
             var pw = w / 3;
+            var barH = Math.max(14, h * 0.09);
             panels.forEach(function (pnl, i) {
-                var x0 = i * pw + pw * 0.18, bw = pw * 0.64;
-                var cbY = h * 0.22, vbY = h * 0.72;
-                var gapPx = pnl.gap * h * 2;
-                var cbTop = cbY, vbTop = vbY;
-                if (pnl.gap <= 0.03) { vbTop = cbY + 14; }  // 重叠
+                var cx = i * pw + pw / 2;
+                var bw = pw * 0.56;
+                var x0 = cx - bw / 2;
+                var topY = h * 0.16;                 // 导带顶
+                var botY = h * 0.66;                 // 价带底
+                var gapPx = pnl.gapRatio * (botY - topY);
+                var cbY = topY;                      // 导带上沿
+                var cbB = topY + barH;               // 导带下沿
+                var vbT = cbB + gapPx;               // 价带上沿
+                var vbB = vbT + barH;                // 价带下沿
+                if (pnl.gapRatio < 0) { vbT = cbB + gapPx; vbB = vbT + barH; }  // 负gap=重叠
 
-                // 导带 & 价带
-                ctx.fillStyle = "rgba(99,102,241,0.18)";
-                ctx.fillRect(x0, cbTop, bw, 26);
+                // 导带
+                ctx.fillStyle = "rgba(99,102,241,0.20)";
+                ctx.fillRect(x0, cbY, bw, barH);
+                // 价带
                 ctx.fillStyle = "rgba(79,70,229,0.45)";
-                ctx.fillRect(x0, vbTop, bw, 26);
-                ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif";
-                ctx.fillText("导带", x0 + bw / 2, cbTop + 17);
-                ctx.fillText("价带", x0 + bw / 2, vbTop + 17);
+                ctx.fillRect(x0, vbT, bw, barH);
+                // 左侧文字标签
+                ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "right";
+                ctx.fillText("导带", x0 - 6, cbY + barH / 2 + 4);
+                ctx.fillText("价带", x0 - 6, vbT + barH / 2 + 4);
 
-                // 禁带标注
-                if (pnl.gap > 0.03) {
-                    ctx.strokeStyle = "#f59e0b"; ctx.setLineDash([3, 3]);
-                    ctx.strokeRect(x0 + bw / 2 - 14, cbTop + 26, 28, vbTop - cbTop - 26);
-                    ctx.setLineDash([]);
-                    ctx.fillStyle = "#b45309"; ctx.font = "11px sans-serif";
-                    ctx.fillText("Eg", x0 + bw / 2, (cbTop + 26 + vbTop) / 2 + 4);
+                // Eg 标注（价导带之间居中）
+                if (pnl.gapRatio > 0.02) {
+                    var midY = (cbB + vbT) / 2;
+                    ctx.strokeStyle = "#f59e0b"; ctx.lineWidth = 1.5;
+                    ctx.beginPath(); ctx.moveTo(cx + bw / 4, cbB); ctx.lineTo(cx + bw / 4, vbT); ctx.stroke();
+                    ctx.fillStyle = "#b45309"; ctx.textAlign = "left"; ctx.font = "11px sans-serif";
+                    ctx.fillText("Eg", cx + bw / 4 + 4, midY + 4);
                 }
 
-                // 电子：导带中跳动的点
-                var nE = Math.round(pnl.elec * 8);
+                // 导带电子（红点跑动）
                 ctx.fillStyle = "#ef4444";
-                for (var e = 0; e < nE; e++) {
-                    var ex = x0 + 8 + ((e * 37 + dt * 40 * (i === 0 ? 1 : 0.3)) % (bw - 16));
-                    var ey = cbTop + 5 + ((e * 13 + Math.floor(dt * 3) * 7) % 16);
-                    ctx.beginPath(); ctx.arc(ex, ey, 3, 0, 7); ctx.fill();
+                for (var e = 0; e < pnl.elec; e++) {
+                    var ex = x0 + 5 + ((e * 31 + dt * pnl.espeed) % (bw - 10));
+                    var ey = cbY + barH / 2 + Math.sin(dt * 3 + e) * 3;
+                    ctx.beginPath(); ctx.arc(ex, ey, 3.5, 0, 7); ctx.fill();
                 }
-                // 价带中的电子（密集）
-                ctx.fillStyle = "rgba(255,255,255,0.9)";
-                for (var v = 0; v < 8; v++) {
-                    var vx = x0 + 8 + (v / 8) * (bw - 16);
-                    var vy = vbTop + 13 + Math.sin(dt * 2 + v) * 3;
+                // 价带电子（白点密集微振）
+                ctx.fillStyle = "rgba(255,255,255,0.95)";
+                for (var v = 0; v < 7; v++) {
+                    var vx = x0 + 8 + (v / 7) * (bw - 16);
+                    var vy = vbT + barH / 2 + Math.sin(dt * 2 + v * 1.7) * 2.5;
                     ctx.beginPath(); ctx.arc(vx, vy, 2.5, 0, 7); ctx.fill();
                 }
 
-                ctx.fillStyle = "#111827"; ctx.font = "bold 14px sans-serif";
-                ctx.fillText(pnl.name, x0 + bw / 2, h - 30);
+                ctx.fillStyle = "#111827"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center";
+                ctx.fillText(pnl.name, cx, h - 30);
                 ctx.fillStyle = "#6b7280"; ctx.font = "11px sans-serif";
-                ctx.fillText(pnl.note, x0 + bw / 2, h - 14);
+                ctx.fillText(pnl.note, cx, h - 14);
             });
-            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif";
-            ctx.fillText("红点 = 导带中可自由移动的电子；Eg = 禁带宽度", w / 2, 16);
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("红点 = 导带中可自由移动的电子；Eg = 禁带宽度", w / 2, 14);
+        });
+    };
+
+
+    /* 晶体点阵：规则排列的原子振动，电子穿行 */
+    registry["lattice"] = function (canvas) {
+        var g, ctx;
+        var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000;
+            var w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var nx = 8, ny = 4;
+            var gx = w / (nx + 1), gy = h / (ny + 2);
+            for (var i = 1; i <= nx; i++) {
+                for (var j = 1; j <= ny; j++) {
+                    var bx = i * gx, by = j * gy;
+                    var ox = Math.sin(dt * 6 + i * 0.8 + j) * 3;
+                    var oy = Math.cos(dt * 5 + j * 0.7 + i) * 3;
+                    ctx.fillStyle = "#6366f1";
+                    ctx.beginPath(); ctx.arc(bx + ox, by + oy, 7, 0, 7); ctx.fill();
+                }
+            }
+            var ex = (dt * 60) % (w + 20) - 10;
+            var ey = h * 0.5 + Math.sin(dt * 2) * gy;
+            ctx.fillStyle = "#ef4444";
+            ctx.beginPath(); ctx.arc(ex, ey, 5, 0, 7); ctx.fill();
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("晶体：原子规则排列并微振，红点 = 自由电子穿行其中", w / 2, h - 12);
+        });
+    };
+
+    /* 晶体管：小信号输入放大为大信号 */
+    registry["transistor"] = function (canvas) {
+        var g, ctx;
+        var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000;
+            var w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            ctx.strokeStyle = "#6b7280"; ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (var x = 0; x < w * 0.42; x++) {
+                var y = h * 0.35 + Math.sin(x * 0.08 + dt * 4) * h * 0.06;
+                x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            ctx.fillStyle = "#6b7280"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("输入：微弱信号", w * 0.2, h * 0.18);
+            var tx = w * 0.5, ty = h * 0.4, ts = h * 0.16;
+            ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.moveTo(tx - ts, ty - ts); ctx.lineTo(tx - ts, ty + ts); ctx.lineTo(tx + ts, ty); ctx.closePath(); ctx.stroke();
+            ctx.fillText("晶体管", tx, ty + ts + 18);
+            ctx.strokeStyle = "#4f46e5";
+            ctx.beginPath();
+            for (var x2 = w * 0.6; x2 < w; x2++) {
+                var y2 = h * 0.35 + Math.sin((x2 - w * 0.6) * 0.08 + dt * 4) * h * 0.2;
+                x2 === w * 0.6 ? ctx.moveTo(x2, y2) : ctx.lineTo(x2, y2);
+            }
+            ctx.stroke();
+            ctx.fillStyle = "#4f46e5";
+            ctx.fillText("输出：被放大", w * 0.8, h * 0.12);
+            ctx.fillStyle = "#6b7280"; ctx.font = "12px sans-serif";
+            ctx.fillText("小电流控制大电流——放大与开关是所有芯片的基础", w / 2, h - 12);
+        });
+    };
+
+    /* 超导：电阻-温度曲线，Tc 处骤降为零 */
+    registry["supercond"] = function (canvas) {
+        var g, ctx;
+        var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = ((t - t0) / 1000) % 8;
+            var w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var pad = 46, tcX = w * 0.45;
+            ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(pad, h - pad); ctx.lineTo(w - pad, h - pad); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(pad, h - pad); ctx.lineTo(pad, pad); ctx.stroke();
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("温度 T →", w / 2, h - pad + 18);
+            ctx.fillText("Tc", tcX, h - pad + 18);
+            ctx.save(); ctx.translate(pad - 16, h / 2); ctx.rotate(-Math.PI / 2);
+            ctx.fillText("电阻 R →", 0, 0); ctx.restore();
+            ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            var prog = Math.min(1, dt / 5);
+            for (var x = pad; x <= pad + (w - 2 * pad) * prog; x += 3) {
+                var y;
+                if (x < tcX) y = h - pad - (1 - (x - pad) / (tcX - pad)) * (h * 0.55);
+                else y = h - pad - 1;
+                x === pad ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            ctx.strokeStyle = "#f59e0b"; ctx.setLineDash([4, 4]);
+            ctx.beginPath(); ctx.moveTo(tcX, pad); ctx.lineTo(tcX, h - pad); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = "#b45309"; ctx.textAlign = "left";
+            ctx.fillText("临界温度以下：电阻突然降为零", tcX + 8, pad + 16);
+        });
+    };
+
+    /* BCS：两个电子通过晶格振动结成库珀对 */
+    registry["cooper"] = function (canvas) {
+        var g, ctx;
+        var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000;
+            var w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var nx = 10, ny = 3, gx = w / (nx + 1), gy = h / (ny + 1.5);
+            var i, j;
+            for (i = 1; i <= nx; i++) for (j = 1; j <= ny; j++) {
+                ctx.fillStyle = "#c7d2fe";
+                ctx.beginPath(); ctx.arc(i * gx, j * gy, 5, 0, 7); ctx.fill();
+            }
+            var cyc = (dt % 6) / 6;
+            var d = cyc < 0.5 ? cyc * 2 : 1;
+            var e1x = w * 0.15 + (w * 0.35 - w * 0.15) * d;
+            var e2x = w * 0.85 - (w * 0.85 - w * 0.65) * d;
+            var ey = h * 0.5;
+            for (i = 1; i <= nx; i++) {
+                var bx = i * gx;
+                var dip = Math.max(0, 1 - Math.abs(bx - (e1x + e2x) / 2) / (gx * 1.5)) * 12 * d;
+                ctx.fillStyle = "#818cf8";
+                ctx.beginPath(); ctx.arc(bx, ey + 8 + dip, 6, 0, 7); ctx.fill();
+            }
+            ctx.fillStyle = "#ef4444";
+            ctx.beginPath(); ctx.arc(e1x, ey - 10, 7, 0, 7); ctx.fill();
+            ctx.beginPath(); ctx.arc(e2x, ey - 10, 7, 0, 7); ctx.fill();
+            if (d >= 1) {
+                ctx.strokeStyle = "#f59e0b"; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc((e1x + e2x) / 2, ey - 10, 26 + Math.sin(dt * 5) * 4, 0, 7); ctx.stroke();
+            }
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("一个电子使晶格轻微下陷，吸引另一个电子——结成库珀对", w / 2, h - 12);
+        });
+    };
+
+    /* 磁性材料：磁畴从无序到外加磁场取向一致 */
+    registry["domains"] = function (canvas) {
+        var g, ctx;
+        var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000;
+            var w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var align = (Math.sin(dt * 0.7) + 1) / 2;
+            var nx = 8, ny = 4;
+            for (var i = 0; i < nx; i++) for (var j = 0; j < ny; j++) {
+                var cx = (i + 0.5) * w / nx, cy = (j + 0.6) * h / (ny + 0.8);
+                var rand = Math.sin(i * 12.9 + j * 78.2) * Math.PI;
+                var ang = rand * (1 - align);
+                var col = align > 0.6 ? "#4f46e5" : "#9ca3af";
+                ctx.strokeStyle = col; ctx.fillStyle = col;
+                ctx.lineWidth = 2;
+                var L = Math.min(w / nx, h / ny) * 0.32;
+                ctx.beginPath();
+                ctx.moveTo(cx - Math.cos(ang) * L, cy - Math.sin(ang) * L);
+                ctx.lineTo(cx + Math.cos(ang) * L, cy + Math.sin(ang) * L);
+                ctx.stroke();
+                ctx.beginPath(); ctx.arc(cx + Math.cos(ang) * L, cy + Math.sin(ang) * L, 3, 0, 7); ctx.fill();
+            }
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText(align > 0.6 ? "外加磁场：磁畴取向一致 → 表现磁性" : "无外加磁场：磁畴杂乱 → 对外不显磁性", w / 2, h - 12);
+        });
+    };
+
+    /* 石墨烯：蜂窝晶格 */
+    registry["graphene"] = function (canvas) {
+        var g, ctx;
+        var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000;
+            var w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var r = Math.min(w, h) / 12;
+            var dx = r * 1.5, dy = r * Math.sqrt(3) / 2;
+            for (var row = 0; row * dy * 2 < h + r * 2; row++) {
+                for (var col = 0; col * dx < w + r * 2; col++) {
+                    var x = col * dx, y = row * dy * 2 + (col % 2 ? dy : 0);
+                    var ox = Math.sin(dt * 3 + row + col) * 1.5;
+                    var oy = Math.cos(dt * 2.5 + col) * 1.5;
+                    ctx.fillStyle = "#4f46e5";
+                    ctx.beginPath(); ctx.arc(x + ox, y + oy, r * 0.28, 0, 7); ctx.fill();
+                }
+            }
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("石墨烯：碳原子排成单原子层的蜂窝晶格", w / 2, h - 12);
+        });
+    };
+
+    /* 量子霍尔：霍尔电阻平台阶梯 */
+    registry["qhall"] = function (canvas) {
+        var g, ctx;
+        var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = ((t - t0) / 1000) % 10;
+            var w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var pad = 46;
+            ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(pad, h - pad); ctx.lineTo(w - pad, h - pad); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(pad, h - pad); ctx.lineTo(pad, pad); ctx.stroke();
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("磁场 B →", w / 2, h - pad + 18);
+            ctx.save(); ctx.translate(pad - 16, h / 2); ctx.rotate(-Math.PI / 2);
+            ctx.fillText("霍尔电阻 →", 0, 0); ctx.restore();
+            ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            var steps = 4, sw = (w - 2 * pad) / steps, prog = Math.min(1, dt / 6);
+            for (var i2 = 0; i2 < steps * prog; i2++) {
+                var x0 = pad + i2 * sw, x1 = Math.min(x0 + sw, pad + (w - 2 * pad) * prog);
+                var y = h - pad - (h - 2 * pad) * (i2 + 1) / steps;
+                if (i2 === 0) ctx.moveTo(x0, h - pad);
+                ctx.lineTo(x0, y); ctx.lineTo(x1, y);
+            }
+            ctx.stroke();
+            ctx.fillStyle = "#6b7280";
+            ctx.fillText("霍尔电阻不是连续变化，而是一级级精确的平台（量子化）", w / 2, pad - 8);
+        });
+    };
+
+    /* 软物质/液晶：分子取向排列 */
+    registry["lcd"] = function (canvas) {
+        var g, ctx;
+        var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000;
+            var w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var align = (Math.sin(dt * 0.8) + 1) / 2;
+            var nx = 9, ny = 5;
+            for (var i = 0; i < nx; i++) for (var j = 0; j < ny; j++) {
+                var cx = (i + 0.5) * w / nx, cy = (j + 0.5) * h / ny;
+                var rand = Math.sin(i * 91.7 + j * 37.3) * 0.9;
+                var ang = rand * (1 - align) + (-Math.PI / 2) * align;
+                var L = Math.min(w / nx, h / ny) * 0.35;
+                ctx.strokeStyle = align > 0.6 ? "#4f46e5" : "#94a3b8";
+                ctx.lineWidth = 4; ctx.lineCap = "round";
+                ctx.beginPath();
+                ctx.moveTo(cx - Math.cos(ang) * L, cy - Math.sin(ang) * L);
+                ctx.lineTo(cx + Math.cos(ang) * L, cy + Math.sin(ang) * L);
+                ctx.stroke();
+            }
+            ctx.lineCap = "butt";
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText(align > 0.6 ? "加电：液晶分子排列整齐 → 透光改变" : "不加电：液晶分子取向杂乱", w / 2, h - 10);
         });
     };
 
