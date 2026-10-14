@@ -71,6 +71,7 @@
                       "\\phi": "φ", "\\omega": "ω", "\\Omega": "Ω", "\\Delta": "Δ", "\\hbar": "ħ", "\\theta": "θ" };
         function mdToHtml(md) {
             var s = String(md);
+            s = s.replace(/\n\s*\n[\s\n]*/g, "\n\n");  // 连续空行折叠为一个
             // 先转义 HTML
             s = s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             // 块级公式 $$...$$ 与行内 $...$

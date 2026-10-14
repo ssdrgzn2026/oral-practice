@@ -1132,3 +1132,19 @@ body { line-height: 1.65; }
 
 .phy-hit:hover { background: #eef2ff; }
 .phy-hit:last-child { border-bottom: none; }
+
+/* ===== 知识图谱阅读优化 ===== */
+#ai-output {
+    line-height: 1.85;
+    font-size: 1.05rem;
+    color: #1f2937;
+}
+
+#ai-output strong { color: #111827; }
+
+.phy-search input { font-size: 1rem; }
+.module-card p { font-size: 0.95rem; line-height: 1.7; }
+
+@media (max-width: 639px) {
+    #ai-output { font-size: 1rem; }
+}
