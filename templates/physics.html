@@ -19,8 +19,6 @@
 
             <div class="card" id="node-info"></div>
 
-            <div class="card" id="nobel-box" style="display:none;"></div>
-
             <div class="card" id="demo-box" style="display:none;"></div>
 
             <div class="panel-header-controls" style="justify-content:center; margin:10px 0;">
@@ -38,6 +36,8 @@
                     <button id="ai-ask" class="btn primary">提问</button>
                 </div>
             </div>
+
+            <div class="card" id="nobel-box" style="display:none;"></div>
         </main>
 
         <footer class="footer">
@@ -95,7 +95,7 @@
                 (n.nobel || []).forEach(function (x) { prizes.push(x); });
                 (n.children || []).forEach(collect);
             })(node);
-            if (prizes.length) {
+            if (prizes.length && path.length > 0) {  // 顶层主页不显示，避免干扰
                 prizes.sort(function (a, b) { return a.year - b.year; });
                 nobelBox.style.display = "block";
                 nobelBox.innerHTML = "<h3>🏅 相关诺贝尔奖（共 " + prizes.length + " 项，按年份看领域发展脉络）</h3>" +
