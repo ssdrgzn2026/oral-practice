@@ -17,7 +17,12 @@
             {
               "id": "newton-1",
               "name": "第一定律（惯性定律）",
-              "desc": "不受外力的物体保持静止或匀速直线运动"
+              "desc": "不受外力的物体保持静止或匀速直线运动",
+              "demo": {
+                "type": "canvas",
+                "anim": "inertia",
+                "title": "惯性：无外力时匀速直线运动"
+              }
             },
             {
               "id": "newton-2",
@@ -31,7 +36,12 @@
             {
               "id": "newton-3",
               "name": "第三定律（作用与反作用）",
-              "desc": "作用力与反作用力大小相等、方向相反、作用在不同物体上"
+              "desc": "作用力与反作用力大小相等、方向相反、作用在不同物体上",
+              "demo": {
+                "type": "canvas",
+                "anim": "reactio",
+                "title": "作用力与反作用力：两车互推"
+              }
             }
           ],
           "demo": {
@@ -47,7 +57,12 @@
             {
               "id": "ke",
               "name": "动能与势能",
-              "desc": "动能 ½mv²、重力势能 mgh 及相互转化"
+              "desc": "动能 ½mv²、重力势能 mgh 及相互转化",
+              "demo": {
+                "type": "canvas",
+                "anim": "pendulum",
+                "title": "动能与势能的相互转化"
+              }
             },
             {
               "id": "momentum",
@@ -61,7 +76,12 @@
             {
               "id": "angular",
               "name": "角动量守恒",
-              "desc": "花样滑冰收臂加速、行星轨道稳定的原理"
+              "desc": "花样滑冰收臂加速、行星轨道稳定的原理",
+              "demo": {
+                "type": "canvas",
+                "anim": "skater",
+                "title": "角动量守恒：收臂加速"
+              }
             }
           ],
           "demo": {
@@ -86,7 +106,12 @@
             {
               "id": "tide",
               "name": "潮汐",
-              "desc": "月球与太阳引力差引起的海水涨落"
+              "desc": "月球与太阳引力差引起的海水涨落",
+              "demo": {
+                "type": "canvas",
+                "anim": "tide",
+                "title": "潮汐：两侧同时涨潮"
+              }
             }
           ],
           "demo": {
@@ -102,12 +127,22 @@
             {
               "id": "bernoulli",
               "name": "伯努利原理",
-              "desc": "流速大处压强小，飞机升力的经典解释"
+              "desc": "流速大处压强小，飞机升力的经典解释",
+              "demo": {
+                "type": "canvas",
+                "anim": "venturi",
+                "title": "文丘里管：窄处流快压强小"
+              }
             },
             {
               "id": "turbulence",
               "name": "湍流",
-              "desc": "混沌的流体运动，物理学著名的未解难题"
+              "desc": "混沌的流体运动，物理学著名的未解难题",
+              "demo": {
+                "type": "canvas",
+                "anim": "turbulence",
+                "title": "层流失稳成湍流"
+              }
             }
           ],
           "demo": {
@@ -115,7 +150,12 @@
             "title": "液体压强：深度、密度与压强的关系"
           }
         }
-      ]
+      ],
+      "demo": {
+        "type": "canvas",
+        "anim": "pendulum",
+        "title": "单摆：动能与势能的此消彼长"
+      }
     },
     {
       "id": "em",
@@ -160,12 +200,22 @@
             {
               "id": "ampere",
               "name": "安培定律",
-              "desc": "电流与磁场的定量关系"
+              "desc": "电流与磁场的定量关系",
+              "demo": {
+                "type": "canvas",
+                "anim": "ampere",
+                "title": "电流周围的环形磁场"
+              }
             },
             {
               "id": "lorentz",
               "name": "洛伦兹力",
-              "desc": "带电粒子在电磁场中的受力"
+              "desc": "带电粒子在电磁场中的受力",
+              "demo": {
+                "type": "canvas",
+                "anim": "lorentz",
+                "title": "带电粒子在磁场中做圆周运动"
+              }
             }
           ],
           "demo": {
@@ -225,7 +275,12 @@
                 "title": "法拉第电磁感应：移动磁铁发电"
               }
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "emwave2",
+            "title": "电磁波：E 与 B 垂直振荡传播"
+          }
         }
       ],
       "demo": {
@@ -257,7 +312,12 @@
             {
               "id": "carnot",
               "name": "卡诺循环",
-              "desc": "热机效率的理论上限"
+              "desc": "热机效率的理论上限",
+              "demo": {
+                "type": "canvas",
+                "anim": "carnot",
+                "title": "卡诺循环的 p-V 图"
+              }
             }
           ],
           "demo": {
@@ -273,7 +333,12 @@
             {
               "id": "boltzmann",
               "name": "玻尔兹曼分布",
-              "desc": "粒子按能量的概率分布"
+              "desc": "粒子按能量的概率分布",
+              "demo": {
+                "type": "canvas",
+                "anim": "boltzmann",
+                "title": "分子速率自动形成统计分布"
+              }
             },
             {
               "id": "phase",
@@ -371,7 +436,12 @@
             {
               "id": "diffraction",
               "name": "衍射",
-              "desc": "光绕过障碍物的弯曲传播"
+              "desc": "光绕过障碍物的弯曲传播",
+              "demo": {
+                "type": "canvas",
+                "anim": "diffraction2",
+                "title": "波穿过狭缝的绕射"
+              }
             }
           ],
           "demo": {
@@ -652,7 +722,12 @@
             "title": "液晶分子：加电前后的排列"
           }
         }
-      ]
+      ],
+      "demo": {
+        "type": "canvas",
+        "anim": "lattice",
+        "title": "凝聚态：规则点阵与电子"
+      }
     },
     {
       "id": "relativity",
@@ -678,9 +753,19 @@
             {
               "id": "emc2",
               "name": "质能方程 E=mc²",
-              "desc": "质量与能量等价"
+              "desc": "质量与能量等价",
+              "demo": {
+                "type": "canvas",
+                "anim": "emc2",
+                "title": "质能方程：小质量=大能量"
+              }
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "time-dilation",
+            "title": "光钟实验：时间膨胀"
+          }
         },
         {
           "id": "gr",
@@ -713,11 +798,26 @@
                   "who": "韦斯、巴里什、索恩",
                   "for": "LIGO 直接探测引力波"
                 }
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "gwaves",
+                "title": "双星互旋激发时空涟漪"
+              }
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "gravity2",
+            "title": "质量压弯时空网格"
+          }
         }
-      ]
+      ],
+      "demo": {
+        "type": "canvas",
+        "anim": "time-dilation",
+        "title": "光钟实验：时间膨胀"
+      }
     },
     {
       "id": "quantum",
@@ -784,7 +884,11 @@
               "who": "康普顿",
               "for": "康普顿效应（光子粒子性）"
             }
-          ]
+          ],
+          "demo": {
+            "sim": "quantum-wave-interference",
+            "title": "量子波干涉：单个光子的波动性"
+          }
         },
         {
           "id": "uncertainty",
@@ -811,9 +915,19 @@
                   "who": "阿斯佩、克劳泽、蔡林格",
                   "for": "纠缠光子实验与贝尔不等式验证"
                 }
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "entangle",
+                "title": "纠缠对：测量即关联（点击测量）"
+              }
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "uncertainty",
+            "title": "波包宽窄与动量不确定度"
+          }
         },
         {
           "id": "quantum-tech",
@@ -830,12 +944,22 @@
                   "who": "康奈尔、维曼、克特勒",
                   "for": "玻色-爱因斯坦凝聚（量子计算的物理基础之一）"
                 }
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "qubit",
+                "title": "量子比特的概率叠加"
+              }
             },
             {
               "id": "qcomm",
               "name": "量子通信",
-              "desc": "量子密钥分发，理论上不可窃听"
+              "desc": "量子密钥分发，理论上不可窃听",
+              "demo": {
+                "type": "canvas",
+                "anim": "qcomm",
+                "title": "量子密钥分发：窃听必被发现"
+              }
             }
           ],
           "nobel": [
@@ -859,7 +983,12 @@
               "who": "保罗、德默尔特、拉姆齐",
               "for": "离子阱与原子钟"
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "qubit",
+            "title": "量子比特的概率叠加"
+          }
         }
       ],
       "demo": {
@@ -966,7 +1095,12 @@
                   "who": "恩格勒、希格斯",
                   "for": "希格斯机制（质量起源）"
                 }
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "higgs",
+                "title": "希格斯场：粒子获得质量"
+              }
             }
           ],
           "demo": {
@@ -1019,7 +1153,12 @@
             {
               "id": "darkmatter",
               "name": "暗物质",
-              "desc": "占宇宙 27% 却不发光的物质，本质未知"
+              "desc": "占宇宙 27% 却不发光的物质，本质未知",
+              "demo": {
+                "type": "canvas",
+                "anim": "darkmatter",
+                "title": "星系旋转曲线异常"
+              }
             },
             {
               "id": "neutrino",
@@ -1036,7 +1175,12 @@
                   "who": "莱因斯",
                   "for": "中微子的首次探测"
                 }
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "neutrino",
+                "title": "中微子飞行中变换身份"
+              }
             }
           ],
           "nobel": [
@@ -1055,7 +1199,12 @@
               "who": "克罗宁、菲奇",
               "for": "CP 破坏的发现"
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "darkmatter",
+            "title": "星系旋转曲线异常"
+          }
         }
       ],
       "demo": {
@@ -1121,7 +1270,12 @@
                   "who": "贝特",
                   "for": "恒星核合成理论（恒星能量来源）"
                 }
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "supernova",
+                "title": "超新星爆发全过程"
+              }
             },
             {
               "id": "neutron-star",
@@ -1138,9 +1292,19 @@
                   "who": "赫尔斯、泰勒",
                   "for": "脉冲双星（引力波存在的间接证据）"
                 }
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "pulsar",
+                "title": "脉冲星：旋转的宇宙灯塔"
+              }
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "supernova",
+            "title": "恒星的一生：膨胀-坍缩-爆发"
+          }
         },
         {
           "id": "cosmology",
@@ -1189,7 +1353,12 @@
                   "who": "马瑟、斯穆特",
                   "for": "COBE 卫星精确测量宇宙微波背景"
                 }
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "cmb",
+                "title": "宇宙微波背景全天图"
+              }
             }
           ],
           "nobel": [
@@ -1203,7 +1372,12 @@
               "who": "马约尔、奎洛兹",
               "for": "发现首颗系外行星"
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "bigbang",
+            "title": "宇宙膨胀：哈勃定律"
+          }
         }
       ],
       "demo": {
