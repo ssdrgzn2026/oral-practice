@@ -30,7 +30,7 @@
 
             <div id="ai-panel" class="card" style="display:none;">
                 <h3 id="ai-title">🤖 AI 解答</h3>
-                <div id="ai-output" class="result-text" style="text-align:left; white-space:pre-wrap;"></div>
+                <div id="ai-output" class="result-text" style="text-align:left;"></div>
                 <div class="input-area" style="margin-top:10px;">
                     <input type="text" id="ai-input" placeholder="继续追问这个知识点…">
                     <button id="ai-ask" class="btn primary">提问</button>
@@ -59,6 +59,51 @@
         var aiTitle = document.getElementById("ai-title");
 
         function cur() { return path.length ? path[path.length - 1] : tree; }
+
+        // 轻量 Markdown 渲染（标题/加粗/列表/分隔线/行内公式）
+        var GREEK = { "\\alpha": "α", "\\beta": "β", "\\gamma": "γ", "\\delta": "δ", "\\nu": "ν",
+                      "\\lambda": "λ", "\\mu": "μ", "\\pi": "π", "\\rho": "ρ", "\\sigma": "σ",
+                      "\\phi": "φ", "\\omega": "ω", "\\Omega": "Ω", "\\Delta": "Δ", "\\hbar": "ħ", "\\theta": "θ" };
+        function mdToHtml(md) {
+            var s = String(md);
+            // 先转义 HTML
+            s = s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            // 块级公式 $$...$$ 与行内 $...$
+            s = s.replace(/\$\$([\s\S]+?)\$\$/g, function (_, f) { return '<div class="md-formula">' + texFix(f) + "</div>"; });
+            s = s.replace(/\$([^$\n]+?)\$/g, function (_, f) { return '<code class="md-tex">' + texFix(f) + "</code>"; });
+            // 标题
+            s = s.replace(/^#### (.+)$/gm, "<h4>$1</h4>")
+                 .replace(/^### (.+)$/gm, "<h3 class='md-h'>$1</h3>")
+                 .replace(/^## (.+)$/gm, "<h3 class='md-h'>$1</h3>")
+                 .replace(/^# (.+)$/gm, "<h3 class='md-h'>$1</h3>");
+            // 分隔线
+            s = s.replace(/^\s*---+\s*$/gm, "<hr class='md-hr'>");
+            // 无序列表
+            s = s.replace(/(?:^|\n)([ \t]*[-*] .+(?:\n[ \t]*[-*] .+)*)/g, function (m) {
+                var items = m.trim().split("\n").map(function (l) { return "<li>" + l.replace(/^[ \t]*[-*] /, "") + "</li>"; });
+                return "\n<ul class='md-ul'>" + items.join("") + "</ul>";
+            });
+            // 有序列表
+            s = s.replace(/(?:^|\n)([ \t]*\d+\. .+(?:\n[ \t]*\d+\. .+)*)/g, function (m) {
+                var items = m.trim().split("\n").map(function (l) { return "<li>" + l.replace(/^[ \t]*\d+\. /, "") + "</li>"; });
+                return "\n<ol class='md-ol'>" + items.join("") + "</ol>";
+            });
+            // 加粗 / 斜体
+            s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+                 .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>");
+            // 段落换行
+            s = s.replace(/\n{2,}/g, "<br><br>").replace(/\n/g, "<br>");
+            return s;
+        }
+        function texFix(f) {
+            Object.keys(GREEK).forEach(function (k) { f = f.split(k).join(GREEK[k]); });
+            return f.replace(/\\times/g, "×").replace(/\\cdot/g, "·").replace(/\\approx/g, "≈")
+                    .replace(/\\neq/g, "≠").replace(/\\pm/g, "±").replace(/\\propto/g, "∝")
+                    .replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, "($1)/($2)")
+                    .replace(/\^\{([^{}]*)\}/g, "<sup>$1</sup>").replace(/\^(\w)/g, "<sup>$1</sup>")
+                    .replace(/_\{([^{}]*)\}/g, "<sub>$1</sub>").replace(/_(\w)/g, "<sub>$1</sub>")
+                    .replace(/\\/g, "");
+        }
 
         function esc(s) {
             return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
@@ -183,7 +228,7 @@
             }).then(function (r) { return r.json(); })
               .then(function (d) {
                   var reply = (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || ("出错了：" + (d.error || ""));
-                  aiOutput.textContent = reply;
+                  aiOutput.innerHTML = mdToHtml(reply);
                   chatCtx.push({ role: "assistant", content: reply });
               })
               .catch(function () { aiOutput.textContent = "网络错误，请重试"; });
@@ -232,7 +277,7 @@
             }).then(function (r) { return r.json(); })
               .then(function (d) {
                   var reply = (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || ("出错了：" + (d.error || ""));
-                  aiOutput.textContent = reply;
+                  aiOutput.innerHTML = mdToHtml(reply);
                   chatCtx.push({ role: "assistant", content: reply });
               })
               .catch(function () { aiOutput.textContent = "网络错误，请重试"; });

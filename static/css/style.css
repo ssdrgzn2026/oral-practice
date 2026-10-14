@@ -1065,3 +1065,24 @@ body { line-height: 1.65; }
 }
 
 .nobel-chip:hover { background: #e0e7ff; }
+
+/* ===== AI 输出 Markdown 排版 ===== */
+.md-h { color: #4338ca; margin: 14px 0 6px; font-size: 1.05rem; }
+.md-hr { border: none; border-top: 1px solid #e5e7eb; margin: 12px 0; }
+.md-ul, .md-ol { margin: 8px 0 8px 22px; line-height: 1.8; }
+.md-ul li::before { content: none; padding: 0; }
+.md-formula {
+    text-align: center;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.1rem;
+    margin: 10px 0;
+    color: #1f2937;
+}
+.md-tex {
+    background: #f3f4f6;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: Georgia, serif;
+    color: #1f2937;
+}
+#ai-output { line-height: 1.9; font-size: 0.95rem; }
