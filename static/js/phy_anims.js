@@ -31,7 +31,7 @@ window.PhyAnims = (function () {
 
     function ctx2d(canvas) {
         var dpr = window.devicePixelRatio || 1;
-        var w = canvas.clientWidth, h = canvas.clientHeight;
+        var w = canvas.clientWidth || 300, h = canvas.clientHeight || 200;
         canvas.width = w * dpr;
         canvas.height = h * dpr;
         var ctx = canvas.getContext("2d");
@@ -41,10 +41,11 @@ window.PhyAnims = (function () {
 
     /* 时间膨胀：静止光钟 vs 运动光钟（光子斜线路径更长，滴答更慢） */
     registry["time-dilation"] = function (canvas) {
-        var g = ctx2d(canvas), ctx = g.ctx;
+        var g, ctx;
         var t0 = performance.now();
         var ticks1 = 0, ticks2 = 0;
         return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
             var dt = (t - t0) / 1000;
             var w = g.w, h = g.h;
             ctx.clearRect(0, 0, w, h);
@@ -94,13 +95,14 @@ window.PhyAnims = (function () {
 
     /* 大爆炸：星系退行，越远越快（哈勃定律） */
     registry["bigbang"] = function (canvas) {
-        var g = ctx2d(canvas), ctx = g.ctx;
+        var g, ctx;
         var t0 = performance.now();
         var pts = [];
         for (var i = 0; i < 60; i++) {
             pts.push({ a: Math.random() * Math.PI * 2, r0: 0.05 + Math.random() * 0.45 });
         }
         return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
             var dt = (t - t0) / 1000;
             var w = g.w, h = g.h;
             ctx.clearRect(0, 0, w, h);
@@ -127,9 +129,10 @@ window.PhyAnims = (function () {
 
     /* 暗能量：膨胀先减速后加速 */
     registry["darkenergy"] = function (canvas) {
-        var g = ctx2d(canvas), ctx = g.ctx;
+        var g, ctx;
         var t0 = performance.now();
         return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
             var dt = ((t - t0) / 1000) % 14;
             var w = g.w, h = g.h;
             ctx.clearRect(0, 0, w, h);
@@ -167,7 +170,7 @@ window.PhyAnims = (function () {
 
     /* 熵增：粒子从半边逐渐混合均匀 */
     registry["entropy"] = function (canvas) {
-        var g = ctx2d(canvas), ctx = g.ctx;
+        var g, ctx;
         var balls = [];
         var N = 80;
         function reset() {
@@ -185,6 +188,7 @@ window.PhyAnims = (function () {
         canvas.addEventListener("click", reset);
         var lastT = null;
         return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
             if (lastT === null) lastT = t;
             var dt = Math.min((t - lastT) / 1000, 0.05);
             lastT = t;
@@ -215,7 +219,7 @@ window.PhyAnims = (function () {
 
     /* 量子叠加：测量前概率弥散，点击测量塌缩 */
     registry["superposition"] = function (canvas) {
-        var g = ctx2d(canvas), ctx = g.ctx;
+        var g, ctx;
         var collapsedAt = null, collapsedX = 0;
         var t0 = performance.now();
         canvas.addEventListener("click", function () {
@@ -228,6 +232,7 @@ window.PhyAnims = (function () {
             }
         });
         return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
             var dt = (t - t0) / 1000;
             var w = g.w, h = g.h;
             ctx.clearRect(0, 0, w, h);
