@@ -84,6 +84,22 @@
                  .replace(/^# (.+)$/gm, "<h3 class='md-h'>$1</h3>");
             // 分隔线
             s = s.replace(/^\s*---+\s*$/gm, "<hr class='md-hr'>");
+            // 表格（| a | b | 形式）
+            s = s.replace(/(?:^|\n)((?:^\|.*\|.*(?:\n|$))+)/gm, function (m) {
+                var rows = m.trim().split("\n").map(function (l) {
+                    return l.trim().replace(/^\||\|$/g, "").split("|").map(function (c) { return c.trim(); });
+                });
+                // 去掉分隔行 |---|---|
+                rows = rows.filter(function (r) { return !/^[-: ]+$/.test(r.join("")); });
+                if (!rows.length) return m;
+                var html = '<div class="md-table-wrap"><table class="md-table">';
+                rows.forEach(function (r, ri) {
+                    html += ri === 0 ? "<thead><tr>" : "<tr>";
+                    r.forEach(function (c) { html += ri === 0 ? "<th>" + c + "</th>" : "<td>" + c + "</td>"; });
+                    html += ri === 0 ? "</tr></thead><tbody>" : "</tr>";
+                });
+                return "\n" + html + "</tbody></table></div>";
+            });
             // 无序列表
             s = s.replace(/(?:^|\n)([ \t]*[-*] .+(?:\n[ \t]*[-*] .+)*)/g, function (m) {
                 var items = m.trim().split("\n").map(function (l) { return "<li>" + l.replace(/^[ \t]*[-*] /, "") + "</li>"; });

@@ -1148,3 +1148,30 @@ body { line-height: 1.65; }
 @media (max-width: 639px) {
     #ai-output { font-size: 1rem; }
 }
+
+/* ===== AI 输出：表格与字号统一 ===== */
+#ai-output, #ai-output li, #ai-output td, #ai-output th, #ai-output p, #ai-output span {
+    font-size: 1.05rem;
+    color: #1f2937;
+}
+
+.md-table-wrap { overflow-x: auto; margin: 10px 0; }
+
+.md-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.95rem;
+}
+
+.md-table th, .md-table td {
+    border: 1px solid #e5e7eb;
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.md-table th {
+    background: #eef2ff;
+    color: #4338ca;
+}
+
+.md-table tr:nth-child(even) td { background: #fafafa; }

@@ -442,7 +442,12 @@
             {
               "id": "band",
               "name": "能带理论",
-              "desc": "导体、半导体、绝缘体的微观判据"
+              "desc": "导体、半导体、绝缘体的微观判据",
+              "demo": {
+                "type": "canvas",
+                "anim": "band",
+                "title": "导体/半导体/绝缘体的能带对比"
+              }
             },
             {
               "id": "transistor",

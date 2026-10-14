@@ -273,5 +273,74 @@ window.PhyAnims = (function () {
         });
     };
 
+
+    /* 能带理论：导体 / 半导体 / 绝缘体的能带对比 */
+    registry["band"] = function (canvas) {
+        var g, ctx;
+        var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000;
+            var w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            ctx.textAlign = "center";
+
+            var panels = [
+                { name: "导体", gap: 0.02, elec: 0.9, note: "能带重叠，自由移动" },
+                { name: "半导体", gap: 0.14, elec: 0.25, note: "带隙小，少量跃迁" },
+                { name: "绝缘体", gap: 0.30, elec: 0.02, note: "带隙大，几乎不导电" },
+            ];
+            var pw = w / 3;
+            panels.forEach(function (pnl, i) {
+                var x0 = i * pw + pw * 0.18, bw = pw * 0.64;
+                var cbY = h * 0.22, vbY = h * 0.72;
+                var gapPx = pnl.gap * h * 2;
+                var cbTop = cbY, vbTop = vbY;
+                if (pnl.gap <= 0.03) { vbTop = cbY + 14; }  // 重叠
+
+                // 导带 & 价带
+                ctx.fillStyle = "rgba(99,102,241,0.18)";
+                ctx.fillRect(x0, cbTop, bw, 26);
+                ctx.fillStyle = "rgba(79,70,229,0.45)";
+                ctx.fillRect(x0, vbTop, bw, 26);
+                ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif";
+                ctx.fillText("导带", x0 + bw / 2, cbTop + 17);
+                ctx.fillText("价带", x0 + bw / 2, vbTop + 17);
+
+                // 禁带标注
+                if (pnl.gap > 0.03) {
+                    ctx.strokeStyle = "#f59e0b"; ctx.setLineDash([3, 3]);
+                    ctx.strokeRect(x0 + bw / 2 - 14, cbTop + 26, 28, vbTop - cbTop - 26);
+                    ctx.setLineDash([]);
+                    ctx.fillStyle = "#b45309"; ctx.font = "11px sans-serif";
+                    ctx.fillText("Eg", x0 + bw / 2, (cbTop + 26 + vbTop) / 2 + 4);
+                }
+
+                // 电子：导带中跳动的点
+                var nE = Math.round(pnl.elec * 8);
+                ctx.fillStyle = "#ef4444";
+                for (var e = 0; e < nE; e++) {
+                    var ex = x0 + 8 + ((e * 37 + dt * 40 * (i === 0 ? 1 : 0.3)) % (bw - 16));
+                    var ey = cbTop + 5 + ((e * 13 + Math.floor(dt * 3) * 7) % 16);
+                    ctx.beginPath(); ctx.arc(ex, ey, 3, 0, 7); ctx.fill();
+                }
+                // 价带中的电子（密集）
+                ctx.fillStyle = "rgba(255,255,255,0.9)";
+                for (var v = 0; v < 8; v++) {
+                    var vx = x0 + 8 + (v / 8) * (bw - 16);
+                    var vy = vbTop + 13 + Math.sin(dt * 2 + v) * 3;
+                    ctx.beginPath(); ctx.arc(vx, vy, 2.5, 0, 7); ctx.fill();
+                }
+
+                ctx.fillStyle = "#111827"; ctx.font = "bold 14px sans-serif";
+                ctx.fillText(pnl.name, x0 + bw / 2, h - 30);
+                ctx.fillStyle = "#6b7280"; ctx.font = "11px sans-serif";
+                ctx.fillText(pnl.note, x0 + bw / 2, h - 14);
+            });
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif";
+            ctx.fillText("红点 = 导带中可自由移动的电子；Eg = 禁带宽度", w / 2, 16);
+        });
+    };
+
     return { start: start, stop: stop };
 })();
