@@ -224,12 +224,38 @@
             fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ messages: chatCtx, max_tokens: 800 }),
+                body: JSON.stringify({ messages: chatCtx, max_tokens: 2000 }),
             }).then(function (r) { return r.json(); })
               .then(function (d) {
                   var reply = (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || ("出错了：" + (d.error || ""));
                   aiOutput.innerHTML = mdToHtml(reply);
                   chatCtx.push({ role: "assistant", content: reply });
+                  var truncated = d.choices && d.choices[0] && d.choices[0].finish_reason === "length";
+                  var cb = document.getElementById("ai-continue");
+                  if (cb) cb.remove();
+                  if (truncated) {
+                      var btn = document.createElement("button");
+                      btn.id = "ai-continue";
+                      btn.className = "btn secondary";
+                      btn.style.marginTop = "8px";
+                      btn.textContent = "⏩ 回答没写完，点击继续";
+                      btn.addEventListener("click", function () {
+                          btn.remove();
+                          aiOutput.innerHTML += "<p class='hint'>（续写中…）</p>";
+                          chatCtx.push({ role: "user", content: "请接着上文继续，不要重复已说过的内容。" });
+                          fetch("/api/chat", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ messages: chatCtx, max_tokens: 2000 }),
+                          }).then(function (r) { return r.json(); })
+                            .then(function (d2) {
+                                var more = (d2.choices && d2.choices[0] && d2.choices[0].message && d2.choices[0].message.content) || "";
+                                aiOutput.innerHTML = aiOutput.innerHTML.replace("<p class=\"hint\">（续写中…）</p>", "") + mdToHtml(more);
+                                chatCtx.push({ role: "assistant", content: more });
+                            });
+                      });
+                      aiOutput.after(btn);
+                  }
               })
               .catch(function () { aiOutput.textContent = "网络错误，请重试"; });
         }
@@ -273,7 +299,7 @@
             fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ messages: chatCtx, max_tokens: 800 }),
+                body: JSON.stringify({ messages: chatCtx, max_tokens: 2000 }),
             }).then(function (r) { return r.json(); })
               .then(function (d) {
                   var reply = (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || ("出错了：" + (d.error || ""));
