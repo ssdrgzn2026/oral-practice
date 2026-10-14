@@ -218,7 +218,12 @@
             {
               "id": "entropy",
               "name": "熵增原理",
-              "desc": "孤立系统熵不减，时间之箭的热力学解释"
+              "desc": "孤立系统熵不减，时间之箭的热力学解释",
+              "demo": {
+                "type": "canvas",
+                "anim": "entropy",
+                "title": "熵增：粒子自发混合均匀（点击重来）"
+              }
             },
             {
               "id": "carnot",
@@ -331,7 +336,12 @@
             {
               "id": "time-dilation",
               "name": "时间膨胀",
-              "desc": "运动的钟变慢，GPS 必须修正"
+              "desc": "运动的钟变慢，GPS 必须修正",
+              "demo": {
+                "type": "canvas",
+                "anim": "time-dilation",
+                "title": "光钟实验：运动的钟为什么变慢"
+              }
             },
             {
               "id": "emc2",
@@ -402,7 +412,12 @@
             {
               "id": "superposition",
               "name": "叠加态",
-              "desc": "测量前粒子处于多种状态的叠加"
+              "desc": "测量前粒子处于多种状态的叠加",
+              "demo": {
+                "type": "canvas",
+                "anim": "superposition",
+                "title": "叠加态与测量塌缩（点击测量）"
+              }
             },
             {
               "id": "entanglement",
@@ -519,12 +534,22 @@
             {
               "id": "bigbang",
               "name": "大爆炸理论",
-              "desc": "宇宙起源于 138 亿年前的热密状态"
+              "desc": "宇宙起源于 138 亿年前的热密状态",
+              "demo": {
+                "type": "canvas",
+                "anim": "bigbang",
+                "title": "哈勃定律：越远的星系退行越快"
+              }
             },
             {
               "id": "darkenergy",
               "name": "暗能量",
-              "desc": "宇宙加速膨胀的推手，占宇宙 68%，本质成谜"
+              "desc": "宇宙加速膨胀的推手，占宇宙 68%，本质成谜",
+              "demo": {
+                "type": "canvas",
+                "anim": "darkenergy",
+                "title": "宇宙膨胀曲线：先减速后加速"
+              }
             },
             {
               "id": "cmb",

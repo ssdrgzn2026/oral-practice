@@ -86,9 +86,16 @@
                 "<p style='margin-top:6px;'>" + esc(node.desc || "") + "</p>" +
                 (path.length ? "" : "<p class='hint' style='margin-top:6px;'>点击任意分支开始深入；每个知识点旁的 💬 可以随时向 AI 提问</p>");
 
-            // 互动演示（PhET 仿真，官方支持嵌入）
+            // 互动演示（PhET 仿真 / 自制 canvas 动画）
             var demoBox = document.getElementById("demo-box");
-            if (node.demo) {
+            window.PhyAnims && window.PhyAnims.stop();
+            if (node.demo && node.demo.type === "canvas") {
+                demoBox.style.display = "block";
+                demoBox.innerHTML =
+                    "<h3>🎮 互动演示：" + esc(node.demo.title) + "</h3>" +
+                    "<div class='demo-frame-wrap'><canvas id='demo-canvas' style='position:absolute;inset:0;width:100%;height:100%;'></canvas></div>";
+                window.PhyAnims && window.PhyAnims.start(node.demo.anim, document.getElementById("demo-canvas"));
+            } else if (node.demo) {
                 var simUrl = "https://phet.colorado.edu/sims/html/" + node.demo.sim + "/latest/" + node.demo.sim + "_all.html?locale=zh_CN";
                 demoBox.style.display = "block";
                 demoBox.innerHTML =
@@ -190,6 +197,7 @@
             .catch(function () { nodeInfo.innerHTML = "<p class='hint'>知识地图加载失败，请刷新</p>"; });
     })();
     </script>
+    <script src="/static/js/phy_anims.js"></script>
     <script src="/static/js/track.js"></script>
 </body>
 </html>
