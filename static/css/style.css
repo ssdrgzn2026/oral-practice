@@ -1086,3 +1086,49 @@ body { line-height: 1.65; }
     color: #1f2937;
 }
 #ai-output { line-height: 1.9; font-size: 0.95rem; }
+
+/* ===== 知识图谱查找栏 ===== */
+.phy-search {
+    position: relative;
+    margin: 6px 0 12px;
+}
+
+.phy-search input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+}
+
+.phy-search input:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+#phy-search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    z-index: 100;
+    max-height: 320px;
+    overflow-y: auto;
+    display: none;
+}
+
+.phy-hit {
+    padding: 9px 14px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.phy-hit:hover { background: #eef2ff; }
+.phy-hit:last-child { border-bottom: none; }

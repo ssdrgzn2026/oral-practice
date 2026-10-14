@@ -3,19 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>物理知识地图 · MiscHub</title>
+    <title>物理知识图谱 · MiscHub</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
     <div class="app">
         <header class="header">
-            <h1>⚛️ 物理知识地图</h1>
+            <h1>⚛️ 物理知识图谱</h1>
             <p class="subtitle">从顶层分支逐层深入，💬 随时问 AI 拓展</p>
             <p class="back-home"><a href="/">← 返回 MiscHub 首页</a></p>
         </header>
 
         <main class="main">
             <div id="crumbs" class="crumbs"></div>
+
+            <div class="phy-search">
+                <input type="text" id="phy-search" placeholder="🔍 查找知识点，如：熵、黑洞、激光…">
+                <div id="phy-search-results"></div>
+            </div>
 
             <div class="card" id="node-info"></div>
 
@@ -323,7 +328,65 @@
         fetch("/api/physics-map")
             .then(function (r) { return r.json(); })
             .then(function (d) { tree = d; render(); })
-            .catch(function () { nodeInfo.innerHTML = "<p class='hint'>知识地图加载失败，请刷新</p>"; });
+            .catch(function () { nodeInfo.innerHTML = "<p class='hint'>知识图谱加载失败，请刷新</p>"; });
+
+        // ========== 模糊查找（任意层级可用，搜全树） ==========
+        var flatIndex = [];  // {node, chain}
+        function buildIndex() {
+            flatIndex = [];
+            (function walk(n, chain) {
+                if (n !== tree) flatIndex.push({ node: n, chain: chain.slice() });
+                (n.children || []).forEach(function (c) { walk(c, chain.concat([c])); });
+            })(tree, []);
+        }
+        // 模糊匹配：查询字符按顺序出现即可（支持间隔），优先子串命中
+        function fuzzy(q, text) {
+            text = text.toLowerCase();
+            if (text.includes(q)) return 2;
+            var i = 0;
+            for (var j = 0; j < text.length && i < q.length; j++) {
+                if (text[j] === q[i]) i++;
+            }
+            return i === q.length ? 1 : 0;
+        }
+        var searchInput = document.getElementById("phy-search");
+        var searchResults = document.getElementById("phy-search-results");
+        searchInput.addEventListener("input", function () {
+            var q = searchInput.value.trim().toLowerCase();
+            if (!q || !tree) { searchResults.innerHTML = ""; searchResults.style.display = "none"; return; }
+            if (!flatIndex.length) buildIndex();
+            var hits = flatIndex
+                .map(function (e) {
+                    return { e: e, score: fuzzy(q, e.node.name.toLowerCase()) * 2 + fuzzy(q, (e.node.desc || "").toLowerCase()) };
+                })
+                .filter(function (x) { return x.score > 0; })
+                .sort(function (a, b) { return b.score - a.score; })
+                .slice(0, 10);
+            if (!hits.length) {
+                searchResults.innerHTML = "<div class='phy-hit hint'>没有匹配的知识点</div>";
+            } else {
+                searchResults.innerHTML = hits.map(function (x, i) {
+                    var trail = x.e.chain.map(function (n) { return n.name; }).join(" › ");
+                    return '<div class="phy-hit" data-i="' + flatIndex.indexOf(x.e) + '">' +
+                        "<b>" + esc(x.e.node.name) + "</b><span class='hint'>　" + esc(trail) + "</span></div>";
+                }).join("");
+                searchResults.querySelectorAll(".phy-hit").forEach(function (el) {
+                    el.addEventListener("click", function () {
+                        var entry = flatIndex[+el.dataset.i];
+                        path = entry.chain;
+                        aiPanel.style.display = "none";
+                        render();
+                        searchInput.value = "";
+                        searchResults.style.display = "none";
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                    });
+                });
+            }
+            searchResults.style.display = "block";
+        });
+        document.addEventListener("click", function (e) {
+            if (!e.target.closest(".phy-search")) searchResults.style.display = "none";
+        });
     })();
     </script>
     <script src="/static/js/phy_anims.js"></script>
