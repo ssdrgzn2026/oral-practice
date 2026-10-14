@@ -22,7 +22,11 @@
             {
               "id": "newton-2",
               "name": "第二定律 F=ma",
-              "desc": "加速度与合外力成正比、与质量成反比"
+              "desc": "加速度与合外力成正比、与质量成反比",
+              "demo": {
+                "sim": "friction",
+                "title": "摩擦力实验：感受力与运动的定量关系"
+              }
             },
             {
               "id": "newton-3",
@@ -84,7 +88,11 @@
               "name": "潮汐",
               "desc": "月球与太阳引力差引起的海水涨落"
             }
-          ]
+          ],
+          "demo": {
+            "sim": "gravity-force-lab",
+            "title": "引力实验室：质量和距离如何改变引力"
+          }
         },
         {
           "id": "fluid",
@@ -101,7 +109,11 @@
               "name": "湍流",
               "desc": "混沌的流体运动，物理学著名的未解难题"
             }
-          ]
+          ],
+          "demo": {
+            "sim": "under-pressure",
+            "title": "液体压强：深度、密度与压强的关系"
+          }
         }
       ]
     },
@@ -119,7 +131,11 @@
             {
               "id": "coulomb",
               "name": "库仑定律",
-              "desc": "点电荷间作用力与距离平方成反比"
+              "desc": "点电荷间作用力与距离平方成反比",
+              "demo": {
+                "sim": "coulombs-law",
+                "title": "库仑定律：拖动电荷看力随距离变化"
+              }
             },
             {
               "id": "capacitor",
@@ -130,7 +146,11 @@
                 "title": "电容器实验：看电场如何储能"
               }
             }
-          ]
+          ],
+          "demo": {
+            "sim": "charges-and-fields",
+            "title": "电荷与电场：摆放电荷看电场线"
+          }
         },
         {
           "id": "magnetism",
@@ -147,7 +167,11 @@
               "name": "洛伦兹力",
               "desc": "带电粒子在电磁场中的受力"
             }
-          ]
+          ],
+          "demo": {
+            "sim": "faradays-electromagnetic-lab",
+            "title": "磁铁与电磁铁：电流如何产生磁场"
+          }
         },
         {
           "id": "maxwell",
@@ -174,7 +198,11 @@
             }
           ]
         }
-      ]
+      ],
+      "demo": {
+        "sim": "circuit-construction-kit-dc",
+        "title": "搭建直流电路：电流电压电阻实战"
+      }
     },
     {
       "id": "thermo",
@@ -216,11 +244,23 @@
             {
               "id": "phase",
               "name": "相变",
-              "desc": "固液气转变与临界现象"
+              "desc": "固液气转变与临界现象",
+              "demo": {
+                "sim": "states-of-matter",
+                "title": "物态变化：固液气的微观视角"
+              }
             }
-          ]
+          ],
+          "demo": {
+            "sim": "diffusion",
+            "title": "扩散：粒子如何从高浓度走向均匀"
+          }
         }
-      ]
+      ],
+      "demo": {
+        "sim": "blackbody-spectrum",
+        "title": "黑体辐射：温度如何决定发光颜色"
+      }
     },
     {
       "id": "optics",
@@ -256,7 +296,11 @@
               "name": "衍射",
               "desc": "光绕过障碍物的弯曲传播"
             }
-          ]
+          ],
+          "demo": {
+            "sim": "fourier-making-waves",
+            "title": "傅里叶合成：波如何叠加成形"
+          }
         },
         {
           "id": "laser",
@@ -267,7 +311,11 @@
             "title": "激光原理：受激辐射如何放大"
           }
         }
-      ]
+      ],
+      "demo": {
+        "sim": "geometric-optics",
+        "title": "几何光学：透镜与反射镜成像"
+      }
     },
     {
       "id": "relativity",
@@ -380,7 +428,11 @@
             }
           ]
         }
-      ]
+      ],
+      "demo": {
+        "sim": "models-of-the-hydrogen-atom",
+        "title": "氢原子模型：从实验到量子模型"
+      }
     },
     {
       "id": "particle",
@@ -396,14 +448,22 @@
             {
               "id": "quark",
               "name": "夸克",
-              "desc": "质子中子的组成成分，六种味"
+              "desc": "质子中子的组成成分，六种味",
+              "demo": {
+                "sim": "rutherford-scattering",
+                "title": "卢瑟福散射：如何探测微观结构"
+              }
             },
             {
               "id": "higgs",
               "name": "希格斯玻色子",
               "desc": "质量的起源，2012 年发现"
             }
-          ]
+          ],
+          "demo": {
+            "sim": "build-an-atom",
+            "title": "拼一个原子：质子中子电子的角色"
+          }
         },
         {
           "id": "beyond",
@@ -422,7 +482,11 @@
             }
           ]
         }
-      ]
+      ],
+      "demo": {
+        "sim": "alpha-decay",
+        "title": "α衰变：原子核的放射性衰变演示"
+      }
     },
     {
       "id": "astro",
@@ -469,7 +533,11 @@
             }
           ]
         }
-      ]
+      ],
+      "demo": {
+        "sim": "my-solar-system",
+        "title": "自建太阳系：质量与轨道的关系"
+      }
     }
   ]
 }
