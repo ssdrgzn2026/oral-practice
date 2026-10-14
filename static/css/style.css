@@ -1015,3 +1015,29 @@ body { line-height: 1.65; }
     height: 100%;
     border: 0;
 }
+
+/* ===== 诺贝尔奖时间线 ===== */
+.nobel-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.nobel-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 10px;
+    background: #fafaf9;
+    border-radius: 8px;
+    border-left: 3px solid #f59e0b;
+    font-size: 0.9rem;
+}
+
+.nobel-year {
+    color: #b45309;
+    font-weight: 700;
+    font-family: ui-monospace, monospace;
+    min-width: 42px;
+}

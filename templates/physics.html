@@ -19,6 +19,8 @@
 
             <div class="card" id="node-info"></div>
 
+            <div class="card" id="nobel-box" style="display:none;"></div>
+
             <div class="card" id="demo-box" style="display:none;"></div>
 
             <div class="panel-header-controls" style="justify-content:center; margin:10px 0;">
@@ -85,6 +87,26 @@
                 "<h2>" + (node.icon || "📘") + " " + esc(node.name) + "</h2>" +
                 "<p style='margin-top:6px;'>" + esc(node.desc || "") + "</p>" +
                 (path.length ? "" : "<p class='hint' style='margin-top:6px;'>点击任意分支开始深入；每个知识点旁的 💬 可以随时向 AI 提问</p>");
+
+            // 相关诺贝尔奖（聚合本节点及所有子孙节点，按年份排列）
+            var nobelBox = document.getElementById("nobel-box");
+            var prizes = [];
+            (function collect(n) {
+                (n.nobel || []).forEach(function (x) { prizes.push(x); });
+                (n.children || []).forEach(collect);
+            })(node);
+            if (prizes.length) {
+                prizes.sort(function (a, b) { return a.year - b.year; });
+                nobelBox.style.display = "block";
+                nobelBox.innerHTML = "<h3>🏅 相关诺贝尔奖（共 " + prizes.length + " 项，按年份看领域发展脉络）</h3>" +
+                    '<div class="nobel-list">' + prizes.map(function (x) {
+                        return '<div class="nobel-item"><span class="nobel-year">' + x.year + "</span>" +
+                            "<b>" + esc(x.who) + "</b><span class='hint'>　" + esc(x.for) + "</span></div>";
+                    }).join("") + "</div>";
+            } else {
+                nobelBox.style.display = "none";
+                nobelBox.innerHTML = "";
+            }
 
             // 互动演示（PhET 仿真 / 自制 canvas 动画）
             var demoBox = document.getElementById("demo-box");
