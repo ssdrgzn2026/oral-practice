@@ -96,7 +96,7 @@ def chat():
         "messages": messages,
         "stream": stream,
         "temperature": 0.8,
-        "max_tokens": 120,
+        "max_tokens": int(body.get("max_tokens") or 120),
     }
     # Qwen3 系列默认开启思考模式，口语对话不需要，关掉可提速数倍
     if model.startswith("Qwen/Qwen3"):

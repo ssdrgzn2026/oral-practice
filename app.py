@@ -138,6 +138,19 @@ def portal():
     return render_template("portal.html")
 
 
+@app.route("/physics")
+def physics():
+    return render_template("physics.html")
+
+
+@app.route("/api/physics-map")
+def physics_map():
+    try:
+        return jsonify(json.loads((BASE_DIR / "data" / "physics_map.json").read_text(encoding="utf-8")))
+    except (OSError, json.JSONDecodeError):
+        return jsonify({"error": "知识地图数据缺失"}), 500
+
+
 @app.route("/api/links")
 def api_links():
     uid = request.args.get("uid", "")[:64]

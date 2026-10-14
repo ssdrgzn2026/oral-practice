@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>物理知识地图 · MiscHub</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>⚛️ 物理知识地图</h1>
+            <p class="subtitle">从顶层分支逐层深入，💬 随时问 AI 拓展</p>
+            <p class="back-home"><a href="/">← 返回 MiscHub 首页</a></p>
+        </header>
+
+        <main class="main">
+            <div id="crumbs" class="crumbs"></div>
+
+            <div class="card" id="node-info"></div>
+
+            <div class="panel-header-controls" style="justify-content:center; margin:10px 0;">
+                <button id="ai-explain" class="btn primary">💡 AI 深入讲解</button>
+                <button id="ai-frontier" class="btn secondary">🔬 最新研究进展</button>
+            </div>
+
+            <div id="children" class="module-grid"></div>
+
+            <div id="ai-panel" class="card" style="display:none;">
+                <h3 id="ai-title">🤖 AI 解答</h3>
+                <div id="ai-output" class="result-text" style="text-align:left; white-space:pre-wrap;"></div>
+                <div class="input-area" style="margin-top:10px;">
+                    <input type="text" id="ai-input" placeholder="继续追问这个知识点…">
+                    <button id="ai-ask" class="btn primary">提问</button>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>MiscHub｜杂具小栈 · 一站式零散工具工作台</p>
+            <p class="icp">京ICP备2026035074号-1 | 京公网安备11010802048950号</p>
+        </footer>
+    </div>
+
+    <script>
+    (function () {
+        var tree = null;
+        var path = [];  // 当前下钻路径上的节点
+
+        var crumbs = document.getElementById("crumbs");
+        var nodeInfo = document.getElementById("node-info");
+        var childrenBox = document.getElementById("children");
+        var aiPanel = document.getElementById("ai-panel");
+        var aiOutput = document.getElementById("ai-output");
+        var aiTitle = document.getElementById("ai-title");
+
+        function cur() { return path.length ? path[path.length - 1] : tree; }
+
+        function esc(s) {
+            return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+        }
+
+        function render() {
+            var node = cur();
+            // 面包屑
+            var trail = ['<a href="#" data-i="-1" class="crumb">⚛️ 物理学</a>'];
+            path.forEach(function (n, i) {
+                trail.push('<span class="crumb-sep">›</span><a href="#" data-i="' + i + '" class="crumb">' + esc(n.name) + "</a>");
+            });
+            crumbs.innerHTML = trail.join("");
+            crumbs.querySelectorAll(".crumb").forEach(function (a) {
+                a.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    var i = parseInt(a.dataset.i, 10);
+                    path = i < 0 ? [] : path.slice(0, i + 1);
+                    aiPanel.style.display = "none";
+                    render();
+                });
+            });
+
+            // 当前节点信息
+            nodeInfo.innerHTML =
+                "<h2>" + (node.icon || "📘") + " " + esc(node.name) + "</h2>" +
+                "<p style='margin-top:6px;'>" + esc(node.desc || "") + "</p>" +
+                (path.length ? "" : "<p class='hint' style='margin-top:6px;'>点击任意分支开始深入；每个知识点旁的 💬 可以随时向 AI 提问</p>");
+
+            // 子节点
+            var kids = node.children || [];
+            if (!kids.length) {
+                childrenBox.innerHTML = "<p class='hint' style='text-align:center;'>已到最细节知识点，可用上方 AI 按钮继续深入探索</p>";
+                return;
+            }
+            childrenBox.innerHTML = kids.map(function (k, i) {
+                return '<div class="module-card phy-card" data-i="' + i + '">' +
+                    '<button class="phy-ask" data-i="' + i + '" title="问 AI">💬</button>' +
+                    '<div class="module-icon">' + (k.icon || "📖") + "</div>" +
+                    "<h2>" + esc(k.name) + "</h2>" +
+                    "<p>" + esc(k.desc || "") + "</p>" +
+                    (k.children ? '<span class="module-status available">' + k.children.length + ' 个子主题</span>' : '<span class="module-status coming">最细颗粒</span>') +
+                    "</div>";
+            }).join("");
+            childrenBox.querySelectorAll(".phy-card").forEach(function (card) {
+                card.addEventListener("click", function (e) {
+                    if (e.target.classList.contains("phy-ask")) return;
+                    path.push(kids[+card.dataset.i]);
+                    aiPanel.style.display = "none";
+                    render();
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                });
+            });
+            childrenBox.querySelectorAll(".phy-ask").forEach(function (btn) {
+                btn.addEventListener("click", function () {
+                    var k = kids[+btn.dataset.i];
+                    askAI("请用通俗易懂的语言讲解物理学中的「" + k.name + "」：" + (k.desc || "") +
+                          "。包括：核心概念、公式或规律、一个生活中的例子。", "💬 " + k.name);
+                });
+            });
+        }
+
+        // AI 问答（走本站已配置的 /api/chat）
+        var chatCtx = [];
+        function askAI(prompt, title) {
+            aiPanel.style.display = "block";
+            aiTitle.textContent = title || "🤖 AI 解答";
+            aiOutput.textContent = "思考中…";
+            aiPanel.scrollIntoView({ behavior: "smooth" });
+            chatCtx = [{ role: "user", content: prompt }];
+            fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ messages: chatCtx, max_tokens: 800 }),
+            }).then(function (r) { return r.json(); })
+              .then(function (d) {
+                  var reply = (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || ("出错了：" + (d.error || ""));
+                  aiOutput.textContent = reply;
+                  chatCtx.push({ role: "assistant", content: reply });
+              })
+              .catch(function () { aiOutput.textContent = "网络错误，请重试"; });
+        }
+
+        document.getElementById("ai-ask").addEventListener("click", function () {
+            var q = document.getElementById("ai-input").value.trim();
+            if (!q) return;
+            document.getElementById("ai-input").value = "";
+            aiOutput.textContent = "思考中…";
+            chatCtx.push({ role: "user", content: q });
+            fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ messages: chatCtx, max_tokens: 800 }),
+            }).then(function (r) { return r.json(); })
+              .then(function (d) {
+                  var reply = (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || ("出错了：" + (d.error || ""));
+                  aiOutput.textContent = reply;
+                  chatCtx.push({ role: "assistant", content: reply });
+              })
+              .catch(function () { aiOutput.textContent = "网络错误，请重试"; });
+        });
+
+        document.getElementById("ai-explain").addEventListener("click", function () {
+            var n = cur();
+            askAI("请系统深入地讲解「" + n.name + "」：" + (n.desc || "") +
+                  "。要求：1. 核心概念与历史背景；2. 关键公式及含义；3. 重要实验或证据；4. 一个生活化例子。", "💡 " + n.name + " · 深入讲解");
+        });
+        document.getElementById("ai-frontier").addEventListener("click", function () {
+            var n = cur();
+            askAI("请介绍「" + n.name + "」领域的最新研究进展和前沿动态，包括近几年的重要实验、发现或 Nobel 奖相关成果。" +
+                  "如果某些信息可能超出你的知识截止时间，请明确标注。", "🔬 " + n.name + " · 研究前沿");
+        });
+
+        fetch("/api/physics-map")
+            .then(function (r) { return r.json(); })
+            .then(function (d) { tree = d; render(); })
+            .catch(function () { nodeInfo.innerHTML = "<p class='hint'>知识地图加载失败，请刷新</p>"; });
+    })();
+    </script>
+    <script src="/static/js/track.js"></script>
+</body>
+</html>
