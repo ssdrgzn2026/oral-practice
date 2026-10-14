@@ -4,187 +4,469 @@
   "desc": "研究物质、能量及其相互作用的基础自然科学",
   "children": [
     {
-      "id": "mechanics", "name": "经典力学", "icon": "🪐",
+      "id": "mechanics",
+      "name": "经典力学",
+      "icon": "🪐",
       "desc": "研究宏观物体低速运动的规律，物理学最古老的分支",
       "children": [
         {
-          "id": "newton", "name": "牛顿运动定律", "desc": "惯性、加速度与作用力、作用力与反作用力三大定律，经典力学的基石",
+          "id": "newton",
+          "name": "牛顿运动定律",
+          "desc": "惯性、加速度与作用力、作用力与反作用力三大定律，经典力学的基石",
           "children": [
-            {"id": "newton-1", "name": "第一定律（惯性定律）", "desc": "不受外力的物体保持静止或匀速直线运动"},
-            {"id": "newton-2", "name": "第二定律 F=ma", "desc": "加速度与合外力成正比、与质量成反比"},
-            {"id": "newton-3", "name": "第三定律（作用与反作用）", "desc": "作用力与反作用力大小相等、方向相反、作用在不同物体上"}
+            {
+              "id": "newton-1",
+              "name": "第一定律（惯性定律）",
+              "desc": "不受外力的物体保持静止或匀速直线运动"
+            },
+            {
+              "id": "newton-2",
+              "name": "第二定律 F=ma",
+              "desc": "加速度与合外力成正比、与质量成反比"
+            },
+            {
+              "id": "newton-3",
+              "name": "第三定律（作用与反作用）",
+              "desc": "作用力与反作用力大小相等、方向相反、作用在不同物体上"
+            }
+          ],
+          "demo": {
+            "sim": "forces-and-motion-basics",
+            "title": "力与运动基础：拖一拖感受作用力与加速度"
+          }
+        },
+        {
+          "id": "energy",
+          "name": "能量与动量",
+          "desc": "能量守恒与动量守恒是贯穿物理学的普适规律",
+          "children": [
+            {
+              "id": "ke",
+              "name": "动能与势能",
+              "desc": "动能 ½mv²、重力势能 mgh 及相互转化"
+            },
+            {
+              "id": "momentum",
+              "name": "动量守恒",
+              "desc": "封闭系统总动量不变，碰撞与反冲的核心",
+              "demo": {
+                "sim": "collision-lab",
+                "title": "碰撞实验室：动量守恒一目了然"
+              }
+            },
+            {
+              "id": "angular",
+              "name": "角动量守恒",
+              "desc": "花样滑冰收臂加速、行星轨道稳定的原理"
+            }
+          ],
+          "demo": {
+            "sim": "energy-skate-park",
+            "title": "能量滑板公园：看动能势能如何转化"
+          }
+        },
+        {
+          "id": "gravitation",
+          "name": "万有引力",
+          "desc": "F=GMm/r²，统一天上行星与地面落体的规律",
+          "children": [
+            {
+              "id": "orbit",
+              "name": "轨道运动",
+              "desc": "开普勒三定律与人造卫星轨道",
+              "demo": {
+                "sim": "gravity-and-orbits",
+                "title": "引力与轨道：拖行星改变轨道"
+              }
+            },
+            {
+              "id": "tide",
+              "name": "潮汐",
+              "desc": "月球与太阳引力差引起的海水涨落"
+            }
           ]
         },
         {
-          "id": "energy", "name": "能量与动量", "desc": "能量守恒与动量守恒是贯穿物理学的普适规律",
+          "id": "fluid",
+          "name": "流体力学",
+          "desc": "液体与气体的运动规律",
           "children": [
-            {"id": "ke", "name": "动能与势能", "desc": "动能 ½mv²、重力势能 mgh 及相互转化"},
-            {"id": "momentum", "name": "动量守恒", "desc": "封闭系统总动量不变，碰撞与反冲的核心"},
-            {"id": "angular", "name": "角动量守恒", "desc": "花样滑冰收臂加速、行星轨道稳定的原理"}
-          ]
-        },
-        {
-          "id": "gravitation", "name": "万有引力", "desc": "F=GMm/r²，统一天上行星与地面落体的规律",
-          "children": [
-            {"id": "orbit", "name": "轨道运动", "desc": "开普勒三定律与人造卫星轨道"},
-            {"id": "tide", "name": "潮汐", "desc": "月球与太阳引力差引起的海水涨落"}
-          ]
-        },
-        {
-          "id": "fluid", "name": "流体力学", "desc": "液体与气体的运动规律",
-          "children": [
-            {"id": "bernoulli", "name": "伯努利原理", "desc": "流速大处压强小，飞机升力的经典解释"},
-            {"id": "turbulence", "name": "湍流", "desc": "混沌的流体运动，物理学著名的未解难题"}
+            {
+              "id": "bernoulli",
+              "name": "伯努利原理",
+              "desc": "流速大处压强小，飞机升力的经典解释"
+            },
+            {
+              "id": "turbulence",
+              "name": "湍流",
+              "desc": "混沌的流体运动，物理学著名的未解难题"
+            }
           ]
         }
       ]
     },
     {
-      "id": "em", "name": "电磁学", "icon": "⚡",
+      "id": "em",
+      "name": "电磁学",
+      "icon": "⚡",
       "desc": "电、磁、光统一的理论，麦克斯韦方程组是其巅峰",
       "children": [
         {
-          "id": "electrostatics", "name": "静电与电场", "desc": "库仑定律、电场强度与电势",
+          "id": "electrostatics",
+          "name": "静电与电场",
+          "desc": "库仑定律、电场强度与电势",
           "children": [
-            {"id": "coulomb", "name": "库仑定律", "desc": "点电荷间作用力与距离平方成反比"},
-            {"id": "capacitor", "name": "电容器", "desc": "储存电荷与电场能的元件"}
+            {
+              "id": "coulomb",
+              "name": "库仑定律",
+              "desc": "点电荷间作用力与距离平方成反比"
+            },
+            {
+              "id": "capacitor",
+              "name": "电容器",
+              "desc": "储存电荷与电场能的元件",
+              "demo": {
+                "sim": "capacitor-lab-basics",
+                "title": "电容器实验：看电场如何储能"
+              }
+            }
           ]
         },
         {
-          "id": "magnetism", "name": "电流与磁场", "desc": "电流产生磁场，磁场对运动电荷施加洛伦兹力",
+          "id": "magnetism",
+          "name": "电流与磁场",
+          "desc": "电流产生磁场，磁场对运动电荷施加洛伦兹力",
           "children": [
-            {"id": "ampere", "name": "安培定律", "desc": "电流与磁场的定量关系"},
-            {"id": "lorentz", "name": "洛伦兹力", "desc": "带电粒子在电磁场中的受力"}
+            {
+              "id": "ampere",
+              "name": "安培定律",
+              "desc": "电流与磁场的定量关系"
+            },
+            {
+              "id": "lorentz",
+              "name": "洛伦兹力",
+              "desc": "带电粒子在电磁场中的受力"
+            }
           ]
         },
         {
-          "id": "maxwell", "name": "麦克斯韦方程组", "desc": "四个方程统一电磁光，预言电磁波",
+          "id": "maxwell",
+          "name": "麦克斯韦方程组",
+          "desc": "四个方程统一电磁光，预言电磁波",
           "children": [
-            {"id": "emwave", "name": "电磁波", "desc": "光是电磁波，无线电、X 射线皆属此列"},
-            {"id": "induction", "name": "电磁感应", "desc": "法拉第定律，发电机与变压器的原理"}
+            {
+              "id": "emwave",
+              "name": "电磁波",
+              "desc": "光是电磁波，无线电、X 射线皆属此列",
+              "demo": {
+                "sim": "molecules-and-light",
+                "title": "分子与光：不同波段电磁波的作用"
+              }
+            },
+            {
+              "id": "induction",
+              "name": "电磁感应",
+              "desc": "法拉第定律，发电机与变压器的原理",
+              "demo": {
+                "sim": "faradays-law",
+                "title": "法拉第电磁感应：移动磁铁发电"
+              }
+            }
           ]
         }
       ]
     },
     {
-      "id": "thermo", "name": "热学与统计物理", "icon": "🌡️",
+      "id": "thermo",
+      "name": "热学与统计物理",
+      "icon": "🌡️",
       "desc": "从宏观热力学定律到微观粒子统计行为",
       "children": [
         {
-          "id": "laws", "name": "热力学定律", "desc": "能量守恒、熵增、绝对零度不可达",
+          "id": "laws",
+          "name": "热力学定律",
+          "desc": "能量守恒、熵增、绝对零度不可达",
           "children": [
-            {"id": "entropy", "name": "熵增原理", "desc": "孤立系统熵不减，时间之箭的热力学解释"},
-            {"id": "carnot", "name": "卡诺循环", "desc": "热机效率的理论上限"}
-          ]
+            {
+              "id": "entropy",
+              "name": "熵增原理",
+              "desc": "孤立系统熵不减，时间之箭的热力学解释"
+            },
+            {
+              "id": "carnot",
+              "name": "卡诺循环",
+              "desc": "热机效率的理论上限"
+            }
+          ],
+          "demo": {
+            "sim": "gas-properties",
+            "title": "气体性质：压缩、加热看压强温度变化"
+          }
         },
         {
-          "id": "statmech", "name": "统计力学", "desc": "用概率统一微观粒子与宏观性质",
+          "id": "statmech",
+          "name": "统计力学",
+          "desc": "用概率统一微观粒子与宏观性质",
           "children": [
-            {"id": "boltzmann", "name": "玻尔兹曼分布", "desc": "粒子按能量的概率分布"},
-            {"id": "phase", "name": "相变", "desc": "固液气转变与临界现象"}
+            {
+              "id": "boltzmann",
+              "name": "玻尔兹曼分布",
+              "desc": "粒子按能量的概率分布"
+            },
+            {
+              "id": "phase",
+              "name": "相变",
+              "desc": "固液气转变与临界现象"
+            }
           ]
         }
       ]
     },
     {
-      "id": "optics", "name": "光学", "icon": "🔆",
+      "id": "optics",
+      "name": "光学",
+      "icon": "🔆",
       "desc": "光的传播、干涉、衍射与偏振",
       "children": [
-        {"id": "refraction", "name": "折射与反射", "desc": "斯涅尔定律，透镜成像的基础"},
         {
-          "id": "wave-optics", "name": "波动光学", "desc": "光的波动性的直接证据",
+          "id": "refraction",
+          "name": "折射与反射",
+          "desc": "斯涅尔定律，透镜成像的基础",
+          "demo": {
+            "sim": "bending-light",
+            "title": "光的折射：调节介质看光线弯折"
+          }
+        },
+        {
+          "id": "wave-optics",
+          "name": "波动光学",
+          "desc": "光的波动性的直接证据",
           "children": [
-            {"id": "interference", "name": "干涉", "desc": "双缝干涉，光也是波"},
-            {"id": "diffraction", "name": "衍射", "desc": "光绕过障碍物的弯曲传播"}
+            {
+              "id": "interference",
+              "name": "干涉",
+              "desc": "双缝干涉，光也是波",
+              "demo": {
+                "sim": "wave-interference",
+                "title": "波的干涉：双缝/双源波纹演示"
+              }
+            },
+            {
+              "id": "diffraction",
+              "name": "衍射",
+              "desc": "光绕过障碍物的弯曲传播"
+            }
           ]
         },
-        {"id": "laser", "name": "激光", "desc": "受激辐射放大，相干光源的应用革命"}
+        {
+          "id": "laser",
+          "name": "激光",
+          "desc": "受激辐射放大，相干光源的应用革命",
+          "demo": {
+            "sim": "lasers",
+            "title": "激光原理：受激辐射如何放大"
+          }
+        }
       ]
     },
     {
-      "id": "relativity", "name": "相对论", "icon": "🕰️",
+      "id": "relativity",
+      "name": "相对论",
+      "icon": "🕰️",
       "desc": "高速与强引力下的时空观",
       "children": [
         {
-          "id": "sr", "name": "狭义相对论", "desc": "光速不变，时间与空间随运动相对变化",
+          "id": "sr",
+          "name": "狭义相对论",
+          "desc": "光速不变，时间与空间随运动相对变化",
           "children": [
-            {"id": "time-dilation", "name": "时间膨胀", "desc": "运动的钟变慢，GPS 必须修正"},
-            {"id": "emc2", "name": "质能方程 E=mc²", "desc": "质量与能量等价"}
+            {
+              "id": "time-dilation",
+              "name": "时间膨胀",
+              "desc": "运动的钟变慢，GPS 必须修正"
+            },
+            {
+              "id": "emc2",
+              "name": "质能方程 E=mc²",
+              "desc": "质量与能量等价"
+            }
           ]
         },
         {
-          "id": "gr", "name": "广义相对论", "desc": "引力即时空弯曲",
+          "id": "gr",
+          "name": "广义相对论",
+          "desc": "引力即时空弯曲",
           "children": [
-            {"id": "blackhole", "name": "黑洞", "desc": "光也无法逃逸的时空区域，2019 年首张黑洞照片"},
-            {"id": "gw", "name": "引力波", "desc": "时空涟漪，2015 年 LIGO 首次直接探测"}
+            {
+              "id": "blackhole",
+              "name": "黑洞",
+              "desc": "光也无法逃逸的时空区域，2019 年首张黑洞照片",
+              "demo": {
+                "sim": "gravity-and-orbits",
+                "title": "引力场演示（黑洞概念的入门类比）"
+              }
+            },
+            {
+              "id": "gw",
+              "name": "引力波",
+              "desc": "时空涟漪，2015 年 LIGO 首次直接探测"
+            }
           ]
         }
       ]
     },
     {
-      "id": "quantum", "name": "量子力学", "icon": "🌀",
+      "id": "quantum",
+      "name": "量子力学",
+      "icon": "🌀",
       "desc": "微观世界的规律，现代物理两大支柱之一",
       "children": [
         {
-          "id": "wave-particle", "name": "波粒二象性", "desc": "微观粒子既是波又是粒子",
+          "id": "wave-particle",
+          "name": "波粒二象性",
+          "desc": "微观粒子既是波又是粒子",
           "children": [
-            {"id": "photoelectric", "name": "光电效应", "desc": "爱因斯坦因此获诺贝尔奖，光的粒子性证据"},
-            {"id": "double-slit", "name": "电子双缝实验", "desc": "单个电子也会自我干涉，费曼称其为量子力学核心之谜"}
+            {
+              "id": "photoelectric",
+              "name": "光电效应",
+              "desc": "爱因斯坦因此获诺贝尔奖，光的粒子性证据",
+              "demo": {
+                "sim": "photoelectric-effect",
+                "title": "光电效应：光照金属打出电子"
+              }
+            },
+            {
+              "id": "double-slit",
+              "name": "电子双缝实验",
+              "desc": "单个电子也会自我干涉，费曼称其为量子力学核心之谜",
+              "demo": {
+                "sim": "wave-interference",
+                "title": "双缝干涉：切换到激光模式看量子版本"
+              }
+            }
           ]
         },
         {
-          "id": "uncertainty", "name": "不确定性原理", "desc": "位置与动量不能同时精确测定",
+          "id": "uncertainty",
+          "name": "不确定性原理",
+          "desc": "位置与动量不能同时精确测定",
           "children": [
-            {"id": "superposition", "name": "叠加态", "desc": "测量前粒子处于多种状态的叠加"},
-            {"id": "entanglement", "name": "量子纠缠", "desc": " spooky 的远程关联，2022 年诺贝尔物理学奖"}
+            {
+              "id": "superposition",
+              "name": "叠加态",
+              "desc": "测量前粒子处于多种状态的叠加"
+            },
+            {
+              "id": "entanglement",
+              "name": "量子纠缠",
+              "desc": " spooky 的远程关联，2022 年诺贝尔物理学奖"
+            }
           ]
         },
         {
-          "id": "quantum-tech", "name": "量子技术前沿", "desc": "量子力学的工程化应用",
+          "id": "quantum-tech",
+          "name": "量子技术前沿",
+          "desc": "量子力学的工程化应用",
           "children": [
-            {"id": "qcomputer", "name": "量子计算", "desc": "利用叠加与纠缠的并行计算，纠错是当前最大挑战"},
-            {"id": "qcomm", "name": "量子通信", "desc": "量子密钥分发，理论上不可窃听"}
+            {
+              "id": "qcomputer",
+              "name": "量子计算",
+              "desc": "利用叠加与纠缠的并行计算，纠错是当前最大挑战"
+            },
+            {
+              "id": "qcomm",
+              "name": "量子通信",
+              "desc": "量子密钥分发，理论上不可窃听"
+            }
           ]
         }
       ]
     },
     {
-      "id": "particle", "name": "粒子物理", "icon": "💠",
+      "id": "particle",
+      "name": "粒子物理",
+      "icon": "💠",
       "desc": "物质的最基本组成与相互作用",
       "children": [
         {
-          "id": "standard-model", "name": "标准模型", "desc": "夸克、轻子与规范玻色子的完整谱系",
+          "id": "standard-model",
+          "name": "标准模型",
+          "desc": "夸克、轻子与规范玻色子的完整谱系",
           "children": [
-            {"id": "quark", "name": "夸克", "desc": "质子中子的组成成分，六种味"},
-            {"id": "higgs", "name": "希格斯玻色子", "desc": "质量的起源，2012 年发现"}
+            {
+              "id": "quark",
+              "name": "夸克",
+              "desc": "质子中子的组成成分，六种味"
+            },
+            {
+              "id": "higgs",
+              "name": "希格斯玻色子",
+              "desc": "质量的起源，2012 年发现"
+            }
           ]
         },
         {
-          "id": "beyond", "name": "超越标准模型", "desc": "暗物质、超对称等前沿方向",
+          "id": "beyond",
+          "name": "超越标准模型",
+          "desc": "暗物质、超对称等前沿方向",
           "children": [
-            {"id": "darkmatter", "name": "暗物质", "desc": "占宇宙 27% 却不发光的物质，本质未知"},
-            {"id": "neutrino", "name": "中微子振荡", "desc": "中微子有微小质量的证据"}
+            {
+              "id": "darkmatter",
+              "name": "暗物质",
+              "desc": "占宇宙 27% 却不发光的物质，本质未知"
+            },
+            {
+              "id": "neutrino",
+              "name": "中微子振荡",
+              "desc": "中微子有微小质量的证据"
+            }
           ]
         }
       ]
     },
     {
-      "id": "astro", "name": "天体物理与宇宙学", "icon": "🌌",
+      "id": "astro",
+      "name": "天体物理与宇宙学",
+      "icon": "🌌",
       "desc": "从恒星到整个宇宙的演化",
       "children": [
         {
-          "id": "stars", "name": "恒星演化", "desc": "恒星从诞生到死亡的完整历程",
+          "id": "stars",
+          "name": "恒星演化",
+          "desc": "恒星从诞生到死亡的完整历程",
           "children": [
-            {"id": "supernova", "name": "超新星", "desc": "大质量恒星的壮烈终结，重元素的熔炉"},
-            {"id": "neutron-star", "name": "中子星与脉冲星", "desc": "一匙物质重逾亿吨"}
+            {
+              "id": "supernova",
+              "name": "超新星",
+              "desc": "大质量恒星的壮烈终结，重元素的熔炉"
+            },
+            {
+              "id": "neutron-star",
+              "name": "中子星与脉冲星",
+              "desc": "一匙物质重逾亿吨"
+            }
           ]
         },
         {
-          "id": "cosmology", "name": "宇宙学", "desc": "宇宙的起源、膨胀与命运",
+          "id": "cosmology",
+          "name": "宇宙学",
+          "desc": "宇宙的起源、膨胀与命运",
           "children": [
-            {"id": "bigbang", "name": "大爆炸理论", "desc": "宇宙起源于 138 亿年前的热密状态"},
-            {"id": "darkenergy", "name": "暗能量", "desc": "宇宙加速膨胀的推手，占宇宙 68%，本质成谜"},
-            {"id": "cmb", "name": "宇宙微波背景辐射", "desc": "大爆炸的余晖，宇宙婴儿时期的照片"}
+            {
+              "id": "bigbang",
+              "name": "大爆炸理论",
+              "desc": "宇宙起源于 138 亿年前的热密状态"
+            },
+            {
+              "id": "darkenergy",
+              "name": "暗能量",
+              "desc": "宇宙加速膨胀的推手，占宇宙 68%，本质成谜"
+            },
+            {
+              "id": "cmb",
+              "name": "宇宙微波背景辐射",
+              "desc": "大爆炸的余晖，宇宙婴儿时期的照片"
+            }
           ]
         }
       ]

@@ -19,6 +19,8 @@
 
             <div class="card" id="node-info"></div>
 
+            <div class="card" id="demo-box" style="display:none;"></div>
+
             <div class="panel-header-controls" style="justify-content:center; margin:10px 0;">
                 <button id="ai-explain" class="btn primary">💡 AI 深入讲解</button>
                 <button id="ai-frontier" class="btn secondary">🔬 最新研究进展</button>
@@ -83,6 +85,20 @@
                 "<h2>" + (node.icon || "📘") + " " + esc(node.name) + "</h2>" +
                 "<p style='margin-top:6px;'>" + esc(node.desc || "") + "</p>" +
                 (path.length ? "" : "<p class='hint' style='margin-top:6px;'>点击任意分支开始深入；每个知识点旁的 💬 可以随时向 AI 提问</p>");
+
+            // 互动演示（PhET 仿真，官方支持嵌入）
+            var demoBox = document.getElementById("demo-box");
+            if (node.demo) {
+                var simUrl = "https://phet.colorado.edu/sims/html/" + node.demo.sim + "/latest/" + node.demo.sim + "_all.html?locale=zh_CN";
+                demoBox.style.display = "block";
+                demoBox.innerHTML =
+                    "<h3>🎮 互动演示：" + esc(node.demo.title) + "</h3>" +
+                    "<div class='demo-frame-wrap'><iframe src='" + simUrl + "' allowfullscreen loading='lazy'></iframe></div>" +
+                    "<p class='hint'>加载较慢属正常（模拟器来自科罗拉多大学 PhET 项目）。<a href='" + simUrl + "' target='_blank' rel='noopener'>全屏打开 ↗</a></p>";
+            } else {
+                demoBox.style.display = "none";
+                demoBox.innerHTML = "";
+            }
 
             // 子节点
             var kids = node.children || [];
