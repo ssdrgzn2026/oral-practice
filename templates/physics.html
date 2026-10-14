@@ -88,7 +88,7 @@
                 "<p style='margin-top:6px;'>" + esc(node.desc || "") + "</p>" +
                 (path.length ? "" : "<p class='hint' style='margin-top:6px;'>点击任意分支开始深入；每个知识点旁的 💬 可以随时向 AI 提问</p>");
 
-            // 相关诺贝尔奖（聚合本节点及所有子孙节点，按年份排列）
+            // 相关诺贝尔奖（聚合本节点及所有子孙节点，按年份排列；可点击展开 AI 详解）
             var nobelBox = document.getElementById("nobel-box");
             var prizes = [];
             (function collect(n) {
@@ -98,11 +98,17 @@
             if (prizes.length && path.length > 0) {  // 顶层主页不显示，避免干扰
                 prizes.sort(function (a, b) { return a.year - b.year; });
                 nobelBox.style.display = "block";
-                nobelBox.innerHTML = "<h3>🏅 相关诺贝尔奖（共 " + prizes.length + " 项，按年份看领域发展脉络）</h3>" +
-                    '<div class="nobel-list">' + prizes.map(function (x) {
-                        return '<div class="nobel-item"><span class="nobel-year">' + x.year + "</span>" +
-                            "<b>" + esc(x.who) + "</b><span class='hint'>　" + esc(x.for) + "</span></div>";
+                nobelBox.innerHTML = "<h3>🏅 相关诺贝尔奖（共 " + prizes.length + " 项，点击查看详解）</h3>" +
+                    '<div class="nobel-list">' + prizes.map(function (x, i) {
+                        return '<div class="nobel-item nobel-link" data-i="' + i + '">' +
+                            '<span class="nobel-year">' + x.year + "</span>" +
+                            "<b>" + esc(x.who) + "</b><span class='hint'>　" + esc(x.for) + "　→</span></div>";
                     }).join("") + "</div>";
+                nobelBox.querySelectorAll(".nobel-link").forEach(function (el) {
+                    el.addEventListener("click", function () {
+                        showNobelDetail(prizes[+el.dataset.i], prizes, node.name);
+                    });
+                });
             } else {
                 nobelBox.style.display = "none";
                 nobelBox.innerHTML = "";
@@ -181,6 +187,36 @@
                   chatCtx.push({ role: "assistant", content: reply });
               })
               .catch(function () { aiOutput.textContent = "网络错误，请重试"; });
+        }
+
+        // 诺贝尔奖词条详解：AI 生成介绍 + 同领域相关奖项互链
+        function showNobelDetail(prize, allPrizes, fieldName) {
+            var others = allPrizes.filter(function (x) { return x !== prize; });
+            // 词条区：AI 面板
+            var relList = others.map(function (x) { return x.year + "年" + x.who + "（" + x.for + "）"; }).join("；");
+            askAI(
+                "请简要介绍 " + prize.year + " 年诺贝尔物理学奖（获奖人：" + prize.who + "，获奖成果：" + prize.for + "）：" +
+                "1. 获奖工作的背景与核心内容；2. 它对「" + fieldName + "」领域的贡献和长远影响；" +
+                "3. 它与哪些其他诺贝尔物理学奖有承接或关联关系（可参考：" + relList + "），请说明关联是什么。",
+                "🏅 " + prize.year + " 年 · " + prize.who
+            );
+            // 相关奖项互链 chips（放在 AI 面板标题下）
+            if (others.length) {
+                var chips = document.createElement("div");
+                chips.className = "nobel-chips";
+                chips.innerHTML = "<span class='hint'>相关奖项：</span>" + others.map(function (x) {
+                    var i = allPrizes.indexOf(x);
+                    return '<button class="nobel-chip" data-i="' + i + '">' + x.year + " " + esc(x.who) + "</button>";
+                }).join("");
+                var old = aiPanel.querySelector(".nobel-chips");
+                if (old) old.remove();
+                aiTitle.after(chips);
+                chips.querySelectorAll(".nobel-chip").forEach(function (b) {
+                    b.addEventListener("click", function () {
+                        showNobelDetail(allPrizes[+b.dataset.i], allPrizes, fieldName);
+                    });
+                });
+            }
         }
 
         document.getElementById("ai-ask").addEventListener("click", function () {
