@@ -125,6 +125,7 @@ PATH_NAMES = {
     "/graph/law": "知识图谱·法学",
     "/graph/engineering": "知识图谱·工程",
     "/graph/buddhism": "知识图谱·佛学",
+    "/graph/psychology": "知识图谱·心理",
     "/convert/": "格式转换",
     "/dcf/": "DCF",
 }

@@ -154,6 +154,7 @@ GRAPH_SUBJECTS = {
     "law": {"title": "法学", "icon": "⚖️", "prize": "", "awardLabel": "法治里程碑", "awardDetail": "法治里程碑"},
     "engineering": {"title": "工程学", "icon": "⚙️", "prize": "", "awardLabel": "工程里程碑", "awardDetail": "工程里程碑"},
     "buddhism": {"title": "佛学", "icon": "🪷", "prize": "", "awardLabel": "佛学大事记", "awardDetail": "佛学大事记"},
+    "psychology": {"title": "心理学", "icon": "🧠", "prize": "", "awardLabel": "心理学里程碑", "awardDetail": "心理学里程碑"},
 }
 
 
