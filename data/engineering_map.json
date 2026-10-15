@@ -1,0 +1,676 @@
+{
+  "name": "工程学",
+  "icon": "⚙️",
+  "desc": "把科学原理转化为可用之物的艺术：造物、赋能与改变世界",
+  "children": [
+    {
+      "id": "en-mechanical",
+      "name": "机械工程",
+      "icon": "🔧",
+      "desc": "机构、传动与制造：让能量做有用之功",
+      "children": [
+        {
+          "id": "en-mechanism",
+          "name": "机构与传动",
+          "desc": "连杆、齿轮、凸轮：运动变换的词汇表",
+          "related": [
+            "mechanics"
+          ],
+          "children": [
+            {
+              "id": "en-gear",
+              "name": "齿轮传动",
+              "desc": "转速与扭矩的兑换器，钟表到风电都离不开"
+            },
+            {
+              "id": "en-linkage",
+              "name": "连杆机构",
+              "desc": "曲柄滑块把往复变旋转，发动机的核心机构"
+            }
+          ]
+        },
+        {
+          "id": "en-manufacture",
+          "name": "制造技术",
+          "desc": "车铣刨磨到 3D 打印：减材、等材与增材",
+          "children": [
+            {
+              "id": "en-cnc",
+              "name": "数控加工",
+              "desc": "G 代码驱动机床，精度进入微米级",
+              "related": [
+                "cs-language"
+              ]
+            },
+            {
+              "id": "en-3dprint",
+              "name": "增材制造",
+              "desc": "层层堆积直接成形，复杂结构不再难造"
+            }
+          ]
+        },
+        {
+          "id": "en-steam",
+          "name": "蒸汽机与机械时代",
+          "desc": "热能变机械能：工业革命的引擎",
+          "related": [
+            "thermo",
+            "carnot"
+          ],
+          "nobel": [
+            {
+              "year": 1769,
+              "who": "瓦特",
+              "for": "改良蒸汽机，工业革命的动力之源"
+            },
+            {
+              "year": 1876,
+              "who": "奥托",
+              "for": "四冲程内燃机"
+            },
+            {
+              "year": 1897,
+              "who": "狄塞尔",
+              "for": "柴油机：压燃式内燃机"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "en-electrical",
+      "name": "电气与电子工程",
+      "icon": "🔌",
+      "desc": "驾驭电子：从电网到芯片的能量与信息之路",
+      "children": [
+        {
+          "id": "en-circuit",
+          "name": "电路基础",
+          "desc": "欧姆定律与基尔霍夫定律：电流的算术",
+          "demo": {
+            "sim": "circuit-construction-kit-dc",
+            "title": "搭建直流电路"
+          },
+          "related": [
+            "em"
+          ],
+          "children": [
+            {
+              "id": "en-ac-dc",
+              "name": "交流与直流之争",
+              "desc": "特斯拉的交流系统战胜了爱迪生的直流",
+              "nobel": [
+                {
+                  "year": 1879,
+                  "who": "爱迪生",
+                  "for": "实用白炽灯与直流供电系统"
+                },
+                {
+                  "year": 1888,
+                  "who": "特斯拉",
+                  "for": "交流感应电机与多相输电系统"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "en-electronics",
+          "name": "电子器件",
+          "desc": "真空管、晶体管到集成电路：器件的小型化史诗",
+          "children": [
+            {
+              "id": "en-transistor",
+              "name": "晶体管",
+              "desc": "固态开关：二十世纪最重要的发明之一",
+              "demo": {
+                "type": "canvas",
+                "anim": "transistor",
+                "title": "晶体管：小电流控制大电流"
+              },
+              "nobel": [
+                {
+                  "year": 1956,
+                  "who": "肖克利、巴丁、布拉顿",
+                  "for": "发明晶体管（诺贝尔物理学奖）"
+                }
+              ]
+            },
+            {
+              "id": "en-ic",
+              "name": "集成电路",
+              "desc": "把整座电子城缩进指甲盖：摩尔定律的传奇",
+              "related": [
+                "cs-architecture",
+                "quantum"
+              ],
+              "nobel": [
+                {
+                  "year": 1958,
+                  "who": "基尔比、诺伊斯",
+                  "for": "集成电路（基尔比获 2000 年诺贝尔物理学奖）"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "en-power",
+          "name": "电力系统",
+          "desc": "发电、输电、配电：现代社会的血管",
+          "demo": {
+            "sim": "faradays-electromagnetic-lab",
+            "title": "电磁感应：发电机的原理"
+          },
+          "children": [
+            {
+              "id": "en-uhv",
+              "name": "特高压输电",
+              "desc": "百万伏级远距离输电，中国主导的工程名片",
+              "nobel": [
+                {
+                  "year": 2009,
+                  "who": "晋东南-荆门工程",
+                  "for": "世界首条 1000 千伏特高压交流工程投运"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "en-civil",
+      "name": "土木与结构工程",
+      "icon": "🏗️",
+      "desc": "让结构站稳：材料力学与大地的对话",
+      "children": [
+        {
+          "id": "en-mechanics-mat",
+          "name": "材料力学",
+          "desc": "应力、应变与强度：结构安全的定量基础",
+          "related": [
+            "mechanics"
+          ],
+          "children": [
+            {
+              "id": "en-stress",
+              "name": "应力与应变",
+              "desc": "内力密度与形变程度，胡克定律的线性区"
+            },
+            {
+              "id": "en-fatigue",
+              "name": "疲劳破坏",
+              "desc": "反复载荷下的隐性杀手，空难的教训换来标准"
+            }
+          ]
+        },
+        {
+          "id": "en-bridge",
+          "name": "桥梁工程",
+          "desc": "梁桥、拱桥、悬索桥：力流路径的艺术",
+          "children": [
+            {
+              "id": "en-suspension",
+              "name": "悬索桥",
+              "desc": "主缆受拉吊起桥面，跨度的王者",
+              "nobel": [
+                {
+                  "year": 1937,
+                  "who": "金门大桥",
+                  "for": "当时世界最长悬索桥，旧金山地标"
+                },
+                {
+                  "year": 2018,
+                  "who": "港珠澳大桥",
+                  "for": "世界最长跨海桥隧组合工程"
+                }
+              ]
+            },
+            {
+              "id": "en-arch-bridge",
+              "name": "拱桥",
+              "desc": "把荷载化为压力，石头也能跨越江河",
+              "nobel": [
+                {
+                  "year": 605,
+                  "who": "李春",
+                  "for": "赵州桥：现存最早的敞肩石拱桥"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "en-building",
+          "name": "建筑结构",
+          "desc": "框架、剪力墙与抗震设计",
+          "children": [
+            {
+              "id": "en-skyscraper",
+              "name": "摩天楼",
+              "desc": "钢结构与电梯催生了垂直城市",
+              "nobel": [
+                {
+                  "year": 1885,
+                  "who": "家庭保险大楼（芝加哥）",
+                  "for": "世界第一座钢框架摩天楼"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "en-hydro-project",
+          "name": "水利工程",
+          "desc": "驯服江河：防洪、发电与灌溉",
+          "demo": {
+            "sim": "under-pressure",
+            "title": "液体压强随深度增长：大坝为何下宽上窄"
+          },
+          "related": [
+            "g-disaster"
+          ],
+          "nobel": [
+            {
+              "year": -256,
+              "who": "李冰",
+              "for": "都江堰：无坝引水的千年奇迹"
+            },
+            {
+              "year": 1994,
+              "who": "三峡工程开工",
+              "for": "世界最大水电站（2012 年全部投产）"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "en-energy",
+      "name": "能源与动力工程",
+      "icon": "🔥",
+      "desc": "能量转换的艺术：从锅炉到光伏",
+      "children": [
+        {
+          "id": "en-thermal",
+          "name": "热力发电",
+          "desc": "烧水驱动汽轮机：火电与核电殊途同归",
+          "related": [
+            "carnot",
+            "thermo"
+          ],
+          "children": [
+            {
+              "id": "en-turbine",
+              "name": "汽轮机与燃气轮机",
+              "desc": "高速旋转的叶片阵列：工业皇冠上的明珠"
+            }
+          ]
+        },
+        {
+          "id": "en-fluid-mach",
+          "name": "流体机械",
+          "desc": "泵、风机与水轮机：给流体加功或取功",
+          "demo": {
+            "type": "canvas",
+            "anim": "venturi",
+            "title": "文丘里效应：流速与压强的此消彼长"
+          },
+          "related": [
+            "fluid",
+            "bernoulli"
+          ],
+          "children": [
+            {
+              "id": "en-pump",
+              "name": "泵与压缩机",
+              "desc": "工业的心脏：从心脏泵到空间站循环泵"
+            }
+          ]
+        },
+        {
+          "id": "en-new-energy",
+          "name": "新能源",
+          "desc": "光伏、风电与储能：能源结构的世纪转型",
+          "related": [
+            "g-greenhouse",
+            "b-photosynthesis"
+          ],
+          "children": [
+            {
+              "id": "en-solar",
+              "name": "光伏发电",
+              "desc": "半导体把光子直接变电，成本十年降九成",
+              "related": [
+                "photoelectric"
+              ]
+            },
+            {
+              "id": "en-fusion-power",
+              "name": "可控核聚变",
+              "desc": "人造太阳：永远的五十年后，正在逼近现实",
+              "related": [
+                "a-fusion",
+                "force-strong"
+              ],
+              "nobel": [
+                {
+                  "year": 2022,
+                  "who": "美国国家点火装置",
+                  "for": "首次实现聚变能量净增益（Q>1）"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "en-aerospace",
+      "name": "航空航天工程",
+      "icon": "🚀",
+      "desc": "挣脱重力：从风筝到空间站的攀升",
+      "children": [
+        {
+          "id": "en-aviation",
+          "name": "航空",
+          "desc": "升力、推力与姿态控制：重于空气也能飞",
+          "children": [
+            {
+              "id": "en-airfoil",
+              "name": "机翼与升力",
+              "desc": "环量产生升力，攻角决定失速",
+              "related": [
+                "bernoulli",
+                "fluid"
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "turbulence",
+                "title": "翼面绕流与湍流尾迹"
+              }
+            },
+            {
+              "id": "en-jet",
+              "name": "喷气发动机",
+              "desc": "吸气压缩燃烧喷出：牛顿第三定律的空中版",
+              "related": [
+                "newton-3"
+              ],
+              "nobel": [
+                {
+                  "year": 1939,
+                  "who": "惠特尔、奥海因",
+                  "for": "涡轮喷气发动机相继研制成功"
+                }
+              ]
+            }
+          ],
+          "nobel": [
+            {
+              "year": 1903,
+              "who": "莱特兄弟",
+              "for": "飞行者一号：首次动力可控飞行"
+            },
+            {
+              "year": 2017,
+              "who": "C919 首飞",
+              "for": "中国大飞机正式进入干线市场"
+            }
+          ]
+        },
+        {
+          "id": "en-space",
+          "name": "航天",
+          "desc": "火箭方程与轨道力学：把质量送出引力井",
+          "related": [
+            "orbit",
+            "gravitation"
+          ],
+          "children": [
+            {
+              "id": "en-rocket",
+              "name": "火箭推进",
+              "desc": "齐奥尔科夫斯基方程：速度与质量比的严酷对数",
+              "nobel": [
+                {
+                  "year": 1957,
+                  "who": "（事件）斯普特尼克一号",
+                  "for": "人类首颗人造卫星"
+                },
+                {
+                  "year": 1969,
+                  "who": "阿波罗 11 号",
+                  "for": "人类首次登月：个人的一小步"
+                }
+              ]
+            },
+            {
+              "id": "en-station",
+              "name": "空间站与深空探测",
+              "desc": "长期在轨驻留与行星际航行",
+              "nobel": [
+                {
+                  "year": 2021,
+                  "who": "天和核心舱",
+                  "for": "中国空间站建设启动（天宫）"
+                },
+                {
+                  "year": 2021,
+                  "who": "祝融号",
+                  "for": "中国首次火星巡视探测"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "en-control",
+      "name": "控制与自动化",
+      "icon": "🤖",
+      "desc": "让机器自我调节：反馈是工程的第一智慧",
+      "children": [
+        {
+          "id": "en-feedback",
+          "name": "反馈控制",
+          "desc": "测量、比较、纠偏：从离心调速器到 PID",
+          "children": [
+            {
+              "id": "en-pid",
+              "name": "PID 控制",
+              "desc": "比例、积分、微分三招打天下",
+              "related": [
+                "m-diffeq"
+              ]
+            },
+            {
+              "id": "en-cybernetics",
+              "name": "控制论",
+              "desc": "维纳奠基：机器与生物共通的调节原理",
+              "related": [
+                "b-homeostasis"
+              ],
+              "nobel": [
+                {
+                  "year": 1948,
+                  "who": "维纳",
+                  "for": "《控制论》出版，自动化时代的理论基石"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "en-robot",
+          "name": "机器人",
+          "desc": "感知、决策、执行的闭环系统",
+          "related": [
+            "cs-ai"
+          ],
+          "children": [
+            {
+              "id": "en-industrial-robot",
+              "name": "工业机器人",
+              "desc": "汽车生产线上的钢铁手臂，重复精度微米级",
+              "nobel": [
+                {
+                  "year": 1961,
+                  "who": "Unimate",
+                  "for": "第一台工业机器人在通用汽车上线"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "en-embedded",
+          "name": "嵌入式与工业网络",
+          "desc": "藏在设备里的计算：PLC 与现场总线",
+          "related": [
+            "cs-network"
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "network",
+            "title": "工业网络中的数据包流转"
+          }
+        }
+      ]
+    },
+    {
+      "id": "en-history",
+      "name": "工程史里程碑",
+      "icon": "🏆",
+      "desc": "改变世界的工程时刻",
+      "children": [
+        {
+          "id": "en-ancient-eng",
+          "name": "古代工程奇迹",
+          "desc": "金字塔、长城与罗马水道：无现代机械的伟大建造",
+          "nobel": [
+            {
+              "year": -2560,
+              "who": "胡夫金字塔",
+              "for": "四千年世界最高建筑，误差以毫米计"
+            },
+            {
+              "year": -214,
+              "who": "（工程）万里长城",
+              "for": "历代修筑总长超两万公里的防御体系"
+            },
+            {
+              "year": 144,
+              "who": "加尔桥（罗马水道）",
+              "for": "重力自流 50 公里供水的精度奇迹"
+            }
+          ]
+        },
+        {
+          "id": "en-industrial-age",
+          "name": "工业时代",
+          "desc": "铁路、电报与流水线：标准化与规模化",
+          "nobel": [
+            {
+              "year": 1825,
+              "who": "斯托克顿-达灵顿铁路",
+              "for": "世界首条公共蒸汽铁路"
+            },
+            {
+              "year": 1869,
+              "who": "苏伊士运河",
+              "for": "欧亚航程缩短七千公里"
+            },
+            {
+              "year": 1913,
+              "who": "福特流水线",
+              "for": "移动装配线让汽车进入家庭"
+            }
+          ]
+        },
+        {
+          "id": "en-information-eng",
+          "name": "信息工程时代",
+          "desc": "通信、计算与网络基础设施的铺设",
+          "related": [
+            "cs-network"
+          ],
+          "children": [
+            {
+              "id": "en-comm",
+              "name": "通信工程",
+              "desc": "电报、电话到光纤与 5G",
+              "demo": {
+                "type": "canvas",
+                "anim": "binarybits",
+                "title": "信息的比特化传输"
+              },
+              "nobel": [
+                {
+                  "year": 1966,
+                  "who": "高锟",
+                  "for": "提出光纤通信可行性（2009 诺贝尔物理学奖）"
+                }
+              ]
+            },
+            {
+              "id": "en-supercond-eng",
+              "name": "超导工程应用",
+              "desc": "零电阻输电与磁悬浮的工程化探索",
+              "demo": {
+                "type": "canvas",
+                "anim": "supercond",
+                "title": "超导磁悬浮"
+              },
+              "related": [
+                "en-supercond-eng",
+                "magnetism"
+              ]
+            },
+            {
+              "id": "en-crystal-eng",
+              "name": "半导体晶圆制造",
+              "desc": "晶格之上造城市：光刻与纳米工艺",
+              "demo": {
+                "type": "canvas",
+                "anim": "lattice",
+                "title": "晶格结构：芯片的原子地基"
+              },
+              "related": [
+                "c-crystal",
+                "condensed"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "en-china-projects",
+          "name": "中国超级工程",
+          "desc": "高铁、天眼与特高压：当代工程的中国名片",
+          "nobel": [
+            {
+              "year": 2008,
+              "who": "京津城际",
+              "for": "中国首条时速 350 公里高铁（高铁网今超 4 万公里）"
+            },
+            {
+              "year": 2016,
+              "who": "FAST 天眼",
+              "for": "世界最大单口径射电望远镜落成（南仁东主持）"
+            },
+            {
+              "year": 2020,
+              "who": "嫦娥五号",
+              "for": "月球采样返回"
+            }
+          ],
+          "related": [
+            "a-radio"
+          ]
+        }
+      ]
+    }
+  ]
+}

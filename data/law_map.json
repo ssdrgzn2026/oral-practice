@@ -1,0 +1,416 @@
+{
+  "name": "法学",
+  "icon": "⚖️",
+  "desc": "研究法律现象与法治规律的社会科学（本模块仅为普法科普，不构成法律意见）",
+  "children": [
+    {
+      "id": "l-jurisprudence",
+      "name": "法理学与法律思想史",
+      "icon": "📖",
+      "desc": "法律是什么、为何服从：法学的哲学根基",
+      "children": [
+        {
+          "id": "l-nature",
+          "name": "法的本质",
+          "desc": "自然法与实证主义之争：恶法是不是法",
+          "related": ["p-ethics", "p-justice"],
+          "children": [
+            {
+              "id": "l-natural-law",
+              "name": "自然法学派",
+              "desc": "法律之上还有更高的正义准则",
+              "nobel": [
+                { "year": -429, "who": "（戏剧）安提戈涅", "for": "索福克勒斯笔下自然法与人定法的最早冲突" }
+              ]
+            },
+            {
+              "id": "l-positivism",
+              "name": "法律实证主义",
+              "desc": "法律是主权者的命令，与道德分离",
+              "nobel": [
+                { "year": 1832, "who": "奥斯丁", "for": "《法理学的范围》，实证主义奠基" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "l-rule-of-law",
+          "name": "法治原则",
+          "desc": "法律至上、权力受制约、程序正当",
+          "children": [
+            {
+              "id": "l-power-check",
+              "name": "权力制衡",
+              "desc": "把权力关进制度的笼子",
+              "related": ["p-state"],
+              "nobel": [
+                { "year": 1748, "who": "孟德斯鸠", "for": "《论法的精神》，三权分立学说" }
+              ]
+            }
+          ],
+          "nobel": [
+            { "year": 1215, "who": "英格兰贵族与约翰王", "for": "大宪章：王在法下的第一份契约" }
+          ]
+        },
+        {
+          "id": "l-law-ethics",
+          "name": "法律与道德",
+          "desc": "界限何在：立法能否强制道德",
+          "demo": { "type": "canvas", "anim": "trolley", "title": "电车难题：法律与道德的冲突现场" },
+          "related": ["p-trolley"]
+        }
+      ]
+    },
+    {
+      "id": "l-constitution",
+      "name": "宪法",
+      "icon": "🏛️",
+      "desc": "国家的根本法：公民权利与国家机构的总章程",
+      "children": [
+        {
+          "id": "l-china-constitution",
+          "name": "中国宪法",
+          "desc": "八二宪法及其修正案构成现行宪法框架",
+          "nobel": [
+            { "year": 1954, "who": "中华人民共和国宪法", "for": "新中国第一部宪法颁布" },
+            { "year": 1982, "who": "八二宪法", "for": "现行宪法颁布，后经五次修正" },
+            { "year": 2014, "who": "国家宪法日", "for": "设立 12 月 4 日为国家宪法日" }
+          ]
+        },
+        {
+          "id": "l-rights",
+          "name": "公民基本权利",
+          "desc": "人身自由、财产权与受教育权的宪法保障",
+          "children": [
+            {
+              "id": "l-human-rights",
+              "name": "人权条款",
+              "desc": "国家尊重和保障人权写入宪法",
+              "nobel": [
+                { "year": 2004, "who": "宪法修正案", "for": "「国家尊重和保障人权」入宪" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "l-world-constitution",
+          "name": "世界宪法史",
+          "desc": "成文与不成文宪法的两大传统",
+          "nobel": [
+            { "year": 1787, "who": "美国宪法", "for": "世界第一部成文宪法，联邦制与三权分立范本" },
+            { "year": 1946, "who": "日本国宪法", "for": "和平宪法确立放弃战争原则" },
+            { "year": 1949, "who": "德国基本法", "for": "以人性尊严为核心重建宪政" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "l-civil",
+      "name": "民法",
+      "icon": "🤝",
+      "desc": "平等主体间的人身与财产关系：社会生活的百科全书",
+      "children": [
+        {
+          "id": "l-civil-code",
+          "name": "民法典",
+          "desc": "2020 年中国首部以法典命名的法律",
+          "nobel": [
+            { "year": 1804, "who": "拿破仑法典", "for": "法国民法典：现代民法的蓝本" },
+            { "year": 2020, "who": "中华人民共和国民法典", "for": "新中国第一部法典，1260 条覆盖生老病死" }
+          ],
+          "children": [
+            {
+              "id": "l-personality",
+              "name": "人格权编",
+              "desc": "名誉、隐私与个人信息保护独立成编"
+            }
+          ]
+        },
+        {
+          "id": "l-property",
+          "name": "物权法",
+          "desc": "有恒产者有恒心：所有权、用益物权与担保",
+          "children": [
+            {
+              "id": "l-ownership",
+              "name": "所有权",
+              "desc": "占有、使用、收益、处分四项权能"
+            }
+          ],
+          "nobel": [
+            { "year": 2007, "who": "中华人民共和国物权法", "for": "公私财产平等保护原则确立" }
+          ]
+        },
+        {
+          "id": "l-contract",
+          "name": "合同法",
+          "desc": "契约自由与诚实信用：交易秩序的基础",
+          "children": [
+            {
+              "id": "l-breach",
+              "name": "违约责任",
+              "desc": "违约金、定金与损害赔偿的救济体系"
+            }
+          ]
+        },
+        {
+          "id": "l-tort",
+          "name": "侵权责任",
+          "desc": "过错责任与无过错责任：损害如何填补",
+          "children": [
+            {
+              "id": "l-liability",
+              "name": "归责原则",
+              "desc": "谁有过错谁担责，特殊情形不问过错"
+            }
+          ]
+        },
+        {
+          "id": "l-family",
+          "name": "婚姻家庭与继承",
+          "desc": "婚姻自由、一夫一妻与遗嘱优先",
+          "children": [
+            {
+              "id": "l-divorce-cooldown",
+              "name": "离婚冷静期",
+              "desc": "协议离婚三十日冷静期的争议与立法考量"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "l-criminal",
+      "name": "刑法",
+      "icon": "⛓️",
+      "desc": "罪与罚的边界：最严厉的法律保留给最审慎的程序",
+      "children": [
+        {
+          "id": "l-crime-elements",
+          "name": "犯罪构成",
+          "desc": "客体、客观方面、主体、主观方面四要件",
+          "children": [
+            {
+              "id": "l-intent",
+              "name": "故意与过失",
+              "desc": "直接故意、间接故意、疏忽大意与过于自信"
+            },
+            {
+              "id": "l-defense",
+              "name": "正当防卫",
+              "desc": "制止不法侵害不负刑责，明显过当须担责",
+              "nobel": [
+                { "year": 2018, "who": "昆山反杀案", "for": "正当防卫认定的标志性案例，激活「沉睡条款」" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "l-punishment",
+          "name": "刑罚体系",
+          "desc": "主刑与附加刑：从管制到死刑",
+          "children": [
+            {
+              "id": "l-death-penalty",
+              "name": "死刑",
+              "desc": "保留死刑、严格控制、少杀慎杀的刑事政策",
+              "nobel": [
+                { "year": 2007, "who": "最高人民法院", "for": "死刑复核权收归最高法" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "l-criminal-principles",
+          "name": "刑法基本原则",
+          "desc": "罪刑法定、罪责刑相适应、法律面前人人平等",
+          "children": [
+            {
+              "id": "l-nullum-crimen",
+              "name": "罪刑法定",
+              "desc": "法无明文规定不为罪，法无明文规定不处罚"
+            }
+          ],
+          "nobel": [
+            { "year": 1997, "who": "刑法修订", "for": "罪刑法定原则正式确立，废除类推" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "l-procedure",
+      "name": "程序法",
+      "icon": "📋",
+      "desc": "正义不仅要实现，还要以看得见的方式实现",
+      "children": [
+        {
+          "id": "l-civil-procedure",
+          "name": "民事诉讼",
+          "desc": "谁主张谁举证，两审终审",
+          "children": [
+            {
+              "id": "l-evidence",
+              "name": "举证责任",
+              "desc": "特殊侵权举证责任倒置保护弱者"
+            }
+          ]
+        },
+        {
+          "id": "l-criminal-procedure",
+          "name": "刑事诉讼",
+          "desc": "侦查、起诉、审判的控辩对抗结构",
+          "children": [
+            {
+              "id": "l-innocence",
+              "name": "无罪推定",
+              "desc": "未经法院判决，任何人不得确定有罪",
+              "nobel": [
+                { "year": 2012, "who": "刑事诉讼法修正", "for": "「尊重和保障人权」写入刑诉法，确立非法证据排除" }
+              ]
+            },
+            {
+              "id": "l-defense-right",
+              "name": "辩护权",
+              "desc": "沉默权争议与法律援助制度"
+            }
+          ]
+        },
+        {
+          "id": "l-admin-procedure",
+          "name": "行政诉讼",
+          "desc": "民告官：对行政权力的司法审查",
+          "nobel": [
+            { "year": 1989, "who": "行政诉讼法", "for": "「民告官」制度正式确立" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "l-commercial",
+      "name": "商法与经济法",
+      "icon": "🏢",
+      "desc": "市场主体的组织与竞争秩序的法律保障",
+      "children": [
+        {
+          "id": "l-company",
+          "name": "公司法",
+          "desc": "有限责任制度：现代经济的伟大发明",
+          "children": [
+            {
+              "id": "l-limited-liability",
+              "name": "有限责任",
+              "desc": "股东以出资额为限担责，点燃投资热情",
+              "nobel": [
+                { "year": 1993, "who": "中华人民共和国公司法", "for": "现代企业制度的法律基石" }
+              ]
+            }
+          ],
+          "related": ["e-market-structure"]
+        },
+        {
+          "id": "l-ip",
+          "name": "知识产权",
+          "desc": "专利、商标、著作权：保护创新就是保护未来",
+          "related": ["cs-language"],
+          "children": [
+            {
+              "id": "l-patent",
+              "name": "专利法",
+              "desc": "以公开换垄断：发明创造的时间换空间"
+            }
+          ],
+          "nobel": [
+            { "year": 1984, "who": "专利法颁布", "for": "中国知识产权制度起步" }
+          ]
+        },
+        {
+          "id": "l-antitrust",
+          "name": "反垄断与反不正当竞争",
+          "desc": "守护市场竞争的防火墙",
+          "related": ["e-monopoly"],
+          "nobel": [
+            { "year": 2008, "who": "反垄断法施行", "for": "中国「经济宪法」落地" },
+            { "year": 2021, "who": "平台经济反垄断", "for": "阿里巴巴 182 亿罚单，数字市场监管元年" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "l-international",
+      "name": "国际法",
+      "icon": "🌐",
+      "desc": "国家间交往的规则：条约、习惯与争端解决",
+      "children": [
+        {
+          "id": "l-public-intl",
+          "name": "国际公法",
+          "desc": "主权平等与不干涉内政的基本原则",
+          "nobel": [
+            { "year": 1648, "who": "威斯特伐利亚和约", "for": "近代国际法与主权国家体系的起点" },
+            { "year": 1945, "who": "联合国宪章", "for": "禁止使用武力原则与集体安全机制" }
+          ],
+          "children": [
+            {
+              "id": "l-treaty",
+              "name": "条约法",
+              "desc": "条约必须遵守：国际法的基石原则"
+            }
+          ]
+        },
+        {
+          "id": "l-humanitarian",
+          "name": "国际人道法与战争法",
+          "desc": "即使战争也有底线：日内瓦公约保护战俘与平民",
+          "nobel": [
+            { "year": 1949, "who": "日内瓦四公约", "for": "现代国际人道法的核心文件" },
+            { "year": 1946, "who": "纽伦堡审判", "for": "确立个人战争罪责，「执行命令」不再是借口" }
+          ]
+        },
+        {
+          "id": "l-intl-econ",
+          "name": "国际经济法",
+          "desc": "WTO 规则与国际投资仲裁",
+          "related": ["e-history"]
+        }
+      ]
+    },
+    {
+      "id": "l-history",
+      "name": "中外法制史",
+      "icon": "📜",
+      "desc": "法律文明的源流：从神判到法治",
+      "children": [
+        {
+          "id": "l-ancient-law",
+          "name": "古代法典",
+          "desc": "成文法的诞生让规则走出祭司的密室",
+          "nobel": [
+            { "year": -1776, "who": "汉谟拉比法典", "for": "存世最早的完整成文法典，以眼还眼" },
+            { "year": -449, "who": "十二铜表法", "for": "罗马第一部成文法，贵族法律垄断被打破" },
+            { "year": 529, "who": "查士丁尼法典", "for": "罗马法集大成，大陆法系的源头" }
+          ]
+        },
+        {
+          "id": "l-chinese-law-history",
+          "name": "中国法制史",
+          "desc": "从铸刑鼎到大清律：礼法合治的传统",
+          "nobel": [
+            { "year": -536, "who": "子产铸刑鼎", "for": "中国首次公布成文法" },
+            { "year": -407, "who": "李悝", "for": "《法经》六篇：封建成文法的始祖" },
+            { "year": 653, "who": "唐律疏议", "for": "中华法系巅峰，东亚各国立法范本" }
+          ]
+        },
+        {
+          "id": "l-modern-china-law",
+          "name": "中国法制近代化",
+          "desc": "从清末修律到全面依法治国",
+          "nobel": [
+            { "year": 1910, "who": "大清现行刑律", "for": "中国第一部近代意义刑法典（沈家本主持修律）" },
+            { "year": 1999, "who": "宪法修正案", "for": "「依法治国」写入宪法" },
+            { "year": 2014, "who": "十八届四中全会", "for": "全面推进依法治国的总蓝图" }
+          ]
+        }
+      ]
+    }
+  ]
+}

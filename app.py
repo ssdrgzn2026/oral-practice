@@ -150,6 +150,9 @@ GRAPH_SUBJECTS = {
     "geography": {"title": "地理与地质", "icon": "🌍", "prize": "", "awardLabel": "学科发展大事记", "awardDetail": "学科大事记"},
     "economics": {"title": "经济学", "icon": "💹", "prize": "经济学奖", "awardLabel": "诺贝尔经济学奖", "awardDetail": "诺贝尔经济学奖"},
     "medicine": {"title": "医学与药学", "icon": "🏥", "prize": "生理学或医学奖", "awardLabel": "相关诺贝尔奖", "awardDetail": "诺贝尔生理学或医学奖"},
+    "history": {"title": "历史", "icon": "📜", "prize": "", "awardLabel": "历史大事记", "awardDetail": "历史大事记"},
+    "law": {"title": "法学", "icon": "⚖️", "prize": "", "awardLabel": "法治里程碑", "awardDetail": "法治里程碑"},
+    "engineering": {"title": "工程学", "icon": "⚙️", "prize": "", "awardLabel": "工程里程碑", "awardDetail": "工程里程碑"},
 }
 
 
