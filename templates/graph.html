@@ -226,7 +226,7 @@
             if (prizes.length && path.length > 0) {  // 顶层主页不显示，避免干扰
                 prizes.sort(function (a, b) { return a.year - b.year; });
                 nobelBox.style.display = "block";
-                nobelBox.innerHTML = "<h3>🏅 相关诺贝尔奖（共 " + prizes.length + " 项，点击查看详解）</h3>" +
+                nobelBox.innerHTML = "<h3>🏅 {{ awardLabel }}（共 " + prizes.length + " 项，点击查看详解）</h3>" +
                     '<div class="nobel-list">' + prizes.map(function (x, i) {
                         return '<div class="nobel-item nobel-link" data-i="' + i + '">' +
                             '<span class="nobel-year">' + x.year + "</span>" +
