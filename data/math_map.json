@@ -108,7 +108,12 @@
             {
               "id": "m-pythagoras",
               "name": "勾股定理",
-              "desc": "直角三角形三边的永恒关系"
+              "desc": "直角三角形三边的永恒关系",
+              "demo": {
+                "type": "canvas",
+                "anim": "pythagoras",
+                "title": "勾股定理的面积证明"
+              }
             }
           ]
         },
@@ -127,7 +132,12 @@
               "related": [
                 "gr",
                 "blackhole"
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "gravity2",
+                "title": "弯曲的流形：局部平直整体弯曲"
+              }
             },
             {
               "id": "m-ricci",
@@ -310,7 +320,12 @@
                   "who": "乌伦贝克（阿贝尔奖）",
                   "for": "几何偏微分方程与规范理论（首位女性阿贝尔奖得主）"
                 }
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "turbulence",
+                "title": "纳维-斯托克斯方程与湍流"
+              }
             }
           ]
         },
@@ -330,7 +345,12 @@
             {
               "id": "m-trig",
               "name": "三角函数",
-              "desc": "周期现象的母语，信号的基频成分"
+              "desc": "周期现象的母语，信号的基频成分",
+              "demo": {
+                "type": "canvas",
+                "anim": "sine",
+                "title": "单位圆上的三角函数"
+              }
             }
           ],
           "nobel": [
@@ -388,7 +408,12 @@
                   "who": "弗斯滕伯格、马尔古利斯（阿贝尔奖）",
                   "for": "随机游走与群论方法"
                 }
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "boltzmann",
+                "title": "分子撞击下的布朗运动"
+              }
             }
           ]
         },
@@ -408,7 +433,12 @@
             {
               "id": "m-regression",
               "name": "回归分析",
-              "desc": "拟合数据背后的函数关系"
+              "desc": "拟合数据背后的函数关系",
+              "demo": {
+                "type": "canvas",
+                "anim": "mlclass",
+                "title": "用一条线拟合数据"
+              }
             }
           ],
           "nobel": [
@@ -553,7 +583,12 @@
                   "who": "塞迈雷迪（阿贝尔奖）",
                   "for": "组合数学与理论计算机科学（正则性引理）"
                 }
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "network",
+                "title": "图：点与边的网络"
+              }
             },
             {
               "id": "m-pigeonhole",
@@ -619,7 +654,12 @@
               "desc": "沿最陡方向下山，训练神经网络的引擎",
               "related": [
                 "cs-deep-learning"
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "derivative",
+                "title": "梯度：最陡上升方向的导数"
+              }
             },
             {
               "id": "m-convex",
@@ -651,7 +691,12 @@
                   "who": "阿维拉（菲尔兹奖）",
                   "for": "动力系统与一维重整化"
                 }
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "fractal",
+                "title": "奇异吸引子的分形结构"
+              }
             }
           ]
         }

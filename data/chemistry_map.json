@@ -21,12 +21,20 @@
             {
               "id": "c-isotope",
               "name": "同位素",
-              "desc": "同种元素的不同中子数变体，碳-14 测年的原理"
+              "desc": "同种元素的不同中子数变体，碳-14 测年的原理",
+              "demo": {
+                "sim": "isotopes-and-atomic-mass",
+                "title": "同位素与原子量的测量"
+              }
             },
             {
               "id": "c-electron-shell",
               "name": "电子层与价电子",
-              "desc": "化学性质由最外层电子决定"
+              "desc": "化学性质由最外层电子决定",
+              "demo": {
+                "sim": "models-of-the-hydrogen-atom",
+                "title": "电子跃迁与能级"
+              }
             }
           ]
         },
@@ -51,7 +59,12 @@
             {
               "id": "c-ionic",
               "name": "离子键",
-              "desc": "电子得失形成离子，静电作用结合"
+              "desc": "电子得失形成离子，静电作用结合",
+              "demo": {
+                "type": "canvas",
+                "anim": "dissolve",
+                "title": "离子晶体在水中解离"
+              }
             }
           ]
         },
@@ -74,7 +87,12 @@
                   "who": "霍奇金",
                   "for": "维生素 B12 等生物分子的 X 射线结构解析"
                 }
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "diffraction2",
+                "title": "X 射线衍射：晶体的指纹"
+              }
             }
           ],
           "nobel": [
@@ -88,7 +106,12 @@
               "who": "豪普特曼、卡尔勒",
               "for": "晶体结构的直接测定法"
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "lattice",
+            "title": "晶格：原子的高度有序排列"
+          }
         }
       ]
     },
@@ -115,7 +138,12 @@
               "related": [
                 "entropy",
                 "laws"
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "entropy",
+                "title": "熵增驱动反应方向"
+              }
             }
           ],
           "nobel": [
@@ -129,7 +157,12 @@
               "who": "能斯特",
               "for": "热力学第三定律"
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "carnot",
+            "title": "热机效率的理论极限"
+          }
         },
         {
           "id": "c-kinetics",
@@ -185,7 +218,11 @@
             {
               "id": "c-battery",
               "name": "电池",
-              "desc": "化学能直接变电，从伏打电堆到锂电池"
+              "desc": "化学能直接变电，从伏打电堆到锂电池",
+              "demo": {
+                "sim": "circuit-construction-kit-dc",
+                "title": "电池驱动电路：化学能到电能"
+              }
             },
             {
               "id": "c-electrolysis",
@@ -235,7 +272,12 @@
             {
               "id": "c-titration",
               "name": "中和滴定",
-              "desc": "酸碱定量分析的经典方法"
+              "desc": "酸碱定量分析的经典方法",
+              "demo": {
+                "type": "canvas",
+                "anim": "titration",
+                "title": "中和滴定曲线与突跃"
+              }
             }
           ],
           "nobel": [
@@ -300,7 +342,11 @@
                   "who": "狄尔斯、阿尔德",
                   "for": "狄尔斯-阿尔德环加成反应"
                 }
-              ]
+              ],
+              "demo": {
+                "sim": "molecule-shapes",
+                "title": "苯环的平面六元结构"
+              }
             }
           ]
         },
@@ -413,7 +459,12 @@
                   "who": "沙尔庞捷、杜德纳",
                   "for": "CRISPR 基因编辑"
                 }
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "dnahelix",
+                "title": "碱基配对与双螺旋"
+              }
             }
           ],
           "nobel": [
@@ -461,7 +512,11 @@
             {
               "id": "c-uvvis",
               "name": "紫外-可见吸收",
-              "desc": "电子跃迁的能量指纹"
+              "desc": "电子跃迁的能量指纹",
+              "demo": {
+                "sim": "beers-law-lab",
+                "title": "吸光度与浓度成正比"
+              }
             },
             {
               "id": "c-nmr",
@@ -600,7 +655,12 @@
             }
           ]
         }
-      ]
+      ],
+      "demo": {
+        "type": "canvas",
+        "anim": "periodic",
+        "title": "周期律：性质随原子序数律动"
+      }
     },
     {
       "id": "c-solution",
@@ -629,7 +689,11 @@
             {
               "id": "c-solubility",
               "name": "溶解度",
-              "desc": "温度、压强与'溶不进'的边界"
+              "desc": "温度、压强与'溶不进'的边界",
+              "demo": {
+                "sim": "molarity",
+                "title": "溶解度与摩尔浓度"
+              }
             }
           ],
           "nobel": [
@@ -652,7 +716,11 @@
             }
           ]
         }
-      ]
+      ],
+      "demo": {
+        "sim": "concentration",
+        "title": "配制溶液看浓度变化"
+      }
     },
     {
       "id": "c-polymer",

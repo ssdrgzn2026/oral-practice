@@ -483,7 +483,12 @@
               "who": "拿破仑",
               "for": "颁布民法典，现代民法蓝本"
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "gears",
+            "title": "齿轮与蒸汽：机械化的浪潮"
+          }
         }
       ]
     },
@@ -647,7 +652,12 @@
               "desc": "晶体管与互联网重塑社会组织方式",
               "related": [
                 "en-transistor"
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "binarybits",
+                "title": "一切信息化为比特"
+              }
             }
           ]
         },

@@ -20,7 +20,12 @@
             {
               "id": "en-gear",
               "name": "齿轮传动",
-              "desc": "转速与扭矩的兑换器，钟表到风电都离不开"
+              "desc": "转速与扭矩的兑换器，钟表到风电都离不开",
+              "demo": {
+                "type": "canvas",
+                "anim": "gears",
+                "title": "齿轮啮合变换转速与扭矩"
+              }
             },
             {
               "id": "en-linkage",
@@ -73,9 +78,19 @@
               "who": "狄塞尔",
               "for": "柴油机：压燃式内燃机"
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "carnot",
+            "title": "蒸汽机背后的热力循环"
+          }
         }
-      ]
+      ],
+      "demo": {
+        "type": "canvas",
+        "anim": "gears",
+        "title": "机构与传动：机械的语言"
+      }
     },
     {
       "id": "en-electrical",
@@ -110,7 +125,12 @@
                   "who": "特斯拉",
                   "for": "交流感应电机与多相输电系统"
                 }
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "ampere",
+                "title": "交变电流的往复振荡"
+              }
             }
           ]
         },
@@ -150,7 +170,12 @@
                   "who": "基尔比、诺伊斯",
                   "for": "集成电路（基尔比获 2000 年诺贝尔物理学奖）"
                 }
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "transistor",
+                "title": "亿万晶体管集成于一芯"
+              }
             }
           ]
         },
@@ -239,7 +264,12 @@
                 }
               ]
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "bridge",
+            "title": "桥梁在载荷下的挠度"
+          }
         },
         {
           "id": "en-building",
@@ -344,7 +374,11 @@
               "desc": "半导体把光子直接变电，成本十年降九成",
               "related": [
                 "photoelectric"
-              ]
+              ],
+              "demo": {
+                "sim": "photoelectric-effect",
+                "title": "光子激发电子：光伏原理"
+              }
             },
             {
               "id": "en-fusion-power",
@@ -404,7 +438,12 @@
                   "who": "惠特尔、奥海因",
                   "for": "涡轮喷气发动机相继研制成功"
                 }
-              ]
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "reactio",
+                "title": "喷气推进：作用力与反作用力"
+              }
             }
           ],
           "nobel": [
@@ -444,7 +483,11 @@
                   "who": "阿波罗 11 号",
                   "for": "人类首次登月：个人的一小步"
                 }
-              ]
+              ],
+              "demo": {
+                "sim": "projectile-motion",
+                "title": "抛体与弹道：飞向轨道的弧线"
+              }
             },
             {
               "id": "en-station",
@@ -461,7 +504,11 @@
                   "who": "祝融号",
                   "for": "中国首次火星巡视探测"
                 }
-              ]
+              ],
+              "demo": {
+                "sim": "gravity-and-orbits",
+                "title": "空间站的轨道维持"
+              }
             }
           ]
         }

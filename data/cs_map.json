@@ -35,7 +35,11 @@
               "id": "cs-bst",
               "name": "二叉搜索树",
               "desc": "左小右大，查找插入皆对数时间",
-              "demo": { "type": "canvas", "anim": "binsearch", "title": "二分查找：每次排除一半" }
+              "demo": {
+                "type": "canvas",
+                "anim": "binsearch",
+                "title": "二分查找：每次排除一半"
+              }
             },
             {
               "id": "cs-heap",
@@ -46,11 +50,17 @@
               "id": "cs-btree",
               "name": "B 树",
               "desc": "为磁盘而生的多路平衡树，数据库索引的骨架",
-              "related": ["cs-db-index"]
+              "related": [
+                "cs-db-index"
+              ]
             }
           ],
           "nobel": [
-            { "year": 1986, "who": "霍普克罗夫特、塔扬（图灵奖）", "for": "算法设计与数据结构的基础性贡献" }
+            {
+              "year": 1986,
+              "who": "霍普克罗夫特、塔扬（图灵奖）",
+              "for": "算法设计与数据结构的基础性贡献"
+            }
           ]
         },
         {
@@ -69,7 +79,9 @@
           "id": "cs-graph",
           "name": "图",
           "desc": "顶点与边建模万物互联",
-          "related": ["m-graph"],
+          "related": [
+            "m-graph"
+          ],
           "children": [
             {
               "id": "cs-graph-traverse",
@@ -78,8 +90,17 @@
             }
           ],
           "nobel": [
-            { "year": 1978, "who": "弗洛伊德（图灵奖）", "for": "程序验证与图算法（最短路径）" }
-          ]
+            {
+              "year": 1978,
+              "who": "弗洛伊德（图灵奖）",
+              "for": "程序验证与图算法（最短路径）"
+            }
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "network",
+            "title": "图结构中的路径"
+          }
         }
       ]
     },
@@ -93,21 +114,38 @@
           "id": "cs-sort",
           "name": "排序算法",
           "desc": "从冒泡到快排：比较的艺术",
-          "demo": { "type": "canvas", "anim": "sortbars", "title": "冒泡排序：大数逐个浮出水面" },
+          "demo": {
+            "type": "canvas",
+            "anim": "sortbars",
+            "title": "冒泡排序：大数逐个浮出水面"
+          },
           "children": [
             {
               "id": "cs-bubble",
               "name": "冒泡排序",
               "desc": "相邻交换，简单但低效",
-              "demo": { "type": "canvas", "anim": "sortbars", "title": "冒泡排序的逐步交换" }
+              "demo": {
+                "type": "canvas",
+                "anim": "sortbars",
+                "title": "冒泡排序的逐步交换"
+              }
             },
             {
               "id": "cs-quicksort",
               "name": "快速排序",
               "desc": "分而治之，平均 n log n 的实战之王",
               "nobel": [
-                { "year": 1980, "who": "霍尔（图灵奖）", "for": "快速排序与程序设计理论" }
-              ]
+                {
+                  "year": 1980,
+                  "who": "霍尔（图灵奖）",
+                  "for": "快速排序与程序设计理论"
+                }
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "sortbars",
+                "title": "快排：分治与划分"
+              }
             }
           ]
         },
@@ -120,7 +158,11 @@
               "id": "cs-binsearch",
               "name": "二分查找",
               "desc": "有序数组的对数时间查找",
-              "demo": { "type": "canvas", "anim": "binsearch", "title": "每次排除一半的搜索" }
+              "demo": {
+                "type": "canvas",
+                "anim": "binsearch",
+                "title": "每次排除一半的搜索"
+              }
             }
           ]
         },
@@ -134,16 +176,30 @@
               "name": "P vs NP",
               "desc": "验证容易求解难？千禧年七大难题之一",
               "nobel": [
-                { "year": 1982, "who": "库克（图灵奖）", "for": "NP 完全性理论" },
-                { "year": 1985, "who": "卡普（图灵奖）", "for": "21 个 NP 完全问题与算法理论" },
-                { "year": 1993, "who": "哈特马尼斯、斯特恩斯（图灵奖）", "for": "计算复杂性理论奠基" }
+                {
+                  "year": 1982,
+                  "who": "库克（图灵奖）",
+                  "for": "NP 完全性理论"
+                },
+                {
+                  "year": 1985,
+                  "who": "卡普（图灵奖）",
+                  "for": "21 个 NP 完全问题与算法理论"
+                },
+                {
+                  "year": 1993,
+                  "who": "哈特马尼斯、斯特恩斯（图灵奖）",
+                  "for": "计算复杂性理论奠基"
+                }
               ]
             },
             {
               "id": "cs-halting",
               "name": "停机问题",
               "desc": "图灵证明：不存在判定一切程序是否停机的算法",
-              "related": ["m-godel"]
+              "related": [
+                "m-godel"
+              ]
             }
           ]
         },
@@ -152,18 +208,36 @@
           "name": "图灵奖与算法思想",
           "desc": "计算机科学的最高荣誉，算法思维的丰碑",
           "nobel": [
-            { "year": 1974, "who": "克努特（图灵奖）", "for": "《计算机程序设计艺术》与算法分析" },
-            { "year": 1976, "who": "拉宾、斯科特（图灵奖）", "for": "非确定性自动机理论" },
-            { "year": 2000, "who": "姚期智（图灵奖）", "for": "计算复杂性、密码学与量子计算理论" }
+            {
+              "year": 1974,
+              "who": "克努特（图灵奖）",
+              "for": "《计算机程序设计艺术》与算法分析"
+            },
+            {
+              "year": 1976,
+              "who": "拉宾、斯科特（图灵奖）",
+              "for": "非确定性自动机理论"
+            },
+            {
+              "year": 2000,
+              "who": "姚期智（图灵奖）",
+              "for": "计算复杂性、密码学与量子计算理论"
+            }
           ]
         },
         {
           "id": "cs-randomized",
           "name": "随机化与近似算法",
           "desc": "掷硬币也能算得更快更稳",
-          "related": ["m-prob"],
+          "related": [
+            "m-prob"
+          ],
           "nobel": [
-            { "year": 1995, "who": "布卢姆（图灵奖）", "for": "计算复杂性理论与密码学基础" }
+            {
+              "year": 1995,
+              "who": "布卢姆（图灵奖）",
+              "for": "计算复杂性理论与密码学基础"
+            }
           ]
         }
       ]
@@ -173,23 +247,41 @@
       "name": "计算机组成原理",
       "icon": "🔌",
       "desc": "从晶体管到 CPU：硬件如何执行指令",
-      "demo": { "type": "canvas", "anim": "binarybits", "title": "二进制：0 与 1 的世界" },
+      "demo": {
+        "type": "canvas",
+        "anim": "binarybits",
+        "title": "二进制：0 与 1 的世界"
+      },
       "children": [
         {
           "id": "cs-binary",
           "name": "二进制与信息表示",
           "desc": "一切数据皆为比特：数、文字、图像的编码",
-          "demo": { "type": "canvas", "anim": "binarybits", "title": "位翻转：二进制计数" },
+          "demo": {
+            "type": "canvas",
+            "anim": "binarybits",
+            "title": "位翻转：二进制计数"
+          },
           "children": [
             {
               "id": "cs-twos-complement",
               "name": "补码",
-              "desc": "负数与减法的统一编码方案"
+              "desc": "负数与减法的统一编码方案",
+              "demo": {
+                "type": "canvas",
+                "anim": "binarybits",
+                "title": "补码：负数的位表示"
+              }
             },
             {
               "id": "cs-float",
               "name": "浮点数",
-              "desc": "IEEE 754：科学计数法的二进制版本"
+              "desc": "IEEE 754：科学计数法的二进制版本",
+              "demo": {
+                "type": "canvas",
+                "anim": "binarybits",
+                "title": "浮点数的位模式"
+              }
             }
           ]
         },
@@ -203,7 +295,11 @@
               "name": "指令流水线",
               "desc": "像工厂流水线一样并行处理指令",
               "nobel": [
-                { "year": 2017, "who": "轩尼诗、帕特森（图灵奖）", "for": "RISC 精简指令集与计算机体系结构量化方法" }
+                {
+                  "year": 2017,
+                  "who": "轩尼诗、帕特森（图灵奖）",
+                  "for": "RISC 精简指令集与计算机体系结构量化方法"
+                }
               ]
             },
             {
@@ -211,14 +307,23 @@
               "name": "存储层次与缓存",
               "desc": "寄存器、缓存、内存、磁盘的金字塔"
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "transistor",
+            "title": "晶体管开关堆成处理器"
+          }
         },
         {
           "id": "cs-vonneumann",
           "name": "冯·诺依曼体系",
           "desc": "存储程序：指令与数据共处一室",
           "nobel": [
-            { "year": 1977, "who": "巴克斯（图灵奖）", "for": "FORTRAN 语言与 BNF 范式" }
+            {
+              "year": 1977,
+              "who": "巴克斯（图灵奖）",
+              "for": "FORTRAN 语言与 BNF 范式"
+            }
           ]
         }
       ]
@@ -244,7 +349,11 @@
               "name": "死锁",
               "desc": "互斥、占有且等待、不可剥夺、循环等待四条件",
               "nobel": [
-                { "year": 1975, "who": "纽厄尔、西蒙（图灵奖）", "for": "人工智能与人类认知模拟（早期并发思想）" }
+                {
+                  "year": 1975,
+                  "who": "纽厄尔、西蒙（图灵奖）",
+                  "for": "人工智能与人类认知模拟（早期并发思想）"
+                }
               ]
             }
           ]
@@ -266,9 +375,21 @@
           "name": "Unix 哲学",
           "desc": "一切皆文件，小工具组合成大系统",
           "nobel": [
-            { "year": 1983, "who": "汤普森、里奇（图灵奖）", "for": "Unix 操作系统与 C 语言" },
-            { "year": 1990, "who": "科巴托（图灵奖）", "for": "分时系统 CTSS 与 Multics" },
-            { "year": 2023, "who": "梅特卡夫（图灵奖）", "for": "以太网（操作系统网络化的基础）" }
+            {
+              "year": 1983,
+              "who": "汤普森、里奇（图灵奖）",
+              "for": "Unix 操作系统与 C 语言"
+            },
+            {
+              "year": 1990,
+              "who": "科巴托（图灵奖）",
+              "for": "分时系统 CTSS 与 Multics"
+            },
+            {
+              "year": 2023,
+              "who": "梅特卡夫（图灵奖）",
+              "for": "以太网（操作系统网络化的基础）"
+            }
           ]
         }
       ]
@@ -278,21 +399,38 @@
       "name": "计算机网络",
       "icon": "🌐",
       "desc": "连接世界的协议体系：从数据包到万维网",
-      "demo": { "type": "canvas", "anim": "network", "title": "数据包在网络中的路由" },
+      "demo": {
+        "type": "canvas",
+        "anim": "network",
+        "title": "数据包在网络中的路由"
+      },
       "children": [
         {
           "id": "cs-tcpip",
           "name": "TCP/IP 协议族",
           "desc": "分层设计：链路、网络、传输、应用各司其职",
-          "demo": { "type": "canvas", "anim": "network", "title": "包的逐跳转发" },
+          "demo": {
+            "type": "canvas",
+            "anim": "network",
+            "title": "包的逐跳转发"
+          },
           "children": [
             {
               "id": "cs-tcp",
               "name": "TCP 可靠传输",
               "desc": "三次握手、滑动窗口与拥塞控制",
               "nobel": [
-                { "year": 2004, "who": "瑟夫、卡恩（图灵奖）", "for": "TCP/IP 协议与互联网架构" }
-              ]
+                {
+                  "year": 2004,
+                  "who": "瑟夫、卡恩（图灵奖）",
+                  "for": "TCP/IP 协议与互联网架构"
+                }
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "network",
+                "title": "TCP：可靠的字节流传输"
+              }
             },
             {
               "id": "cs-dns",
@@ -306,22 +444,37 @@
           "name": "万维网",
           "desc": "超文本链接一切，浏览器改变信息获取方式",
           "nobel": [
-            { "year": 2016, "who": "伯纳斯-李（图灵奖）", "for": "发明万维网（WWW）" }
+            {
+              "year": 2016,
+              "who": "伯纳斯-李（图灵奖）",
+              "for": "发明万维网（WWW）"
+            }
           ]
         },
         {
           "id": "cs-crypto",
           "name": "密码学与安全",
           "desc": "在不安全信道上建立安全通信",
-          "related": ["m-crypto-math", "m-elliptic"],
+          "related": [
+            "m-crypto-math",
+            "m-elliptic"
+          ],
           "children": [
             {
               "id": "cs-rsa",
               "name": "公钥密码",
               "desc": "公钥加密、私钥解密：大数分解守护的秘密",
               "nobel": [
-                { "year": 2002, "who": "里维斯特、沙米尔、阿德尔曼（图灵奖）", "for": "RSA 公钥密码体制" },
-                { "year": 2015, "who": "迪菲、赫尔曼（图灵奖）", "for": "公钥密码学的发明（DH 密钥交换）" }
+                {
+                  "year": 2002,
+                  "who": "里维斯特、沙米尔、阿德尔曼（图灵奖）",
+                  "for": "RSA 公钥密码体制"
+                },
+                {
+                  "year": 2015,
+                  "who": "迪菲、赫尔曼（图灵奖）",
+                  "for": "公钥密码学的发明（DH 密钥交换）"
+                }
               ]
             },
             {
@@ -331,8 +484,17 @@
             }
           ],
           "nobel": [
-            { "year": 2012, "who": "戈德瓦塞尔、米卡利（图灵奖）", "for": "可证明安全性与零知识证明" }
-          ]
+            {
+              "year": 2012,
+              "who": "戈德瓦塞尔、米卡利（图灵奖）",
+              "for": "可证明安全性与零知识证明"
+            }
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "caesar",
+            "title": "凯撒密码：加密思想的起点"
+          }
         }
       ]
     },
@@ -352,7 +514,11 @@
               "name": "语法分析",
               "desc": "上下文无关文法与语法树",
               "nobel": [
-                { "year": 2020, "who": "阿霍、厄尔曼（图灵奖）", "for": "编译算法与《龙书》" }
+                {
+                  "year": 2020,
+                  "who": "阿霍、厄尔曼（图灵奖）",
+                  "for": "编译算法与《龙书》"
+                }
               ]
             }
           ]
@@ -367,7 +533,11 @@
               "name": "函数式编程",
               "desc": "λ 演算的后裔：不可变与无副作用",
               "nobel": [
-                { "year": 1971, "who": "麦卡锡（图灵奖）", "for": "LISP 语言与人工智能奠基" }
+                {
+                  "year": 1971,
+                  "who": "麦卡锡（图灵奖）",
+                  "for": "LISP 语言与人工智能奠基"
+                }
               ]
             },
             {
@@ -375,7 +545,11 @@
               "name": "面向对象",
               "desc": "封装、继承、多态组织复杂系统",
               "nobel": [
-                { "year": 2001, "who": "达尔、尼加德（图灵奖）", "for": "Simula 与面向对象编程" }
+                {
+                  "year": 2001,
+                  "who": "达尔、尼加德（图灵奖）",
+                  "for": "Simula 与面向对象编程"
+                }
               ]
             }
           ]
@@ -385,11 +559,31 @@
           "name": "语言演化史",
           "desc": "从机器码到高级语言的抽象跃迁",
           "nobel": [
-            { "year": 1972, "who": "迪杰斯特拉（图灵奖）", "for": "结构化程序设计（ goto 有害论）" },
-            { "year": 1984, "who": "沃思（图灵奖）", "for": "Pascal 语言与「算法+数据结构=程序」" },
-            { "year": 2005, "who": "诺尔（图灵奖）", "for": "面向对象与企业级框架（CORBA）" },
-            { "year": 2006, "who": "艾伦（图灵奖）", "for": "编译优化技术（首位女性图灵奖得主）" },
-            { "year": 2008, "who": "利斯科夫（图灵奖）", "for": "数据抽象与里氏替换原则" }
+            {
+              "year": 1972,
+              "who": "迪杰斯特拉（图灵奖）",
+              "for": "结构化程序设计（ goto 有害论）"
+            },
+            {
+              "year": 1984,
+              "who": "沃思（图灵奖）",
+              "for": "Pascal 语言与「算法+数据结构=程序」"
+            },
+            {
+              "year": 2005,
+              "who": "诺尔（图灵奖）",
+              "for": "面向对象与企业级框架（CORBA）"
+            },
+            {
+              "year": 2006,
+              "who": "艾伦（图灵奖）",
+              "for": "编译优化技术（首位女性图灵奖得主）"
+            },
+            {
+              "year": 2008,
+              "who": "利斯科夫（图灵奖）",
+              "for": "数据抽象与里氏替换原则"
+            }
           ]
         }
       ]
@@ -405,9 +599,21 @@
           "name": "关系模型",
           "desc": "表、行、列与关系代数的优雅统一",
           "nobel": [
-            { "year": 1981, "who": "科德（图灵奖）", "for": "关系数据库模型" },
-            { "year": 1998, "who": "格雷（图灵奖）", "for": "事务处理与 ACID" },
-            { "year": 2014, "who": "斯通布雷克（图灵奖）", "for": "现代数据库系统架构" }
+            {
+              "year": 1981,
+              "who": "科德（图灵奖）",
+              "for": "关系数据库模型"
+            },
+            {
+              "year": 1998,
+              "who": "格雷（图灵奖）",
+              "for": "事务处理与 ACID"
+            },
+            {
+              "year": 2014,
+              "who": "斯通布雷克（图灵奖）",
+              "for": "现代数据库系统架构"
+            }
           ],
           "children": [
             {
@@ -438,7 +644,14 @@
           "id": "cs-db-index",
           "name": "索引与查询优化",
           "desc": "B+ 树索引与代价估算：快与更快的差别",
-          "related": ["cs-btree"]
+          "related": [
+            "cs-btree"
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "binsearch",
+            "title": "索引把查找变成对数时间"
+          }
         }
       ]
     },
@@ -447,19 +660,30 @@
       "name": "人工智能",
       "icon": "🤖",
       "desc": "让机器具备感知、推理与学习的能力",
-      "demo": { "type": "canvas", "anim": "mlclass", "title": "机器学习：找到分割两类的直线" },
+      "demo": {
+        "type": "canvas",
+        "anim": "mlclass",
+        "title": "机器学习：找到分割两类的直线"
+      },
       "children": [
         {
           "id": "cs-ml",
           "name": "机器学习",
           "desc": "从数据中学习规律而非手工编写规则",
-          "related": ["m-gradient", "m-statistics"],
+          "related": [
+            "m-gradient",
+            "m-statistics"
+          ],
           "children": [
             {
               "id": "cs-classification",
               "name": "分类与回归",
               "desc": "监督学习的两大任务",
-              "demo": { "type": "canvas", "anim": "mlclass", "title": "分类边界的逐步优化" }
+              "demo": {
+                "type": "canvas",
+                "anim": "mlclass",
+                "title": "分类边界的逐步优化"
+              }
             },
             {
               "id": "cs-clustering",
@@ -468,32 +692,68 @@
             }
           ],
           "nobel": [
-            { "year": 2010, "who": "瓦利安特（图灵奖）", "for": "PAC 可学习性理论" },
-            { "year": 2011, "who": "珀尔（图灵奖）", "for": "概率推理与因果推断" }
+            {
+              "year": 2010,
+              "who": "瓦利安特（图灵奖）",
+              "for": "PAC 可学习性理论"
+            },
+            {
+              "year": 2011,
+              "who": "珀尔（图灵奖）",
+              "for": "概率推理与因果推断"
+            }
           ]
         },
         {
           "id": "cs-neural",
           "name": "神经网络",
           "desc": "仿生连接的参数化函数逼近器",
-          "related": ["b-neuron", "m-linear-algebra"],
+          "related": [
+            "b-neuron",
+            "m-linear-algebra"
+          ],
           "children": [
             {
               "id": "cs-backprop",
               "name": "反向传播",
               "desc": "链式法则高效计算梯度，深度学习的引擎",
-              "related": ["m-derivative"]
+              "related": [
+                "m-derivative"
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "derivative",
+                "title": "链式法则逐层回传梯度"
+              }
             },
             {
               "id": "cs-deep-learning",
               "name": "深度学习",
               "desc": "多层网络自动学习特征层次",
               "nobel": [
-                { "year": 2018, "who": "辛顿、本吉奥、杨立昆（图灵奖）", "for": "深度学习的概念与工程突破" },
-                { "year": 2024, "who": "霍普菲尔德、辛顿（诺贝尔物理学奖）", "for": "人工神经网络的奠基性发现" }
-              ]
+                {
+                  "year": 2018,
+                  "who": "辛顿、本吉奥、杨立昆（图灵奖）",
+                  "for": "深度学习的概念与工程突破"
+                },
+                {
+                  "year": 2024,
+                  "who": "霍普菲尔德、辛顿（诺贝尔物理学奖）",
+                  "for": "人工神经网络的奠基性发现"
+                }
+              ],
+              "demo": {
+                "type": "canvas",
+                "anim": "mlclass",
+                "title": "深层网络画出复杂决策边界"
+              }
             }
-          ]
+          ],
+          "demo": {
+            "type": "canvas",
+            "anim": "neuron",
+            "title": "仿生神经元：加权求和与激活"
+          }
         },
         {
           "id": "cs-symbolic",
@@ -505,7 +765,11 @@
               "name": "启发式搜索",
               "desc": "A* 算法与博弈树",
               "nobel": [
-                { "year": 1994, "who": "尼尔森、雷迪（图灵奖）", "for": "大规模 AI 系统" }
+                {
+                  "year": 1994,
+                  "who": "尼尔森、雷迪（图灵奖）",
+                  "for": "大规模 AI 系统"
+                }
               ]
             },
             {
@@ -515,8 +779,16 @@
             }
           ],
           "nobel": [
-            { "year": 1969, "who": "明斯基（图灵奖）", "for": "人工智能与感知机研究" },
-            { "year": 1975, "who": "纽厄尔、西蒙（图灵奖）", "for": "物理符号系统假说与逻辑理论家" }
+            {
+              "year": 1969,
+              "who": "明斯基（图灵奖）",
+              "for": "人工智能与感知机研究"
+            },
+            {
+              "year": 1975,
+              "who": "纽厄尔、西蒙（图灵奖）",
+              "for": "物理符号系统假说与逻辑理论家"
+            }
           ]
         },
         {
@@ -529,14 +801,20 @@
               "name": "强化学习",
               "desc": "奖励信号驱动的序列决策",
               "nobel": [
-                { "year": 2024, "who": "萨顿、巴尔托（图灵奖）", "for": "强化学习的概念与算法基础" }
+                {
+                  "year": 2024,
+                  "who": "萨顿、巴尔托（图灵奖）",
+                  "for": "强化学习的概念与算法基础"
+                }
               ]
             },
             {
               "id": "cs-transformer",
               "name": "Transformer 与大语言模型",
               "desc": "注意力机制支撑的规模法则奇迹",
-              "related": ["m-linear-algebra"]
+              "related": [
+                "m-linear-algebra"
+              ]
             }
           ]
         }

@@ -1999,5 +1999,460 @@ window.PhyAnims = (function () {
         });
     };
 
+
+    /* 酸碱滴定：pH 曲线与当量点突变 */
+    registry["titration"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = ((t - t0) / 1000) % 10, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var pad = 46;
+            ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(pad, h - pad); ctx.lineTo(w - pad, h - pad); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(pad, h - pad); ctx.lineTo(pad, pad); ctx.stroke();
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("加入碱的体积 →", w / 2, h - pad + 18);
+            ctx.save(); ctx.translate(pad - 16, h / 2); ctx.rotate(-Math.PI / 2);
+            ctx.fillText("pH →", 0, 0); ctx.restore();
+            // S 形滴定曲线
+            function ph(x) {
+                var u = x / (w - 2 * pad);
+                return 2 + 11 / (1 + Math.exp(-(u - 0.5) * 22));
+            }
+            var prog = Math.min(1, dt / 6);
+            ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            for (var x = 0; x <= (w - 2 * pad) * prog; x += 3) {
+                var y = h - pad - (ph(x) - 2) / 11 * (h - 2 * pad);
+                x === 0 ? ctx.moveTo(pad + x, y) : ctx.lineTo(pad + x, y);
+            }
+            ctx.stroke();
+            // 当量点
+            var ex = pad + (w - 2 * pad) * 0.5, ey = h - pad - (ph(w - 2 * pad - 0) * 0 + (13 - 2) / 2) / 11 * (h - 2 * pad);
+            ctx.strokeStyle = "#f59e0b"; ctx.setLineDash([4, 4]);
+            ctx.beginPath(); ctx.moveTo(ex, pad); ctx.lineTo(ex, h - pad); ctx.stroke(); ctx.setLineDash([]);
+            ctx.fillStyle = "#b45309"; ctx.textAlign = "left";
+            ctx.fillText("当量点：pH 突变", ex + 6, pad + 14);
+            ctx.fillStyle = "#374151"; ctx.textAlign = "center";
+            ctx.fillText("滴定终点附近一滴碱就能让 pH 从 4 跳到 10", w / 2, 20);
+        });
+    };
+
+    /* 元素周期律：性质随原子序数周期起伏 */
+    registry["periodic"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var pad = 46;
+            ctx.strokeStyle = "#9ca3af";
+            ctx.beginPath(); ctx.moveTo(pad, h - pad); ctx.lineTo(w - pad, h - pad); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(pad, h - pad); ctx.lineTo(pad, pad); ctx.stroke();
+            // 周期性波形（3 个周期）
+            var prog = Math.min(1, dt / 5);
+            ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            for (var x = 0; x <= (w - 2 * pad) * prog; x += 3) {
+                var y = h * 0.5 - Math.sin(x / (w - 2 * pad) * Math.PI * 6) * h * 0.25;
+                x === 0 ? ctx.moveTo(pad + x, y) : ctx.lineTo(pad + x, y);
+            }
+            ctx.stroke();
+            // 族标记
+            ctx.fillStyle = "#ef4444"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+            for (var i = 0; i < 3; i++) {
+                var px = pad + (i + 0.08) / 3 * (w - 2 * pad);
+                if (px < pad + (w - 2 * pad) * prog) ctx.fillText("碱金属", px, h * 0.82);
+                var px2 = pad + (i + 0.58) / 3 * (w - 2 * pad);
+                if (px2 < pad + (w - 2 * pad) * prog) { ctx.fillStyle = "#10b981"; ctx.fillText("稀有气体", px2, h * 0.18); ctx.fillStyle = "#ef4444"; }
+            }
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif";
+            ctx.fillText("原子序数 →", w / 2, h - pad + 18);
+            ctx.fillText("性质（如原子半径、活泼性）呈周期性起伏——周期律", w / 2, 18);
+        });
+    };
+
+    /* 溶解：盐粒在水中散开 */
+    registry["dissolve"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        var grains = [], ions = [];
+        for (var i = 0; i < 12; i++) grains.push({ x: 0.45 + Math.random() * 0.1, y: 0.85 + Math.random() * 0.08 });
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            // 烧杯
+            ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(w * 0.25, h * 0.1); ctx.lineTo(w * 0.25, h * 0.85); ctx.lineTo(w * 0.75, h * 0.85); ctx.lineTo(w * 0.75, h * 0.1);
+            ctx.stroke();
+            // 水
+            ctx.fillStyle = "rgba(147,197,253,0.4)";
+            ctx.fillRect(w * 0.26, h * 0.3, w * 0.48, h * 0.54);
+            // 盐粒变小消失，离子散开
+            var gone = Math.min(1, dt / 6);
+            ctx.fillStyle = "#f59e0b";
+            grains.forEach(function (gr) {
+                var r = 5 * (1 - gone);
+                if (r > 0.5) { ctx.beginPath(); ctx.arc(gr.x * w, gr.y * h, r, 0, 7); ctx.fill(); }
+            });
+            var nIons = Math.floor(gone * 24);
+            ctx.fillStyle = "#4f46e5";
+            for (var i2 = 0; i2 < nIons; i2++) {
+                var a = i2 * 2.4 + dt * 0.8;
+                var rr = 0.05 + (i2 % 5) * 0.05 + Math.sin(dt + i2) * 0.01;
+                var ix = w * 0.5 + Math.cos(a) * rr * w * 0.5;
+                var iy = h * 0.55 + Math.sin(a) * rr * h * 0.6;
+                ctx.beginPath(); ctx.arc(ix, iy, 3, 0, 7); ctx.fill();
+            }
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("盐（橙）在水中解离成自由移动的离子（蓝）", w / 2, 18);
+        });
+    };
+
+    /* 光合作用：光能驱动 CO₂+H₂O → O₂ */
+    registry["photosynthesis"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            // 太阳
+            ctx.fillStyle = "#f59e0b";
+            ctx.beginPath(); ctx.arc(w * 0.15, h * 0.2, 20 + Math.sin(dt * 3) * 3, 0, 7); ctx.fill();
+            // 叶片
+            ctx.fillStyle = "#10b981";
+            ctx.beginPath(); ctx.ellipse(w * 0.55, h * 0.55, w * 0.22, h * 0.16, -0.2, 0, 7); ctx.fill();
+            ctx.strokeStyle = "#047857"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(w * 0.36, h * 0.63); ctx.lineTo(w * 0.74, h * 0.47); ctx.stroke();
+            // CO2 进入
+            ctx.fillStyle = "#6b7280"; ctx.font = "13px sans-serif"; ctx.textAlign = "center";
+            var cx = w * 0.1 + (dt * 30) % (w * 0.3);
+            ctx.fillText("CO₂", cx, h * 0.6);
+            // O₂ 冒出
+            for (var i = 0; i < 5; i++) {
+                var oy = h * 0.42 - ((dt * 22 + i * 26) % (h * 0.35));
+                var ox = w * 0.55 + Math.sin(i * 2 + dt) * 24;
+                ctx.fillStyle = "rgba(56,189,248," + (1 - (h * 0.42 - oy) / (h * 0.35)) + ")";
+                ctx.beginPath(); ctx.arc(ox, oy, 6, 0, 7); ctx.fill();
+            }
+            ctx.fillStyle = "#38bdf8";
+            ctx.fillText("O₂ ↑", w * 0.62, h * 0.2);
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif";
+            ctx.fillText("光能 + CO₂ + H₂O → 葡萄糖 + O₂：地球上几乎所有能量的入口", w / 2, h - 12);
+        });
+    };
+
+    /* DNA 双螺旋 */
+    registry["dnahelix"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var cx = w / 2, amp = w * 0.16;
+            var colors = ["#ef4444", "#3b82f6", "#10b981", "#f59e0b"];
+            for (var y = 20; y < h - 20; y += 8) {
+                var ph = y * 0.05 + dt * 1.5;
+                var x1 = cx + Math.sin(ph) * amp;
+                var x2 = cx - Math.sin(ph) * amp;
+                // 碱基对横档
+                if (Math.cos(ph) > 0.3) {
+                    ctx.strokeStyle = colors[(y / 8 | 0) % 4];
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
+                }
+                ctx.fillStyle = "#4f46e5";
+                ctx.beginPath(); ctx.arc(x1, y, 3, 0, 7); ctx.fill();
+                ctx.beginPath(); ctx.arc(x2, y, 3, 0, 7); ctx.fill();
+            }
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("双螺旋：两条链由碱基对（A-T、G-C）互补连接", w / 2, h - 10);
+        });
+    };
+
+    /* 细胞膜跨膜运输 */
+    registry["membrane"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            // 磷脂双分子层
+            for (var x = 10; x < w - 10; x += 14) {
+                var wob = Math.sin(dt * 3 + x) * 2;
+                ctx.fillStyle = "#f59e0b";
+                ctx.beginPath(); ctx.arc(x, h * 0.4 + wob, 4, 0, 7); ctx.fill();
+                ctx.beginPath(); ctx.arc(x, h * 0.58 + wob, 4, 0, 7); ctx.fill();
+                ctx.strokeStyle = "#fcd34d"; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.moveTo(x, h * 0.42 + wob); ctx.lineTo(x, h * 0.48 + wob); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(x, h * 0.5 + wob); ctx.lineTo(x, h * 0.56 + wob); ctx.stroke();
+            }
+            // 通道蛋白
+            ctx.fillStyle = "#6366f1";
+            ctx.fillRect(w * 0.55, h * 0.36, 16, h * 0.26);
+            // 小分子扩散（自由穿过）与离子走通道
+            var px = (dt * 40) % w;
+            var py = h * 0.2 + Math.abs(Math.sin(dt * 2)) * h * 0.6;
+            ctx.fillStyle = "#10b981";
+            ctx.beginPath(); ctx.arc(px, py, 5, 0, 7); ctx.fill();
+            var ix = w * 0.55 + 8, iy = (dt * 50) % h;
+            ctx.fillStyle = "#ef4444";
+            ctx.beginPath(); ctx.arc(ix, iy, 4, 0, 7); ctx.fill();
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("脂溶性小分子（绿）自由穿过；离子（红）必须走通道蛋白（蓝）", w / 2, h - 12);
+        });
+    };
+
+    /* 抗体与抗原的锁钥结合 */
+    registry["antibody"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            // 病毒
+            var vx = w * 0.5, vy = h * 0.55;
+            ctx.fillStyle = "#ef4444";
+            ctx.beginPath(); ctx.arc(vx, vy, 22, 0, 7); ctx.fill();
+            ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 2;
+            for (var i = 0; i < 10; i++) {
+                var a = i / 10 * Math.PI * 2;
+                ctx.beginPath(); ctx.moveTo(vx + Math.cos(a) * 22, vy + Math.sin(a) * 22);
+                ctx.lineTo(vx + Math.cos(a) * 30, vy + Math.sin(a) * 30); ctx.stroke();
+            }
+            // Y 形抗体飞来结合
+            var prog = Math.min(1, ((dt % 5) - 0.5) / 2);
+            var ax = vx - w * 0.3 + prog * w * 0.3;
+            var ay = vy - h * 0.25 + prog * h * 0.18;
+            ctx.strokeStyle = "#3b82f6"; ctx.lineWidth = 4; ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.moveTo(ax, ay + 20); ctx.lineTo(ax, ay);
+            ctx.moveTo(ax, ay); ctx.lineTo(ax - 10, ay - 12);
+            ctx.moveTo(ax, ay); ctx.lineTo(ax + 10, ay - 12);
+            ctx.stroke(); ctx.lineCap = "butt";
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText(prog >= 1 ? "结合成功！免疫系统标记了入侵者" : "Y 形抗体（蓝）靠形状互补识别病毒（红）", w / 2, 18);
+        });
+    };
+
+    /* 勾股定理：a²+b²=c² 面积可视化 */
+    registry["pythagoras"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var cx = w / 2, cy = h * 0.42, a = h * 0.3, b = h * 0.22;
+            // 直角三角形
+            ctx.fillStyle = "rgba(99,102,241,0.3)";
+            ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx, cy - a); ctx.lineTo(cx + b, cy); ctx.closePath();
+            ctx.fill(); ctx.stroke();
+            // 三个正方形
+            var prog = (Math.sin(dt * 0.8) + 1) / 2;
+            ctx.fillStyle = "rgba(239,68,68,0.35)"; // a²
+            ctx.fillRect(cx - a, cy - a, a, a);
+            ctx.fillStyle = "rgba(16,185,129,0.35)"; // b²
+            ctx.fillRect(cx, cy, b, b);
+            var c = Math.sqrt(a * a + b * b);
+            ctx.fillStyle = "rgba(245,158,11,0.35)"; // c²（斜边上方示意）
+            ctx.fillRect(cx + b + 8, cy - c, c, c);
+            ctx.fillStyle = "#374151"; ctx.font = "13px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("红 a² + 绿 b² = 黄 c²（面积直观验证勾股定理）", w / 2, 20);
+            ctx.fillStyle = "#6b7280"; ctx.font = "12px sans-serif";
+            ctx.fillText("a² + b² = c²", w / 2, h - 12);
+        });
+    };
+
+    /* 分形树 */
+    registry["fractal"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var depth = 3 + Math.floor((dt / 1.6) % 6);
+            ctx.strokeStyle = "#6366f1"; ctx.lineCap = "round";
+            function branch(x, y, ang, len, d) {
+                if (d === 0) return;
+                var x2 = x + Math.cos(ang) * len, y2 = y + Math.sin(ang) * len;
+                ctx.lineWidth = d * 0.9;
+                ctx.strokeStyle = d > 3 ? "#7c6cf0" : "#a5b4fc";
+                ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x2, y2); ctx.stroke();
+                branch(x2, y2, ang - 0.45, len * 0.72, d - 1);
+                branch(x2, y2, ang + 0.45, len * 0.72, d - 1);
+            }
+            branch(w / 2, h - 10, -Math.PI / 2, h * 0.24, depth);
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("分形：同一规则不断自我复制（当前递归深度 " + depth + "）", w / 2, 18);
+            ctx.fillStyle = "#6b7280";
+            ctx.fillText("海岸线、血管、雪花都是分形", w / 2, h - 10);
+        });
+    };
+
+    /* 凯撒密码：字母移位 */
+    registry["caesar"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var shift = Math.floor(dt / 1.2) % 5 + 1;
+            var plain = "HELLO";
+            var cipher = plain.split("").map(function (c) {
+                return String.fromCharCode((c.charCodeAt(0) - 65 + shift) % 26 + 65);
+            }).join("");
+            ctx.textAlign = "center";
+            ctx.font = "bold 20px monospace";
+            var sx = w / 2 - 2.5 * 46;
+            for (var i = 0; i < 5; i++) {
+                var x = sx + i * 46 + 23;
+                ctx.fillStyle = "#e5e7eb";
+                ctx.fillRect(x - 20, h * 0.3, 40, 40);
+                ctx.fillStyle = "#374151";
+                ctx.fillText(plain[i], x, h * 0.3 + 27);
+                ctx.fillStyle = "#4f46e5";
+                ctx.fillRect(x - 20, h * 0.6, 40, 40);
+                ctx.fillStyle = "#fff";
+                ctx.fillText(cipher[i], x, h * 0.6 + 27);
+                ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(x, h * 0.3 + 42); ctx.lineTo(x, h * 0.6 - 2); ctx.stroke();
+            }
+            ctx.fillStyle = "#374151"; ctx.font = "13px sans-serif";
+            ctx.fillText("凯撒密码：每个字母统一后移 " + shift + " 位", w / 2, 18);
+            ctx.fillStyle = "#6b7280"; ctx.font = "12px sans-serif";
+            ctx.fillText("古典加密：密钥就是那个移位数字", w / 2, h - 10);
+        });
+    };
+
+    /* 桥梁承重：载荷与挠度 */
+    registry["bridge"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var load = (Math.sin(dt * 0.9) + 1) / 2;
+            var x0 = w * 0.15, x1 = w * 0.85, y0 = h * 0.5;
+            // 桥墩
+            ctx.fillStyle = "#9ca3af";
+            ctx.fillRect(x0 - 12, y0, 24, h * 0.32);
+            ctx.fillRect(x1 - 12, y0, 24, h * 0.32);
+            // 桥面（下挠）
+            ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 4;
+            ctx.beginPath();
+            for (var x = x0; x <= x1; x += 6) {
+                var u = (x - x0) / (x1 - x0);
+                var y = y0 + Math.sin(u * Math.PI) * load * h * 0.14;
+                x === x0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            // 载荷车
+            var cxr = x0 + ((dt * 60) % (x1 - x0));
+            var uy = (cxr - x0) / (x1 - x0);
+            var cy = y0 + Math.sin(uy * Math.PI) * load * h * 0.14;
+            ctx.fillStyle = "#ef4444";
+            ctx.fillRect(cxr - 16, cy - 18, 32, 14);
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("车越重，桥面挠度越大（载荷被刻意夸张了）", w / 2, 18);
+            ctx.fillStyle = "#6b7280";
+            ctx.fillText("结构工程：让变形始终在安全范围内", w / 2, h - 10);
+        });
+    };
+
+    /* 天平：正义的称量 */
+    registry["scales"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var cx = w / 2, top = h * 0.18, armL = w * 0.26;
+            var tilt = Math.sin(dt * 1.4) * 0.08;
+            // 支柱
+            ctx.strokeStyle = "#6b7280"; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(cx, top); ctx.lineTo(cx, h * 0.8); ctx.stroke();
+            ctx.fillStyle = "#6b7280";
+            ctx.fillRect(cx - w * 0.12, h * 0.8, w * 0.24, 8);
+            // 横梁
+            var dx = Math.cos(tilt) * armL, dy = Math.sin(tilt) * armL;
+            ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(cx - dx, top + dy); ctx.lineTo(cx + dx, top - dy); ctx.stroke();
+            // 两盘
+            [[-1, "法"], [1, "情"]].forEach(function (pair) {
+                var s2 = pair[0];
+                var px = cx + s2 * dx, py = top - s2 * dy;
+                ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, py + h * 0.16); ctx.stroke();
+                ctx.fillStyle = "#f59e0b";
+                ctx.beginPath(); ctx.ellipse(px, py + h * 0.16 + 6, 22, 8, 0, 0, 7); ctx.fill();
+                ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+                ctx.fillText(pair[1], px, py + h * 0.16 + 10);
+            });
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("法律如天平：在规则与人情之间寻找公正", w / 2, h - 10);
+        });
+    };
+
+    /* 正念呼吸：4-4-4 呼吸圆 */
+    registry["breathe"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var phase = dt % 12;
+            var r, label;
+            if (phase < 4) { r = 0.3 + (phase / 4) * 0.5; label = "吸气…"; }
+            else if (phase < 8) { r = 0.8; label = "屏息…"; }
+            else { r = 0.8 - ((phase - 8) / 4) * 0.5; label = "呼气…"; }
+            var cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.35;
+            ctx.fillStyle = "rgba(129,140,248,0.25)";
+            ctx.beginPath(); ctx.arc(cx, cy, R * r / 0.8, 0, 7); ctx.fill();
+            ctx.strokeStyle = "#6366f1"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(cx, cy, R * r / 0.8, 0, 7); ctx.stroke();
+            ctx.fillStyle = "#374151"; ctx.font = "14px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText(label, cx, cy + 5);
+            ctx.font = "12px sans-serif"; ctx.fillStyle = "#6b7280";
+            ctx.fillText("正念呼吸：觉察当下，佛学禅修与现代心理学的交汇点", w / 2, h - 10);
+        });
+    };
+
+    /* 齿轮传动 */
+    registry["gears"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            function gear(cx, cy, r, teeth, ang, color) {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                for (var i = 0; i < teeth; i++) {
+                    var a0 = ang + i / teeth * Math.PI * 2;
+                    var a1 = a0 + Math.PI / teeth * 0.9;
+                    var a2 = a0 + Math.PI / teeth * 1.4;
+                    ctx.lineTo(cx + Math.cos(a0) * r, cy + Math.sin(a0) * r);
+                    ctx.lineTo(cx + Math.cos(a1) * r * 1.22, cy + Math.sin(a1) * r * 1.22);
+                    ctx.lineTo(cx + Math.cos(a2) * r * 1.22, cy + Math.sin(a2) * r * 1.22);
+                    ctx.lineTo(cx + Math.cos(a0 + Math.PI / teeth * 1.8) * r, cy + Math.sin(a0 + Math.PI / teeth * 1.8) * r);
+                }
+                ctx.closePath(); ctx.fill();
+                ctx.fillStyle = "#f8fafc";
+                ctx.beginPath(); ctx.arc(cx, cy, r * 0.25, 0, 7); ctx.fill();
+            }
+            var r1 = Math.min(w, h) * 0.2, r2 = r1 * 0.6;
+            var cx1 = w * 0.38, cx2 = cx1 + r1 * 1.22 + r2 * 1.22, cy = h * 0.5;
+            gear(cx1, cy, r1, 10, dt * 1.2, "#4f46e5");
+            gear(cx2, cy, r2, 7, -dt * 1.2 * (r1 / r2) + 0.2, "#f59e0b");
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("齿轮啮合：大轮转慢、小轮转快，方向相反", w / 2, 18);
+            ctx.fillStyle = "#6b7280";
+            ctx.fillText("传动比 = 齿数比——机械传动的算术", w / 2, h - 10);
+        });
+    };
+
     return { start: start, stop: stop };
 })();
