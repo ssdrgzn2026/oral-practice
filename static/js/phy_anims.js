@@ -1822,5 +1822,132 @@ window.PhyAnims = (function () {
         });
     };
 
+
+    /* 柏拉图洞穴寓言：囚徒把影子当真实 */
+    registry["cave"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            // 洞壁（左侧）
+            ctx.fillStyle = "#1f2937";
+            ctx.fillRect(0, 0, w * 0.32, h);
+            // 囚徒
+            for (var i = 0; i < 3; i++) {
+                var px = w * 0.1 + i * w * 0.09, py = h * 0.72;
+                ctx.fillStyle = "#9ca3af";
+                ctx.beginPath(); ctx.arc(px, py - 14, 7, 0, 7); ctx.fill();
+                ctx.fillRect(px - 6, py - 8, 12, 16);
+            }
+            // 火光
+            var fx = w * 0.5, fy = h * 0.45;
+            ctx.fillStyle = "#f59e0b";
+            ctx.beginPath(); ctx.arc(fx, fy, 10 + Math.sin(dt * 8) * 2, 0, 7); ctx.fill();
+            // 走过的实物（树、鸟、人轮替）
+            var items = ["🌳", "🐦", "🚶"];
+            var item = items[Math.floor(dt / 2.5) % 3];
+            var ix = w * 0.62 + ((dt * 0.15) % 0.2) * w;
+            ctx.font = "26px serif"; ctx.textAlign = "center";
+            ctx.fillText(item, ix, h * 0.42);
+            // 洞壁上的影子
+            ctx.font = "30px serif";
+            ctx.fillText("👤", w * 0.16, h * 0.4);
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif";
+            ctx.fillStyle = "#e5e7eb";
+            ctx.fillText("囚徒只能看到洞壁上的影子", w * 0.16, h * 0.55);
+            ctx.fillStyle = "#374151";
+            ctx.fillText("火光 + 真实事物 → 影子：我们看到的「现实」是真实本身吗？", w / 2, h - 10);
+        });
+    };
+
+    /* 电车难题：扳道岔的伦理抉择（点击扳道岔） */
+    registry["trolley"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        var switched = false;
+        canvas.addEventListener("click", function () { switched = !switched; });
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            // 轨道
+            ctx.strokeStyle = "#6b7280"; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(10, h * 0.7); ctx.lineTo(w * 0.5, h * 0.7); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(w * 0.5, h * 0.7); ctx.lineTo(w - 10, h * 0.35); ctx.stroke(); // 上岔
+            ctx.beginPath(); ctx.moveTo(w * 0.5, h * 0.7); ctx.lineTo(w - 10, h * 0.8); ctx.stroke();  // 下直
+            // 人
+            ctx.font = "18px serif"; ctx.textAlign = "center";
+            ctx.fillText("🧍", w * 0.75, h * 0.42);
+            ctx.fillText("🧍🧍🧍🧍🧍", w * 0.8, h * 0.87);
+            ctx.fillStyle = "#6b7280"; ctx.font = "11px sans-serif";
+            ctx.fillText("1 人", w * 0.75, h * 0.3);
+            ctx.fillText("5 人", w * 0.8, h - 14);
+            // 扳道岔
+            ctx.fillStyle = switched ? "#ef4444" : "#4f46e5";
+            ctx.fillRect(w * 0.42, h * 0.52, 52, 22);
+            ctx.fillStyle = "#fff"; ctx.font = "11px sans-serif";
+            ctx.fillText(switched ? "已扳" : "扳道岔", w * 0.42 + 26, h * 0.52 + 15);
+            // 电车
+            var tx = 10 + ((dt * 90) % (w * 0.4));
+            ctx.font = "22px serif";
+            ctx.fillText("🚃", tx + 20, h * 0.66);
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif";
+            ctx.fillText(switched ? "你扳了道岔：牺牲 1 人救 5 人——但你是主动动手的那个人" : "电车正冲向 5 人，扳道岔可改道撞向 1 人。点画面试试", w / 2, 18);
+        });
+    };
+
+    /* 忒修斯之船：木板逐渐全换，还是原来那艘吗 */
+    registry["ship"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var prog = (dt % 8) / 8;
+            var cx = w / 2, base = h * 0.55, bw = w * 0.5, bh = h * 0.22;
+            // 船身由木板条组成，逐渐被换成新色
+            var n = 12;
+            for (var i = 0; i < n; i++) {
+                var isNew = i / n < prog;
+                ctx.fillStyle = isNew ? "#f59e0b" : "#8b5a2b";
+                ctx.fillRect(cx - bw / 2 + i * bw / n + 1, base, bw / n - 2, bh);
+            }
+            // 桅杆和帆
+            ctx.strokeStyle = "#6b7280"; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(cx, base); ctx.lineTo(cx, base - h * 0.3); ctx.stroke();
+            ctx.fillStyle = "rgba(255,255,255,0.9)";
+            ctx.beginPath(); ctx.moveTo(cx, base - h * 0.3); ctx.lineTo(cx + w * 0.14, base - h * 0.1); ctx.lineTo(cx, base - h * 0.08); ctx.closePath();
+            ctx.fill(); ctx.stroke();
+            // 水
+            ctx.fillStyle = "rgba(96,165,250,0.5)";
+            ctx.fillRect(0, base + bh, w, h - base - bh);
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("木板已更换 " + Math.round(prog * 100) + "%（橙色是新木板）", w / 2, 22);
+            ctx.fillStyle = "#6b7280";
+            ctx.fillText("全部换完后，它还是原来那艘船吗？「你」的细胞也每几年全换一遍", w / 2, h - 10);
+        });
+    };
+
+    /* 庄周梦蝶：人与蝶相互转换 */
+    registry["butterfly"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var phase = (dt % 6) / 6;
+            var isDream = phase > 0.5;
+            var blend = Math.abs(Math.sin(phase * Math.PI * 2));
+            ctx.font = "60px serif"; ctx.textAlign = "center";
+            ctx.globalAlpha = 0.3 + blend * 0.7;
+            ctx.fillText(isDream ? "🦋" : "🧑", w / 2, h / 2 + 20);
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = "#374151"; ctx.font = "13px sans-serif";
+            ctx.fillText(isDream ? "梦中，我是蝴蝶" : "醒来，蝴蝶是我？", w / 2, 22);
+            ctx.fillStyle = "#6b7280"; ctx.font = "12px sans-serif";
+            ctx.fillText("庄周梦蝶：梦与醒的边界，自我与物的转化（物化）", w / 2, h - 10);
+        });
+    };
+
     return { start: start, stop: stop };
 })();

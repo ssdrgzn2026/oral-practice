@@ -348,9 +348,9 @@
             // 词条区：AI 面板
             var relList = others.map(function (x) { return x.year + "年" + x.who + "（" + x.for + "）"; }).join("；");
             askAI(
-                "请简要介绍 " + prize.year + " 年诺贝尔{{ prize }}（获奖人：" + prize.who + "，获奖成果：" + prize.for + "）：" +
+                "请简要介绍 " + prize.year + " 年{{ awardDetail }}（获奖人：" + prize.who + "，获奖成果：" + prize.for + "）：" +
                 "1. 获奖工作的背景与核心内容；2. 它对「" + fieldName + "」领域的贡献和长远影响；" +
-                "3. 它与哪些其他诺贝尔{{ prize }}有承接或关联关系（可参考：" + relList + "），请说明关联是什么。",
+                "3. 它与哪些其他{{ awardDetail }}有承接或关联关系（可参考：" + relList + "），请说明关联是什么。",
                 "🏅 " + prize.year + " 年 · " + prize.who
             );
             // 相关奖项互链 chips（放在 AI 面板标题下）

@@ -140,11 +140,12 @@ def portal():
 
 # ========== 知识图谱（学科通用） ==========
 GRAPH_SUBJECTS = {
-    "physics": {"title": "物理", "icon": "⚛️", "prize": "物理学奖"},
-    "chemistry": {"title": "化学", "icon": "🧪", "prize": "化学奖"},
-    "biology": {"title": "生物", "icon": "🧬", "prize": "生理学或医学奖"},
-    "math": {"title": "数学", "icon": "📐", "prize": "（菲尔兹奖/阿贝尔奖）"},
-    "cs": {"title": "计算机科学", "icon": "💻", "prize": "（图灵奖）"},
+    "physics": {"title": "物理", "icon": "⚛️", "prize": "物理学奖", "awardLabel": "相关诺贝尔奖", "awardDetail": "诺贝尔物理学奖"},
+    "chemistry": {"title": "化学", "icon": "🧪", "prize": "化学奖", "awardLabel": "相关诺贝尔奖", "awardDetail": "诺贝尔化学奖"},
+    "biology": {"title": "生物", "icon": "🧬", "prize": "生理学或医学奖", "awardLabel": "相关诺贝尔奖", "awardDetail": "诺贝尔生理学或医学奖"},
+    "math": {"title": "数学", "icon": "📐", "prize": "奖项", "awardLabel": "菲尔兹奖与阿贝尔奖", "awardDetail": "菲尔兹奖或阿贝尔奖"},
+    "cs": {"title": "计算机科学", "icon": "💻", "prize": "图灵奖", "awardLabel": "图灵奖", "awardDetail": "图灵奖"},
+    "philosophy": {"title": "哲学", "icon": "💭", "prize": "", "awardLabel": "代表人物与著作", "awardDetail": "哲学代表人物与著作"},
 }
 
 
