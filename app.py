@@ -72,11 +72,11 @@ def manifest():
             "scope": "/",
             "display": "standalone",
             "background_color": "#f5f5f4",
-            "theme_color": "#4f46e5",
+            "theme_color": "#0b1026",
             "lang": "zh-CN",
             "icons": [
-                {"src": "/static/img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-                {"src": "/static/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+                {"src": "/static/img/atlas-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+                {"src": "/static/img/atlas-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
             ],
         })
     return send_from_directory("static", "manifest.json")
@@ -138,7 +138,7 @@ def atlas_subject(subject):
     if subject not in GRAPH_SUBJECTS:
         return redirect("/")
     cfg = GRAPH_SUBJECTS[subject]
-    return render_template("graph.html", subject=subject, **cfg)
+    return render_template("graph.html", subject=subject, base="", **cfg)
 
 
 @app.route("/convert")
@@ -217,7 +217,7 @@ def graph_subject(subject):
     if subject not in GRAPH_SUBJECTS:
         return redirect("/graph")
     cfg = GRAPH_SUBJECTS[subject]
-    return render_template("graph.html", subject=subject, **cfg)
+    return render_template("graph.html", subject=subject, base="/graph", **cfg)
 
 
 @app.route("/physics")
@@ -225,7 +225,7 @@ def physics():
     # atlas 域名下 /physics 即学科页；oral 域名下兼容旧链接
     if is_atlas_host():
         cfg = GRAPH_SUBJECTS["physics"]
-        return render_template("graph.html", subject="physics", **cfg)
+        return render_template("graph.html", subject="physics", base="", **cfg)
     return redirect("/graph/physics")
 
 

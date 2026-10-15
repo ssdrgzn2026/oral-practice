@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% if base %}学科星图 · MiscHub{% else %}学科星图 · 一站式学科知识图谱{% endif %}</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="theme-color" content="{% if base %}#4f46e5{% else %}#0b1026{% endif %}">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="学科星图">
-    <link rel="apple-touch-icon" href="/static/img/icon-192.png">
+    <link rel="apple-touch-icon" href="{% if base %}/static/img/icon-192.png{% else %}/static/img/atlas-192.png{% endif %}">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
