@@ -61,6 +61,27 @@ def visit_beat():
     return jsonify({"ok": True})
 
 
+@app.route("/manifest.json")
+def manifest():
+    if is_atlas_host():
+        return jsonify({
+            "name": "学科星图",
+            "short_name": "学科星图",
+            "description": "一站式学科知识图谱：下钻、演示、AI 导学、学科时间线",
+            "start_url": "/",
+            "scope": "/",
+            "display": "standalone",
+            "background_color": "#f5f5f4",
+            "theme_color": "#4f46e5",
+            "lang": "zh-CN",
+            "icons": [
+                {"src": "/static/img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+                {"src": "/static/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            ],
+        })
+    return send_from_directory("static", "manifest.json")
+
+
 @app.route("/sw.js")
 def service_worker():
     # Service Worker 必须在根路径下提供，才能接管全站作用域

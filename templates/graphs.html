@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% if base %}学科星图 · MiscHub{% else %}学科星图 · 一站式学科知识图谱{% endif %}</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="学科星图">
+    <link rel="apple-touch-icon" href="/static/img/icon-192.png">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -15,9 +20,23 @@
         </header>
 
         <main class="main">
+            <!-- 站点介绍 -->
+            <div class="card atlas-hero">
+                <p>把每一门学科拆成一棵可以下钻的知识树：<b>互动演示</b>帮你看见抽象概念，<b>AI 讲解与苏格拉底导学</b>陪你学会它，<b>奖项与大事记时间线</b>带你看清学科的发展脉络。</p>
+                <div class="atlas-stats">
+                    <span><b>15</b> 门学科</span>
+                    <span><b>900+</b> 知识点</span>
+                    <span><b>260+</b> 互动演示</span>
+                    <span><b>500+</b> 奖项与大事记</span>
+                </div>
+            </div>
+
             <div style="text-align:center; margin-bottom:12px;">
                 <a href="{{ base }}/star" class="btn primary" style="display:inline-block; text-decoration:none; padding:12px 28px;">🌌 星图模式：用一张网看所有学科</a>
             </div>
+
+            <!-- 基础科学 -->
+            <h2 class="atlas-cat">🔬 基础科学 · 认识世界的底层规律</h2>
             <div class="module-grid">
                 <a class="module-card" href="{{ base }}/math">
                     <div class="module-icon">📐</div>
@@ -49,6 +68,11 @@
                     <h2>生物学</h2>
                     <p>细胞 · 遗传进化 · 分子生物 · 生理 · 生态 · 微生物免疫 · 神经 · 生物技术</p>
                 </a>
+            </div>
+
+            <!-- 应用与技术 -->
+            <h2 class="atlas-cat">🛠️ 应用与技术 · 把知识变成能力</h2>
+            <div class="module-grid">
                 <a class="module-card" href="{{ base }}/medicine">
                     <div class="module-icon">🏥</div>
                     <h2>医学与药学</h2>
@@ -64,6 +88,11 @@
                     <h2>工程学</h2>
                     <p>机械 · 电气电子 · 土木结构 · 能源动力 · 航空航天 · 控制自动化</p>
                 </a>
+            </div>
+
+            <!-- 人文社科 -->
+            <h2 class="atlas-cat">🏛️ 人文社科 · 理解人与社会</h2>
+            <div class="module-grid">
                 <a class="module-card" href="{{ base }}/economics">
                     <div class="module-icon">💹</div>
                     <h2>经济学</h2>
@@ -94,7 +123,7 @@
                     <h2>佛学</h2>
                     <p>佛教史 · 核心教义 · 修行体系 · 经典文献 · 宗派 · 艺术建筑 · 中国文化（学术科普视角）</p>
                 </a>
-            </div><p class="hint" style="text-align:center; margin-top:10px;">每个知识点都配有互动演示、AI 讲解与诺贝尔奖时间线。更多学科陆续添加中。</p>
+            </div>
         </main>
 
         <footer class="footer">
@@ -103,5 +132,11 @@
         </footer>
     </div>
     <script src="/static/js/track.js"></script>
+    <script src="/static/js/pwa.js"></script>
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("/sw.js").catch(function () {});
+        }
+    </script>
 </body>
 </html>

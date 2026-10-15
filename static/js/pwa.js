@@ -17,6 +17,7 @@
         if (ts && Date.now() - ts < DISMISS_DAYS * 864e5) return;
     } catch (e) {}
 
+    var BRAND = location.hostname === "atlas.pingxu.xin" ? "学科星图" : "MiscHub";
     var ua = navigator.userAgent;
     var isIOS = /iPhone|iPad|iPod/.test(ua);
     var isAndroid = /Android/.test(ua);
@@ -64,7 +65,7 @@
         var bar = document.getElementById("a2hs-banner");
         if (bar) {
             if (!document.getElementById("a2hs-install")) {
-                bar.querySelector(".a2hs-text").textContent = "📲 把 MiscHub 安装到主屏幕，像 App 一样使用";
+                bar.querySelector(".a2hs-text").textContent = "📲 把 " + BRAND + " 安装到主屏幕，像 App 一样使用";
                 var btn = document.createElement("button");
                 btn.className = "a2hs-btn";
                 btn.id = "a2hs-install";
@@ -73,7 +74,7 @@
                 bindInstall(btn);
             }
         } else {
-            renderBanner("📲 把 MiscHub 安装到主屏幕，像 App 一样使用", true);
+            renderBanner("📲 把 " + BRAND + " 安装到主屏幕，像 App 一样使用", true);
         }
     }
 

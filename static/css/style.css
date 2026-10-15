@@ -1209,3 +1209,33 @@ body { line-height: 1.65; }
 .mg-1 { background: #fbbf24; }
 .mg-2 { background: #34d399; }
 .mg-3 { background: #059669; box-shadow: 0 0 6px rgba(5,150,105,0.5); }
+
+/* ===== 学科星图首页 ===== */
+.atlas-hero {
+    text-align: center;
+    padding: 20px 22px;
+    margin-bottom: 18px;
+    line-height: 1.9;
+    font-size: 0.95rem;
+}
+
+.atlas-stats {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 12px;
+}
+
+.atlas-stats b {
+    color: #4f46e5;
+    font-size: 1.15rem;
+}
+
+.atlas-cat {
+    font-size: 1.05rem;
+    color: #374151;
+    border-left: 4px solid #4f46e5;
+    padding-left: 10px;
+    margin: 22px 0 4px;
+}
