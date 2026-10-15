@@ -1193,3 +1193,19 @@ body { line-height: 1.65; }
 }
 
 .back-bar a:hover { background: #e0e7ff; }
+
+/* ===== 掌握度圆点 ===== */
+.mg-dot {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #d1d5db;
+}
+
+.mg-0 { background: #f87171; }
+.mg-1 { background: #fbbf24; }
+.mg-2 { background: #34d399; }
+.mg-3 { background: #059669; box-shadow: 0 0 6px rgba(5,150,105,0.5); }

@@ -31,6 +31,7 @@
             <div class="panel-header-controls" style="justify-content:center; margin:10px 0;">
                 <button id="ai-explain" class="btn primary">💡 AI 深入讲解</button>
                 <button id="ai-frontier" class="btn secondary">🔬 最新研究进展</button>
+                <button id="ai-socratic" class="btn secondary">🎓 苏格拉底导学</button>
             </div>
 
             <div id="children" class="module-grid"></div>
@@ -274,6 +275,7 @@
                     '<div class="module-icon">' + (k.icon || "📖") + "</div>" +
                     "<h2>" + esc(k.name) + "</h2>" +
                     "<p>" + esc(k.desc || "") + "</p>" +
+                    '<span class="mg-dot mg-' + getMastery(k.id) + '" title="掌握度"></span>' +
                     (k.children ? '<span class="module-status available">' + k.children.length + ' 个子主题</span>' : '<span class="module-status coming">最细颗粒</span>') +
                     "</div>";
             }).join("");
@@ -297,7 +299,9 @@
 
         // AI 问答（走本站已配置的 /api/chat）
         var chatCtx = [];
+        var tutorMode = false;
         function askAI(prompt, title) {
+            tutorMode = false;
             aiPanel.style.display = "block";
             aiTitle.textContent = title || "🤖 AI 解答";
             aiOutput.textContent = "思考中…";
@@ -385,6 +389,16 @@
             }).then(function (r) { return r.json(); })
               .then(function (d) {
                   var reply = (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || ("出错了：" + (d.error || ""));
+                  // 苏格拉底模式：解析掌握度标记
+                  if (tutorMode) {
+                      var mg = reply.match(/【掌握度：\s*([0-3])\s*】/);
+                      if (mg) {
+                          var n = cur();
+                          setMastery(n.id, parseInt(mg[1], 10));
+                          reply = reply.replace(/【掌握度：\s*[0-3]\s*】/g, "");
+                          render();
+                      }
+                  }
                   aiOutput.innerHTML = mdToHtml(reply);
                   chatCtx.push({ role: "assistant", content: reply });
               })
@@ -402,9 +416,66 @@
                   "如果某些信息可能超出你的知识截止时间，请明确标注。", "🔬 " + n.name + " · 研究前沿");
         });
 
+        // ========== 苏格拉底式导学（掌握度追踪） ==========
+        function mgKey(id) { return "mg_" + SUBJECT + "_" + id; }
+        function getMastery(id) { return parseInt(localStorage.getItem(mgKey(id)) || "-1", 10); }
+        function setMastery(id, v) { localStorage.setItem(mgKey(id), String(v)); }
+
+        function askSocratic() {
+            tutorMode = true;
+            var n = cur();
+            aiPanel.style.display = "block";
+            aiTitle.textContent = "🎓 苏格拉底导学 · " + n.name;
+            aiOutput.textContent = "";
+            aiPanel.scrollIntoView({ behavior: "smooth" });
+            chatCtx = [{
+                role: "user",
+                content: "你是一位苏格拉底式导师，正在引导我学习「" + n.name + "」（" + (n.desc || "") + "）。" +
+                    "规则：1. 不要直接讲答案，每次只问一个由浅入深的引导性问题，等我回答后再追问；" +
+                    "2. 评价我的回答：如果理解有误，温和地指出矛盾之处引导我自我纠正；" +
+                    "3. 每次你的回复末尾必须附上标记【掌握度：N】，N 是你对我当前理解程度的评估（0=未入门，1=初步了解，2=基本理解，3=融会贯通），评估要在标记前用一句话说明理由；" +
+                    "4. 当掌握度达到 3 时，恭喜我并总结这次学习收获。" +
+                    "现在请开始：先简要介绍今天要探讨的主题（一句话），然后向我提第一个问题。",
+            }];
+            tutorReply();
+        }
+
+        function tutorReply() {
+            fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ messages: chatCtx, max_tokens: 800 }),
+            }).then(function (r) { return r.json(); })
+              .then(function (d) {
+                  var reply = (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || ("出错了：" + (d.error || ""));
+                  // 解析掌握度标记
+                  var mg = reply.match(/【掌握度：\s*([0-3])\s*】/);
+                  if (mg) {
+                      var n = cur();
+                      setMastery(n.id, parseInt(mg[1], 10));
+                      reply = reply.replace(/【掌握度：\s*[0-3]\s*】/g, "");
+                      render();  // 刷新掌握度圆点
+                  }
+                  aiOutput.innerHTML = mdToHtml(reply);
+                  chatCtx.push({ role: "assistant", content: reply });
+              })
+              .catch(function () { aiOutput.textContent = "网络错误，请重试"; });
+        }
+
+        document.getElementById("ai-socratic").addEventListener("click", askSocratic);
+
         fetch("/api/graph-map/" + SUBJECT)
             .then(function (r) { return r.json(); })
-            .then(function (d) { tree = d; render(); })
+            .then(function (d) {
+                tree = d;
+                // 支持 ?node=<id> 深链（星图跳转进来直接定位）
+                var want = new URLSearchParams(location.search).get("node");
+                if (want) {
+                    var chain = findChain(tree, want, []);
+                    if (chain) path = chain.filter(function (n) { return n.id; });
+                }
+                render();
+            })
             .catch(function () { nodeInfo.innerHTML = "<p class='hint'>知识图谱加载失败，请刷新</p>"; });
 
         // ========== 模糊查找（任意层级可用，搜全树） ==========

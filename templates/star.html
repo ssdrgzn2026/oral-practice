@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>知识星图 · MiscHub</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .star-wrap { position: relative; width: 100%; height: 70vh; min-height: 420px; background: #0b1026; border-radius: 14px; overflow: hidden; }
+        #star-canvas { width: 100%; height: 100%; display: block; cursor: grab; }
+        #star-canvas:active { cursor: grabbing; }
+        .star-legend { position: absolute; top: 10px; left: 10px; background: rgba(11,16,38,0.75); border-radius: 10px; padding: 8px 12px; font-size: 0.78rem; color: #e5e7eb; }
+        .star-legend span { display: inline-block; margin-right: 10px; }
+        .star-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
+        .star-tip { position: absolute; pointer-events: none; background: rgba(17,24,39,0.95); color: #f9fafb; padding: 6px 10px; border-radius: 8px; font-size: 0.8rem; max-width: 260px; display: none; z-index: 10; }
+        .star-hint { position: absolute; bottom: 10px; right: 12px; color: #6b7280; font-size: 0.72rem; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>🌌 知识星图</h1>
+            <p class="subtitle">所有学科是一张网——拖动探索，点击星体进入知识点</p>
+            <p class="back-home"><a href="/graph">← 返回知识图谱</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="/">返回 MiscHub 首页</a></p>
+        </header>
+
+        <main class="main">
+            <div class="star-wrap">
+                <canvas id="star-canvas"></canvas>
+                <div class="star-legend" id="legend"></div>
+                <div class="star-tip" id="tip"></div>
+                <div class="star-hint">实线=学科层级 · 紫色虚线=跨学科关联 · 拖动旋转视角</div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>MiscHub｜杂具小栈 · 一站式零散工具工作台</p>
+            <p class="icp">京ICP备2026035074号-1 | 京公网安备11010802048950号</p>
+        </footer>
+    </div>
+
+    <script>
+    (function () {
+        var SUBJECT_COLORS = {
+            physics: "#818cf8", chemistry: "#34d399", biology: "#4ade80",
+            math: "#fbbf24", cs: "#f472b6", philosophy: "#c084fc",
+        };
+        var canvas = document.getElementById("star-canvas");
+        var tip = document.getElementById("tip");
+        var ctx = canvas.getContext("2d");
+        var nodes = [], links = [], nodeById = {};
+        var dragNode = null, panX = 0, panY = 0, panning = false, lastX = 0, lastY = 0;
+
+        function resize() {
+            var dpr = window.devicePixelRatio || 1;
+            canvas.width = canvas.clientWidth * dpr;
+            canvas.height = canvas.clientHeight * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        window.addEventListener("resize", resize);
+
+        fetch("/api/graph-network").then(function (r) { return r.json(); }).then(function (d) {
+            nodes = d.nodes; links = d.links;
+            nodes.forEach(function (n, i) {
+                nodeById[n.id] = n;
+                // 初始位置：按学科分簇撒开
+                var keys = Object.keys(SUBJECT_COLORS);
+                var si = keys.indexOf(n.subject);
+                var ca = (si / keys.length) * Math.PI * 2;
+                n.x = canvas.clientWidth / 2 + Math.cos(ca) * 160 + (Math.random() - 0.5) * 120;
+                n.y = canvas.clientHeight / 2 + Math.sin(ca) * 120 + (Math.random() - 0.5) * 120;
+                n.vx = 0; n.vy = 0;
+                n.r = 3 + Math.min(n.kids * 1.2, 8) + (n.depth <= 1 ? 2 : 0);
+            });
+            links = links.filter(function (l) { return nodeById[l.source] && nodeById[l.target]; });
+            // 图例
+            document.getElementById("legend").innerHTML = Object.keys(SUBJECT_COLORS).map(function (k) {
+                var names = { physics: "物理", chemistry: "化学", biology: "生物", math: "数学", cs: "计算机", philosophy: "哲学" };
+                return '<span><i style="background:' + SUBJECT_COLORS[k] + '"></i>' + names[k] + "</span>";
+            }).join("");
+            resize();
+            requestAnimationFrame(tick);
+        });
+
+        function tick() {
+            // 力导向模拟
+            var W = canvas.clientWidth, H = canvas.clientHeight;
+            var i, j, a, b, dx, dy, dist, f;
+            for (i = 0; i < nodes.length; i++) {
+                a = nodes[i];
+                a.vx += (W / 2 - a.x) * 0.0004;  // 向心力
+                a.vy += (H / 2 - a.y) * 0.0004;
+                for (j = i + 1; j < nodes.length; j++) {
+                    b = nodes[j];
+                    dx = a.x - b.x; dy = a.y - b.y;
+                    dist = Math.max(dx * dx + dy * dy, 4);
+                    f = 220 / dist;
+                    a.vx += dx * f * 0.01; a.vy += dy * f * 0.01;
+                    b.vx -= dx * f * 0.01; b.vy -= dy * f * 0.01;
+                }
+            }
+            for (i = 0; i < links.length; i++) {
+                var l = links[i];
+                a = nodeById[l.source]; b = nodeById[l.target];
+                dx = b.x - a.x; dy = b.y - a.y;
+                dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
+                var rest = l.kind === "rel" ? 90 : 46;
+                f = (dist - rest) * 0.004;
+                a.vx += dx / dist * f * dist * 0.01; a.vy += dy / dist * f * dist * 0.01;
+                b.vx -= dx / dist * f * dist * 0.01; b.vy -= dy / dist * f * dist * 0.01;
+            }
+            nodes.forEach(function (n) {
+                if (n === dragNode) return;
+                n.vx *= 0.86; n.vy *= 0.86;
+                n.x += n.vx; n.y += n.vy;
+            });
+            draw();
+            requestAnimationFrame(tick);
+        }
+
+        function draw() {
+            var W = canvas.clientWidth, H = canvas.clientHeight;
+            ctx.clearRect(0, 0, W, H);
+            ctx.save();
+            ctx.translate(panX, panY);
+            links.forEach(function (l) {
+                var a = nodeById[l.source], b = nodeById[l.target];
+                if (l.kind === "rel") {
+                    ctx.strokeStyle = "rgba(192,132,252,0.55)";
+                    ctx.setLineDash([4, 4]);
+                    ctx.lineWidth = 1.4;
+                } else {
+                    ctx.strokeStyle = "rgba(148,163,184,0.25)";
+                    ctx.setLineDash([]);
+                    ctx.lineWidth = 1;
+                }
+                ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+            });
+            ctx.setLineDash([]);
+            ctx.textAlign = "center";
+            nodes.forEach(function (n) {
+                ctx.fillStyle = SUBJECT_COLORS[n.subject] || "#94a3b8";
+                ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, 7); ctx.fill();
+                if (n.r >= 6) {
+                    ctx.fillStyle = "rgba(229,231,235,0.85)";
+                    ctx.font = "10px sans-serif";
+                    ctx.fillText(n.name, n.x, n.y - n.r - 4);
+                }
+            });
+            ctx.restore();
+        }
+
+        function nodeAt(mx, my) {
+            var x = mx - panX, y = my - panY;
+            for (var i = nodes.length - 1; i >= 0; i--) {
+                var n = nodes[i];
+                if ((n.x - x) * (n.x - x) + (n.y - y) * (n.y - y) < Math.max(n.r + 4, 10) ** 2) return n;
+            }
+            return null;
+        }
+
+        canvas.addEventListener("mousemove", function (e) {
+            var rect = canvas.getBoundingClientRect();
+            var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+            if (panning) {
+                panX += mx - lastX; panY += my - lastY; lastX = mx; lastY = my;
+                return;
+            }
+            if (dragNode) {
+                dragNode.x = mx - panX; dragNode.y = my - panY;
+                dragNode.vx = 0; dragNode.vy = 0;
+                return;
+            }
+            var n = nodeAt(mx, my);
+            if (n) {
+                tip.style.display = "block";
+                tip.style.left = (mx + 12) + "px";
+                tip.style.top = (my + 12) + "px";
+                tip.innerHTML = "<b>" + n.name + "</b><br><span style='color:#9ca3af'>" + (n.desc || "") + "</span>";
+                canvas.style.cursor = "pointer";
+            } else {
+                tip.style.display = "none";
+                canvas.style.cursor = "grab";
+            }
+        });
+
+        canvas.addEventListener("mousedown", function (e) {
+            var rect = canvas.getBoundingClientRect();
+            var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+            dragNode = nodeAt(mx, my);
+            if (!dragNode) { panning = true; lastX = mx; lastY = my; }
+        });
+        window.addEventListener("mouseup", function () { dragNode = null; panning = false; });
+
+        canvas.addEventListener("click", function (e) {
+            var rect = canvas.getBoundingClientRect();
+            var n = nodeAt(e.clientX - rect.left, e.clientY - rect.top);
+            if (n) window.location.href = "/graph/" + n.subject + "?node=" + encodeURIComponent(n.id);
+        });
+
+        // 触屏支持
+        canvas.addEventListener("touchstart", function (e) {
+            var t = e.touches[0], rect = canvas.getBoundingClientRect();
+            var mx = t.clientX - rect.left, my = t.clientY - rect.top;
+            dragNode = nodeAt(mx, my);
+            if (!dragNode) { panning = true; lastX = mx; lastY = my; }
+        }, { passive: true });
+        canvas.addEventListener("touchmove", function (e) {
+            var t = e.touches[0], rect = canvas.getBoundingClientRect();
+            var mx = t.clientX - rect.left, my = t.clientY - rect.top;
+            if (panning) { panX += mx - lastX; panY += my - lastY; lastX = mx; lastY = my; }
+            else if (dragNode) { dragNode.x = mx - panX; dragNode.y = my - panY; dragNode.vx = 0; dragNode.vy = 0; }
+            e.preventDefault();
+        }, { passive: false });
+        canvas.addEventListener("touchend", function (e) {
+            if (dragNode) {
+                window.location.href = "/graph/" + dragNode.subject + "?node=" + encodeURIComponent(dragNode.id);
+            }
+            dragNode = null; panning = false;
+        });
+    })();
+    </script>
+    <script src="/static/js/track.js"></script>
+</body>
+</html>

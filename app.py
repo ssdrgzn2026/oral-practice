@@ -184,6 +184,50 @@ def physics_map():
     return graph_map("physics")
 
 
+@app.route("/graph/star")
+def graph_star():
+    return render_template("star.html")
+
+
+@app.route("/api/graph-network")
+def graph_network():
+    """聚合全部学科为 节点+边 网络（树边 + related 跨学科关联）"""
+    nodes = []
+    links = []
+    seen = set()
+    for sub in GRAPH_SUBJECTS:
+        try:
+            data = json.loads((BASE_DIR / "data" / f"{sub}_map.json").read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+
+        def walk(node, parent_id, depth):
+            nid = node.get("id")
+            if not nid:
+                return
+            if nid not in seen:
+                seen.add(nid)
+                nodes.append({
+                    "id": nid,
+                    "name": node["name"],
+                    "subject": sub,
+                    "desc": (node.get("desc") or "")[:60],
+                    "depth": depth,
+                    "kids": len(node.get("children", [])),
+                })
+            if parent_id:
+                links.append({"source": parent_id, "target": nid, "kind": "tree"})
+            for rid in node.get("related", []):
+                links.append({"source": nid, "target": rid, "kind": "rel"})
+            for c in node.get("children", []):
+                walk(c, nid, depth + 1)
+
+        walk(data, None, 0)
+    # related 边只保留两端都存在的
+    links = [l for l in links if l["kind"] == "tree" or (l["source"] in seen and l["target"] in seen)]
+    return jsonify({"nodes": nodes, "links": links})
+
+
 @app.route("/api/links")
 def api_links():
     uid = request.args.get("uid", "")[:64]
