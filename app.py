@@ -146,6 +146,10 @@ GRAPH_SUBJECTS = {
     "math": {"title": "数学", "icon": "📐", "prize": "奖项", "awardLabel": "菲尔兹奖与阿贝尔奖", "awardDetail": "菲尔兹奖或阿贝尔奖"},
     "cs": {"title": "计算机科学", "icon": "💻", "prize": "图灵奖", "awardLabel": "图灵奖", "awardDetail": "图灵奖"},
     "philosophy": {"title": "哲学", "icon": "💭", "prize": "", "awardLabel": "代表人物与著作", "awardDetail": "哲学代表人物与著作"},
+    "astronomy": {"title": "天文学", "icon": "🔭", "prize": "物理学奖", "awardLabel": "相关诺贝尔奖（物理学）", "awardDetail": "诺贝尔物理学奖"},
+    "geography": {"title": "地理与地质", "icon": "🌍", "prize": "", "awardLabel": "学科发展大事记", "awardDetail": "学科大事记"},
+    "economics": {"title": "经济学", "icon": "💹", "prize": "经济学奖", "awardLabel": "诺贝尔经济学奖", "awardDetail": "诺贝尔经济学奖"},
+    "medicine": {"title": "医学与药学", "icon": "🏥", "prize": "生理学或医学奖", "awardLabel": "相关诺贝尔奖", "awardDetail": "诺贝尔生理学或医学奖"},
 }
 
 

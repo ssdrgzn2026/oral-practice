@@ -1,0 +1,353 @@
+{
+  "name": "地理与地质",
+  "icon": "🌍",
+  "desc": "研究地球表层自然环境与人类活动空间规律的科学",
+  "children": [
+    {
+      "id": "g-spheres",
+      "name": "地球圈层结构",
+      "icon": "🧅",
+      "desc": "从地核到大气层：一层一层认识地球",
+      "children": [
+        {
+          "id": "g-interior",
+          "name": "地球内部",
+          "desc": "地壳、地幔、地核：地震波是我们的透视眼",
+          "children": [
+            {
+              "id": "g-moho",
+              "name": "莫霍面与不连续面",
+              "desc": "地震波速突变揭示的圈层边界",
+              "nobel": [
+                { "year": 1909, "who": "莫霍洛维奇", "for": "发现地壳与地幔的分界面（莫霍面）" },
+                { "year": 1936, "who": "莱曼", "for": "发现地球固态内核" }
+              ]
+            },
+            {
+              "id": "g-dynamo",
+              "name": "地磁发电机",
+              "desc": "液态外核的对流维持地球磁场，保护生命",
+              "related": ["magnetism"]
+            }
+          ]
+        },
+        {
+          "id": "g-atmosphere",
+          "name": "大气圈",
+          "desc": "对流层到散逸层，天气与气候的舞台",
+          "nobel": [
+            { "year": 1896, "who": "阿伦尼乌斯", "for": "首次定量估算二氧化碳温室效应" }
+          ]
+        },
+        {
+          "id": "g-hydrosphere",
+          "name": "水圈与生物圈",
+          "desc": "海洋覆盖 71% 地表，水循环连接一切圈层",
+          "related": ["b-ecology"]
+        }
+      ]
+    },
+    {
+      "id": "g-tectonics",
+      "name": "板块构造与地质作用",
+      "icon": "🌋",
+      "desc": "漂浮的拼图：板块运动塑造海陆格局",
+      "children": [
+        {
+          "id": "g-drift",
+          "name": "从大陆漂移到板块构造",
+          "desc": "二十世纪地质学最伟大的革命",
+          "nobel": [
+            { "year": 1912, "who": "魏格纳", "for": "提出大陆漂移说" },
+            { "year": 1962, "who": "赫斯", "for": "提出海底扩张说" },
+            { "year": 1965, "who": "威尔逊", "for": "转换断层与板块构造理论确立" },
+            { "year": 1963, "who": "瓦因、马修斯", "for": "海底磁异常条带证实海底扩张" }
+          ],
+          "children": [
+            {
+              "id": "g-boundary",
+              "name": "板块边界",
+              "desc": "张裂、碰撞、错动：火山地震集中于此"
+            },
+            {
+              "id": "g-subduction",
+              "name": "俯冲带",
+              "desc": "大洋板块潜入地幔，造就海沟与岛弧"
+            }
+          ]
+        },
+        {
+          "id": "g-volcano",
+          "name": "火山",
+          "desc": "地球内部能量的出口，既毁灭也创造",
+          "children": [
+            {
+              "id": "g-magma",
+              "name": "岩浆与喷发类型",
+              "desc": "二氧化硅含量决定喷发是宁静还是爆裂",
+              "demo": { "sim": "states-of-matter", "title": "物态变化：岩浆与熔岩" }
+            }
+          ]
+        },
+        {
+          "id": "g-earthquake",
+          "name": "地震",
+          "desc": "断层突然错动释放能量，纵波快于横波",
+          "nobel": [
+            { "year": 1935, "who": "里克特", "for": "提出里氏震级" },
+            { "year": 1966, "who": "李四光", "for": "创立地质力学，指导找油与地震研究（大庆油田理论依据）" }
+          ]
+        },
+        {
+          "id": "g-mineral",
+          "name": "岩石与矿物",
+          "desc": "岩浆岩、沉积岩、变质岩三大循环",
+          "related": ["c-crystal"]
+        }
+      ]
+    },
+    {
+      "id": "g-landform",
+      "name": "地貌与河流",
+      "icon": "⛰️",
+      "desc": "内外力共同雕刻大地：山、谷、平原与海岸",
+      "children": [
+        {
+          "id": "g-erosion",
+          "name": "侵蚀与堆积",
+          "desc": "风化、流水、冰川、风：四大雕刻师",
+          "children": [
+            {
+              "id": "g-karst",
+              "name": "喀斯特地貌",
+              "desc": "水溶解石灰岩造就溶洞峰林，桂林山水甲天下",
+              "related": ["c-acid"]
+            },
+            {
+              "id": "g-loess",
+              "name": "黄土地貌",
+              "desc": "风力搬运的粉尘堆积成黄土高原",
+              "nobel": [
+                { "year": 1930, "who": "刘东生", "for": "黄土研究揭示 250 万年气候变迁（2003 国家最高科技奖）" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "g-river",
+          "name": "河流",
+          "desc": "从 V 形峡谷到三角洲：河流的一生",
+          "children": [
+            {
+              "id": "g-meander",
+              "name": "河曲与牛轭湖",
+              "desc": "凹岸侵蚀凸岸堆积，河道越来越弯"
+            }
+          ]
+        },
+        {
+          "id": "g-glacier",
+          "name": "冰川地貌",
+          "desc": "冰期遗留的 U 形谷与峡湾",
+          "nobel": [
+            { "year": 1837, "who": "阿加西", "for": "提出大冰期理论" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "g-climate",
+      "name": "气候与天气",
+      "icon": "🌦️",
+      "desc": "大气环流、气候带与极端天气的规律",
+      "children": [
+        {
+          "id": "g-weather",
+          "name": "天气系统",
+          "desc": "气团、锋面与气旋：天气预报的物理基础",
+          "demo": { "type": "canvas", "anim": "turbulence", "title": "大气湍流：天气为何难测" },
+          "related": ["fluid", "turbulence"],
+          "children": [
+            {
+              "id": "g-typhoon",
+              "name": "台风与气旋",
+              "desc": "热带海洋孕育的巨型涡旋"
+            },
+            {
+              "id": "g-chaos-weather",
+              "name": "蝴蝶效应",
+              "desc": "洛伦兹发现天气预报的混沌极限",
+              "related": ["m-chaos"],
+              "nobel": [
+                { "year": 1963, "who": "洛伦兹", "for": "发现大气对流的混沌特性（蝴蝶效应）" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "g-climate-zone",
+          "name": "气候带与季风",
+          "desc": "纬度、海陆、地形共同塑造气候格局",
+          "children": [
+            {
+              "id": "g-monsoon",
+              "name": "季风",
+              "desc": "海陆热力差异驱动的季节性风向反转"
+            }
+          ],
+          "nobel": [
+            { "year": 1935, "who": "竺可桢", "for": "开创中国物候学与历史气候变化研究" }
+          ]
+        },
+        {
+          "id": "g-greenhouse",
+          "name": "温室效应与气候变化",
+          "desc": "温室气体捕获红外辐射，工业革命以来升温超 1.1°C",
+          "demo": { "sim": "greenhouse-effect", "title": "温室效应模拟：光子与红外线的不同命运" },
+          "related": ["emwave", "b-climate"],
+          "nobel": [
+            { "year": 2021, "who": "真锅淑郎、哈塞尔曼", "for": "气候物理建模与全球变暖归因（诺贝尔物理学奖）" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "g-ocean",
+      "name": "海洋",
+      "icon": "🌊",
+      "desc": "地球最大的生态系统与气候调节器",
+      "demo": { "type": "canvas", "anim": "tide", "title": "潮汐：月球与太阳的引力之舞" },
+      "children": [
+        {
+          "id": "g-tide",
+          "name": "潮汐与波浪",
+          "desc": "天体引力差驱动海水涨落，朔望大潮",
+          "related": ["tide"],
+          "demo": { "type": "canvas", "anim": "tide", "title": "大潮与小潮的形成" }
+        },
+        {
+          "id": "g-current",
+          "name": "洋流",
+          "desc": "表层风海流与深层温盐环流：全球传送带",
+          "children": [
+            {
+              "id": "g-thermohaline",
+              "name": "温盐环流",
+              "desc": "密度驱动的深海传送带，一程需千年"
+            },
+            {
+              "id": "g-elnino",
+              "name": "厄尔尼诺",
+              "desc": "赤道太平洋水温异常引发全球气候连锁反应"
+            }
+          ]
+        },
+        {
+          "id": "g-deepsea",
+          "name": "深海与海底地形",
+          "desc": "海沟、洋中脊与热泉生态系统",
+          "nobel": [
+            { "year": 1977, "who": "阿尔文号深潜器团队", "for": "发现深海热泉生态系统（不依赖阳光的化能合成生命）" }
+          ],
+          "related": ["b-cell-energy"]
+        }
+      ]
+    },
+    {
+      "id": "g-cartography",
+      "name": "地图与地理信息",
+      "icon": "🗺️",
+      "desc": "把球面世界画到平面上：投影、比例尺与 GIS",
+      "children": [
+        {
+          "id": "g-projection",
+          "name": "地图投影",
+          "desc": "墨卡托保角、等积投影：球面无法无失真摊平",
+          "children": [
+            {
+              "id": "g-mercator",
+              "name": "墨卡托投影",
+              "desc": "航海图的标配，但格陵兰看起来和非洲一样大",
+              "nobel": [
+                { "year": 1569, "who": "墨卡托", "for": "发明墨卡托投影" }
+              ]
+            }
+          ],
+          "nobel": [
+            { "year": -240, "who": "埃拉托色尼", "for": "用井中影子测算地球周长，误差不足 2%" }
+          ]
+        },
+        {
+          "id": "g-gis",
+          "name": "GIS 与遥感",
+          "desc": "地理信息系统叠加分析图层，卫星遥感监测地表",
+          "related": ["cs-database"],
+          "children": [
+            {
+              "id": "g-gps",
+              "name": "卫星定位",
+              "desc": "北斗与 GPS：四颗卫星三角定位，相对论修正不可少",
+              "related": ["gr", "sr"],
+              "nobel": [
+                { "year": 2000, "who": "北斗工程（2020 组网完成）", "for": "中国建成全球卫星导航系统" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "g-human",
+      "name": "人地关系与自然灾害",
+      "icon": "🏘️",
+      "desc": "人类活动与地理环境的相互作用",
+      "children": [
+        {
+          "id": "g-urban",
+          "name": "城市化与人文地理",
+          "desc": "人口集聚、城市热岛与区域发展",
+          "children": [
+            {
+              "id": "g-heat-island",
+              "name": "城市热岛效应",
+              "desc": "混凝土与人为热让城市比郊区高几度"
+            }
+          ],
+          "nobel": [
+            { "year": 1933, "who": "克里斯塔勒", "for": "中心地理论：城市层级与服务区" }
+          ]
+        },
+        {
+          "id": "g-disaster",
+          "name": "自然灾害",
+          "desc": "地震、洪水、滑坡的监测与减灾",
+          "children": [
+            {
+              "id": "g-flood",
+              "name": "洪水与治水",
+              "desc": "从大禹治水到现代流域管理",
+              "nobel": [
+                { "year": 1998, "who": "（事件）长江特大洪水", "for": "推动中国建立全流域防洪体系与退耕还林" }
+              ]
+            },
+            {
+              "id": "g-landslide",
+              "name": "滑坡与泥石流",
+              "desc": "降雨诱发的山地灾害，预警是生命线"
+            }
+          ]
+        },
+        {
+          "id": "g-sustain",
+          "name": "可持续发展",
+          "desc": "绿水青山就是金山银山：协调人地关系",
+          "nobel": [
+            { "year": 1987, "who": "布伦特兰委员会", "for": "《我们共同的未来》定义可持续发展" },
+            { "year": 2015, "who": "联合国", "for": "通过 2030 年可持续发展目标（SDGs）" }
+          ],
+          "related": ["b-conservation"]
+        }
+      ]
+    }
+  ]
+}

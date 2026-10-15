@@ -1949,5 +1949,55 @@ window.PhyAnims = (function () {
         });
     };
 
+
+    /* 供需均衡：价格向均衡点收敛 */
+    registry["supplydemand"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var pad = 50;
+            ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(pad, h - pad); ctx.lineTo(w - pad, h - pad); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(pad, h - pad); ctx.lineTo(pad, pad); ctx.stroke();
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("数量 Q →", w / 2, h - pad + 18);
+            ctx.save(); ctx.translate(pad - 16, h / 2); ctx.rotate(-Math.PI / 2);
+            ctx.fillText("价格 P →", 0, 0); ctx.restore();
+
+            function S(x) { return h - pad - (x - pad) / (w - 2 * pad) * (h - 2 * pad); }
+            function D(x) { return pad + (x - pad) / (w - 2 * pad) * (h - 2 * pad); }
+            // 供给（上行红）与需求（下行蓝）
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = "#ef4444";
+            ctx.beginPath(); ctx.moveTo(pad, S(pad)); ctx.lineTo(w - pad, S(w - pad)); ctx.stroke();
+            ctx.strokeStyle = "#3b82f6";
+            ctx.beginPath(); ctx.moveTo(pad, D(pad)); ctx.lineTo(w - pad, D(w - pad)); ctx.stroke();
+            ctx.fillStyle = "#ef4444"; ctx.textAlign = "left";
+            ctx.fillText("供给 S", w - pad - 60, S(w - pad) - 8);
+            ctx.fillStyle = "#3b82f6";
+            ctx.fillText("需求 D", w - pad - 60, D(w - pad) + 16);
+
+            // 均衡点
+            var eqX = (w) / 2, eqY = h / 2;
+            ctx.strokeStyle = "#9ca3af"; ctx.setLineDash([4, 4]);
+            ctx.beginPath(); ctx.moveTo(eqX, eqY); ctx.lineTo(eqX, h - pad); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(pad, eqY); ctx.lineTo(eqX, eqY); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = "#111827";
+            ctx.beginPath(); ctx.arc(eqX, eqY, 6, 0, 7); ctx.fill();
+            ctx.fillText("均衡点 E", eqX + 40, eqY - 10);
+
+            // 市场价围绕均衡上下振荡并收敛
+            var osc = Math.sin(dt * 2.5) * Math.exp(-dt * 0.25) * h * 0.18;
+            var my = eqY + osc;
+            ctx.fillStyle = "#f59e0b";
+            ctx.beginPath(); ctx.arc(eqX, my, 7, 0, 7); ctx.fill();
+            ctx.fillStyle = "#b45309"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("市场价（黄点）偏离均衡就会回摆——「看不见的手」", w / 2, 18);
+        });
+    };
+
     return { start: start, stop: stop };
 })();

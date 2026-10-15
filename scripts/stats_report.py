@@ -117,6 +117,10 @@ PATH_NAMES = {
     "/graph/biology": "知识图谱·生物",
     "/graph/math": "知识图谱·数学",
     "/graph/cs": "知识图谱·计算机",
+    "/graph/astronomy": "知识图谱·天文",
+    "/graph/geography": "知识图谱·地理",
+    "/graph/economics": "知识图谱·经济",
+    "/graph/medicine": "知识图谱·医学",
     "/convert/": "格式转换",
     "/dcf/": "DCF",
 }
