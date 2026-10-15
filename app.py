@@ -87,9 +87,37 @@ def download_file(token, filename):
                            raw_url=f"/files/{token}/{quote(filename)}?raw=1")
 
 
+def is_atlas_host():
+    """万象星图独立站点域名"""
+    return request.host.split(":")[0] == "atlas.pingxu.xin"
+
+
 @app.route("/")
 def index():
+    if is_atlas_host():
+        return render_template("graphs.html", base="")
     return render_template("index.html")
+
+
+# ========== 万象星图独立站点（atlas.pingxu.xin）==========
+# 该域名下用短路径：/physics /star /physics?node=xx 等
+
+
+@app.route("/star")
+def atlas_star():
+    if not is_atlas_host():
+        return redirect("/graph/star")
+    return render_template("star.html", base="")
+
+
+@app.route("/<subject>")
+def atlas_subject(subject):
+    if not is_atlas_host():
+        return redirect(f"/graph/{subject}")
+    if subject not in GRAPH_SUBJECTS:
+        return redirect("/")
+    cfg = GRAPH_SUBJECTS[subject]
+    return render_template("graph.html", subject=subject, **cfg)
 
 
 @app.route("/convert")
@@ -160,7 +188,7 @@ GRAPH_SUBJECTS = {
 
 @app.route("/graph")
 def graph_home():
-    return render_template("graphs.html")
+    return render_template("graphs.html", base="/graph")
 
 
 @app.route("/graph/<subject>")
@@ -173,7 +201,10 @@ def graph_subject(subject):
 
 @app.route("/physics")
 def physics():
-    # 旧链接兼容：跳到学科版页面
+    # atlas 域名下 /physics 即学科页；oral 域名下兼容旧链接
+    if is_atlas_host():
+        cfg = GRAPH_SUBJECTS["physics"]
+        return render_template("graph.html", subject="physics", **cfg)
     return redirect("/graph/physics")
 
 
@@ -195,7 +226,7 @@ def physics_map():
 
 @app.route("/graph/star")
 def graph_star():
-    return render_template("star.html")
+    return render_template("star.html", base="/graph")
 
 
 @app.route("/api/graph-network")
