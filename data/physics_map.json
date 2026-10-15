@@ -4,6 +4,111 @@
   "desc": "研究物质、能量及其相互作用的基础自然科学",
   "children": [
     {
+      "id": "forces",
+      "name": "四种基本力",
+      "icon": "🧲",
+      "desc": "自然界所有相互作用都可归为四种基本力：强力、电磁力、弱力、引力。它们的强度相差 38 个数量级，统一它们是物理学的终极梦想",
+      "demo": {
+        "type": "canvas",
+        "anim": "forces",
+        "title": "四力强度对比（对数刻度）"
+      },
+      "children": [
+        {
+          "id": "force-strong",
+          "name": "强相互作用（强力）",
+          "desc": "最强的力，把夸克粘成质子、把核子捆成原子核；范围仅限原子核内（约10⁻¹⁵米），媒介粒子是胶子",
+          "demo": {
+            "sim": "build-an-atom",
+            "title": "搭建原子：核子如何被强力捆在一起"
+          },
+          "related": [
+            "quark",
+            "standard-model",
+            "neutron-star"
+          ]
+        },
+        {
+          "id": "force-em",
+          "name": "电磁力",
+          "desc": "我们日常生活中几乎一切现象（化学、光、电、材料的硬度）都来自它；无限远程，媒介粒子是光子",
+          "demo": {
+            "type": "canvas",
+            "anim": "emwave2",
+            "title": "电磁波的传播"
+          },
+          "related": [
+            "em",
+            "maxwell",
+            "optics",
+            "laser",
+            "photoelectric"
+          ]
+        },
+        {
+          "id": "force-weak",
+          "name": "弱相互作用（弱力）",
+          "desc": "引起 β 衰变，是太阳发光（氢聚变点火）的关键；范围最短（10⁻¹⁸米），媒介粒子是 W 和 Z 玻色子",
+          "demo": {
+            "sim": "beta-decay",
+            "title": "β 衰变：弱力改变原子核"
+          },
+          "related": [
+            "neutrino",
+            "higgs",
+            "beyond",
+            "supernova"
+          ]
+        },
+        {
+          "id": "force-gravity",
+          "name": "引力",
+          "desc": "最弱的力（比强力弱 38 个数量级），但因为只吸引且无限叠加，主宰了宇宙大尺度结构；广义相对论中它是时空弯曲",
+          "demo": {
+            "type": "canvas",
+            "anim": "gravity2",
+            "title": "质量压弯时空"
+          },
+          "related": [
+            "gravitation",
+            "gr",
+            "blackhole",
+            "gw",
+            "cosmology",
+            "darkenergy"
+          ]
+        },
+        {
+          "id": "unification",
+          "name": "大统一之梦",
+          "desc": "电磁力与弱力已在高能下统一为电弱力；强力纳入标准模型；唯独引力还未被量子化——弦理论、圈量子引力都在尝试",
+          "related": [
+            "standard-model",
+            "beyond",
+            "gr",
+            "quantum"
+          ],
+          "nobel": [
+            {
+              "year": 1979,
+              "who": "格拉肖、萨拉姆、温伯格",
+              "for": "电弱统一理论（电磁力+弱力统一）"
+            },
+            {
+              "year": 1999,
+              "who": "特霍夫特、韦尔特曼",
+              "for": "电弱理论的量子化"
+            },
+            {
+              "year": 2004,
+              "who": "格罗斯、波利策、维尔切克",
+              "for": "强力的渐近自由（强作用纳入规范理论）"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "mechanics",
       "name": "经典力学",
       "icon": "🪐",

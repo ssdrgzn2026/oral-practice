@@ -1387,5 +1387,42 @@ window.PhyAnims = (function () {
         });
     };
 
+
+    /* 四种基本力对比：强度与作用范围 */
+    registry["forces"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        var forces = [
+            { name: "强力", rel: 1, range: "10⁻¹⁵ m", carrier: "胶子", color: "#ef4444" },
+            { name: "电磁力", rel: 1e-2, range: "∞", carrier: "光子", color: "#f59e0b" },
+            { name: "弱力", rel: 1e-13, range: "10⁻¹⁸ m", carrier: "W/Z 玻色子", color: "#10b981" },
+            { name: "引力", rel: 1e-38, range: "∞", carrier: "引力子（未证实）", color: "#6366f1" },
+        ];
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var pad = 60, bh = (h - 110) / 4;
+            // 对数坐标：log10(强度) 从 -38 到 0
+            function xOf(v) { return pad + (Math.log10(v) + 38) / 38 * (w - pad - 30); }
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("相对强度（对数刻度，差 38 个数量级！）", w / 2, 16);
+            forces.forEach(function (f, i) {
+                var y = 34 + i * (bh + 8);
+                var prog = Math.min(1, Math.max(0, dt - i * 0.4) / 1.2);
+                var xe = xOf(f.rel);
+                ctx.fillStyle = f.color;
+                ctx.fillRect(pad, y, Math.max(3, (xe - pad) * prog), bh);
+                ctx.fillStyle = "#111827"; ctx.textAlign = "right"; ctx.font = "bold 13px sans-serif";
+                ctx.fillText(f.name, pad - 8, y + bh / 2 + 4);
+                if (prog > 0.9) {
+                    ctx.fillStyle = "#6b7280"; ctx.textAlign = "left"; ctx.font = "11px sans-serif";
+                    ctx.fillText("范围 " + f.range + "　媒介 " + f.carrier, xe + 6, y + bh / 2 + 4);
+                }
+            });
+            ctx.fillStyle = "#6b7280"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("引力最弱却主宰宇宙——因为它只有吸引、且可以无限叠加", w / 2, h - 10);
+        });
+    };
+
     return { start: start, stop: stop };
 })();

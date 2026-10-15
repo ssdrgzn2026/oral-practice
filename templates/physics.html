@@ -23,6 +23,7 @@
             </div>
 
             <div class="card" id="node-info"></div>
+            <div id="related-box" class="card" style="display:none;"></div>
 
             <div class="card" id="demo-box" style="display:none;"></div>
 
@@ -64,6 +65,21 @@
         var aiTitle = document.getElementById("ai-title");
 
         function cur() { return path.length ? path[path.length - 1] : tree; }
+
+        // 按 id 查找节点链 / 名称
+        function findChain(node, id, chain) {
+            if (node.id === id) return chain.concat([node]);
+            var kids = node.children || [];
+            for (var i = 0; i < kids.length; i++) {
+                var r = findChain(kids[i], id, chain.concat([node]));
+                if (r) return r;
+            }
+            return null;
+        }
+        function nameOf(id) {
+            var c = findChain(tree, id, []);
+            return c ? c[c.length - 1].name : null;
+        }
 
         // 轻量 Markdown 渲染（标题/加粗/列表/分隔线/行内公式）
         var GREEK = { "\\alpha": "α", "\\beta": "β", "\\gamma": "γ", "\\delta": "δ", "\\nu": "ν",
@@ -154,6 +170,30 @@
                 "<h2>" + (node.icon || "📘") + " " + esc(node.name) + "</h2>" +
                 "<p style='margin-top:6px;'>" + esc(node.desc || "") + "</p>" +
                 (path.length ? "" : "<p class='hint' style='margin-top:6px;'>点击任意分支开始深入；每个知识点旁的 💬 可以随时向 AI 提问</p>");
+
+            // 相关知识点直达（如四种基本力 → 各分支）
+            var relBox = document.getElementById("related-box");
+            if (node.related && node.related.length) {
+                relBox.style.display = "block";
+                relBox.innerHTML = "<span class='hint'>📍 在图谱中的位置：</span>" +
+                    node.related.map(function (rid) {
+                        return '<button class="nobel-chip rel-link" data-id="' + rid + '">' + esc(nameOf(rid) || rid) + "</button>";
+                    }).join("");
+                relBox.querySelectorAll(".rel-link").forEach(function (b) {
+                    b.addEventListener("click", function () {
+                        var chain = findChain(tree, b.dataset.id, []);
+                        if (chain) {
+                            path = chain.filter(function (n) { return n.id; });  // 去掉根节点
+                            aiPanel.style.display = "none";
+                            render();
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                        }
+                    });
+                });
+            } else {
+                relBox.style.display = "none";
+                relBox.innerHTML = "";
+            }
 
             // 相关诺贝尔奖（聚合本节点及所有子孙节点，按年份排列；可点击展开 AI 详解）
             var nobelBox = document.getElementById("nobel-box");
