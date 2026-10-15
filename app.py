@@ -153,6 +153,7 @@ GRAPH_SUBJECTS = {
     "history": {"title": "历史", "icon": "📜", "prize": "", "awardLabel": "历史大事记", "awardDetail": "历史大事记"},
     "law": {"title": "法学", "icon": "⚖️", "prize": "", "awardLabel": "法治里程碑", "awardDetail": "法治里程碑"},
     "engineering": {"title": "工程学", "icon": "⚙️", "prize": "", "awardLabel": "工程里程碑", "awardDetail": "工程里程碑"},
+    "buddhism": {"title": "佛学", "icon": "🪷", "prize": "", "awardLabel": "佛学大事记", "awardDetail": "佛学大事记"},
 }
 
 
