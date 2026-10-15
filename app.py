@@ -88,7 +88,7 @@ def download_file(token, filename):
 
 
 def is_atlas_host():
-    """万象星图独立站点域名"""
+    """学科星图独立站点域名"""
     return request.host.split(":")[0] == "atlas.pingxu.xin"
 
 
@@ -99,7 +99,7 @@ def index():
     return render_template("index.html")
 
 
-# ========== 万象星图独立站点（atlas.pingxu.xin）==========
+# ========== 学科星图独立站点（atlas.pingxu.xin）==========
 # 该域名下用短路径：/physics /star /physics?node=xx 等
 
 

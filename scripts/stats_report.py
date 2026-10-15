@@ -111,7 +111,7 @@ PATH_NAMES = {
     "/tickets": "票务",
     "/portal": "网站导航",
     "/physics": "物理知识图谱",
-    "/graph": "万象星图",
+    "/graph": "学科星图",
     "/graph/physics": "星图·物理",
     "/graph/chemistry": "星图·化学",
     "/graph/biology": "星图·生物",
