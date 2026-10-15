@@ -23,7 +23,7 @@
 <body>
     <div class="app">
         <header class="header">
-            <h1>🌌 知识星图</h1>
+            <h1>🌌 知识星图<span id="star-sub"></span></h1>
             <p class="subtitle">所有学科是一张网——拖动探索，点击星体进入知识点</p>
             <p class="back-home"><a href="/graph">← 返回知识图谱</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="/">返回 MiscHub 首页</a></p>
         </header>
@@ -59,6 +59,8 @@
             engineering: "工程", buddhism: "佛学",
         };
         var activeSubject = "all";
+        var qs = new URLSearchParams(location.search).get("s");
+        if (qs && SUBJECT_COLORS[qs]) activeSubject = qs;
         var canvas = document.getElementById("star-canvas");
         var tip = document.getElementById("tip");
         var ctx = canvas.getContext("2d");
@@ -87,8 +89,12 @@
                 n.r = 3 + Math.min(n.kids * 1.2, 8) + (n.depth <= 1 ? 2 : 0);
             });
             links = links.filter(function (l) { return nodeById[l.source] && nodeById[l.target]; });
+            nodes.forEach(function (n) { n.hidden = activeSubject !== "all" && n.subject !== activeSubject; });
             // 图例
             renderLegend();
+            if (activeSubject !== "all") {
+                document.getElementById("star-sub").textContent = " · " + SUBJECT_NAMES[activeSubject];
+            }
             resize();
             requestAnimationFrame(tick);
         });
