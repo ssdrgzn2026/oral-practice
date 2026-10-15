@@ -1175,3 +1175,21 @@ body { line-height: 1.65; }
 }
 
 .md-table tr:nth-child(even) td { background: #fafafa; }
+
+/* ===== 跨分支跳转返回条 ===== */
+.back-bar {
+    margin: 0 0 10px;
+    font-size: 0.9rem;
+}
+
+.back-bar a {
+    display: inline-block;
+    color: #4338ca;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    border-radius: 999px;
+    padding: 4px 14px;
+    text-decoration: none;
+}
+
+.back-bar a:hover { background: #e0e7ff; }

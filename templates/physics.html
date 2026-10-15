@@ -16,6 +16,7 @@
 
         <main class="main">
             <div id="crumbs" class="crumbs"></div>
+            <div id="back-bar" class="back-bar" style="display:none;"></div>
 
             <div class="phy-search">
                 <input type="text" id="phy-search" placeholder="🔍 查找知识点，如：熵、黑洞、激光…">
@@ -56,6 +57,7 @@
     (function () {
         var tree = null;
         var path = [];  // 当前下钻路径上的节点
+        var navStack = [];  // 跨分支跳转的来路（用于返回）
 
         var crumbs = document.getElementById("crumbs");
         var nodeInfo = document.getElementById("node-info");
@@ -149,6 +151,22 @@
 
         function render() {
             var node = cur();
+            // 跨分支跳转的返回条
+            var backBar = document.getElementById("back-bar");
+            if (navStack.length) {
+                var src = navStack[navStack.length - 1];
+                var srcName = src.length ? src[src.length - 1].name : "物理学";
+                backBar.style.display = "block";
+                backBar.innerHTML = '<a href="#" id="back-link">↩ 返回 ' + esc(srcName) + "</a>";
+                document.getElementById("back-link").addEventListener("click", function (e) {
+                    e.preventDefault();
+                    path = navStack.pop();
+                    aiPanel.style.display = "none";
+                    render();
+                });
+            } else {
+                backBar.style.display = "none";
+            }
             // 面包屑
             var trail = ['<a href="#" data-i="-1" class="crumb">⚛️ 物理学</a>'];
             path.forEach(function (n, i) {
@@ -183,6 +201,7 @@
                     b.addEventListener("click", function () {
                         var chain = findChain(tree, b.dataset.id, []);
                         if (chain) {
+                            navStack.push(path.slice());  // 记住来路
                             path = chain.filter(function (n) { return n.id; });  // 去掉根节点
                             aiPanel.style.display = "none";
                             render();
@@ -430,6 +449,7 @@
                 searchResults.querySelectorAll(".phy-hit").forEach(function (el) {
                     el.addEventListener("click", function () {
                         var entry = flatIndex[+el.dataset.i];
+                        navStack.push(path.slice());  // 记住来路
                         path = entry.chain;
                         aiPanel.style.display = "none";
                         render();

@@ -1,5 +1,5 @@
 /* MiscHub Service Worker：只缓存静态资源，页面和接口始终走网络 */
-const CACHE = "mischub-static-v3";
+const CACHE = "mischub-static-v4";
 const STATIC = [
     "/static/css/style.css",
     "/static/js/track.js",
