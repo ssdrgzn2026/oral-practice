@@ -15,6 +15,7 @@
         <header class="header">
             <h1>{{ icon }} {{ title }}知识图谱</h1>
             <p class="subtitle">从顶层分支逐层深入，💬 随时问 AI 拓展</p>
+            <p class="level-switch">读者身份：<b id="level-now"></b> <a href="/" onclick="localStorage.removeItem('atlas_level')" id="level-change">切换</a></p>
             <p class="back-home"><a href="/graph">← 返回学科星图</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="/graph/star?s={{ subject }}">🌌 本科星图</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="/">返回首页</a></p>
         </header>
 
@@ -310,7 +311,9 @@
             aiTitle.textContent = title || "🤖 AI 解答";
             aiOutput.textContent = "思考中…";
             aiPanel.scrollIntoView({ behavior: "smooth" });
-            chatCtx = [{ role: "user", content: prompt }];
+            chatCtx = [{ role: "user", content: (window.AtlasLevel ? AtlasLevel.directive() + "
+
+" : "") + prompt }];
             fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -434,7 +437,9 @@
             aiPanel.scrollIntoView({ behavior: "smooth" });
             chatCtx = [{
                 role: "user",
-                content: "你是一位苏格拉底式导师，正在引导我学习「" + n.name + "」（" + (n.desc || "") + "）。" +
+                content: (window.AtlasLevel ? AtlasLevel.directive() + "
+
+" : "") + "你是一位苏格拉底式导师，正在引导我学习「" + n.name + "」（" + (n.desc || "") + "）。" +
                     "规则：1. 不要直接讲答案，每次只问一个由浅入深的引导性问题，等我回答后再追问；" +
                     "2. 评价我的回答：如果理解有误，温和地指出矛盾之处引导我自我纠正；" +
                     "3. 每次你的回复末尾必须附上标记【掌握度：N】，N 是你对我当前理解程度的评估（0=未入门，1=初步了解，2=基本理解，3=融会贯通），评估要在标记前用一句话说明理由；" +
@@ -467,6 +472,11 @@
         }
 
         document.getElementById("ai-socratic").addEventListener("click", askSocratic);
+
+        if (window.AtlasLevel) {
+            var el = document.getElementById("level-now");
+            if (el) el.textContent = AtlasLevel.info().icon + " " + AtlasLevel.info().name;
+        }
 
         fetch("/api/graph-map/" + SUBJECT)
             .then(function (r) { return r.json(); })
@@ -542,6 +552,7 @@
         });
     })();
     </script>
+    <script src="/static/js/level.js"></script>
     <script src="/static/js/phy_anims.js"></script>
     <script src="/static/js/track.js"></script>
     <script src="/static/js/pwa.js"></script>

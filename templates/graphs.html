@@ -16,10 +16,18 @@
         <header class="header">
             <h1>📚 学科星图</h1>
             <p class="subtitle">学科如繁星——选择学科，从顶层分支逐层深入</p>
+            <p class="level-switch">当前身份：<b id="level-now"></b> <a href="#" id="level-change">切换</a></p>
             {% if base %}<p class="back-home"><a href="/">← 返回 MiscHub 首页</a></p>{% endif %}
         </header>
 
         <main class="main">
+            <!-- 读者身份（首次访问弹出选择，默认普通成年人） -->
+            <div class="card" id="level-welcome" style="display:none; text-align:center;">
+                <h3>👋 欢迎来到学科星图</h3>
+                <p style="margin:6px 0 12px;">选一下你的身份，AI 讲解会按你的层次调整深度（随时可以换）</p>
+                <div class="level-btns" id="level-welcome-btns"></div>
+            </div>
+
             <!-- 站点介绍 -->
             <div class="card atlas-hero">
                 <p>把每一门学科拆成一棵可以下钻的知识树：<b>互动演示</b>帮你看见抽象概念，<b>AI 讲解与苏格拉底导学</b>陪你学会它，<b>奖项与大事记时间线</b>带你看清学科的发展脉络。</p>
@@ -131,6 +139,38 @@
             <p class="icp">京ICP备2026035074号-1 | 京公网安备11010802048950号</p>
         </footer>
     </div>
+    <script src="/static/js/level.js"></script>
+    <script>
+    (function () {
+        var L = window.AtlasLevel;
+        function paint() {
+            document.getElementById("level-now").textContent = L.info().icon + " " + L.info().name;
+        }
+        paint();
+        // 首次访问：弹出身份选择
+        if (!localStorage.getItem("atlas_level")) {
+            var w = document.getElementById("level-welcome");
+            w.style.display = "block";
+            var box = document.getElementById("level-welcome-btns");
+            box.innerHTML = Object.keys(L.LEVELS).map(function (k) {
+                var v = L.LEVELS[k];
+                return '<button class="btn ' + (k === "adult" ? "primary" : "secondary") + '" data-lv="' + k + '">' + v.icon + " " + v.name + "</button>";
+            }).join("");
+            box.querySelectorAll("button").forEach(function (b) {
+                b.addEventListener("click", function () {
+                    L.set(b.dataset.lv);
+                    w.style.display = "none";
+                    paint();
+                });
+            });
+        }
+        document.getElementById("level-change").addEventListener("click", function (e) {
+            e.preventDefault();
+            localStorage.removeItem("atlas_level");
+            location.reload();
+        });
+    })();
+    </script>
     <script src="/static/js/track.js"></script>
     <script src="/static/js/pwa.js"></script>
     <script>
