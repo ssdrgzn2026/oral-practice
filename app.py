@@ -203,9 +203,7 @@ def graph_network():
 
         def walk(node, parent_id, depth):
             nid = node.get("id")
-            if not nid:
-                return
-            if nid not in seen:
+            if nid and nid not in seen:
                 seen.add(nid)
                 nodes.append({
                     "id": nid,
@@ -215,10 +213,11 @@ def graph_network():
                     "depth": depth,
                     "kids": len(node.get("children", [])),
                 })
-            if parent_id:
+            if nid and parent_id:
                 links.append({"source": parent_id, "target": nid, "kind": "tree"})
-            for rid in node.get("related", []):
-                links.append({"source": nid, "target": rid, "kind": "rel"})
+            if nid:
+                for rid in node.get("related", []):
+                    links.append({"source": nid, "target": rid, "kind": "rel"})
             for c in node.get("children", []):
                 walk(c, nid, depth + 1)
 
