@@ -1424,5 +1424,403 @@ window.PhyAnims = (function () {
         });
     };
 
+
+    /* 进化：种群颜色随选择漂变 */
+    registry["evolution"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        var pop = [];
+        for (var i = 0; i < 40; i++) pop.push({ x: Math.random(), y: Math.random(), green: Math.random() > 0.7 });
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            // 每 3 秒淘汰一部分棕色（不适应环境）
+            if (Math.floor(dt) % 3 === 0 && Math.floor(dt * 10) % 10 === 0) {
+                pop.forEach(function (p) { if (!p.green && Math.random() < 0.06) p.green = true; });
+            }
+            pop.forEach(function (p, i) {
+                p.x += Math.sin(dt + i) * 0.0015; p.y += Math.cos(dt * 0.8 + i) * 0.0015;
+                ctx.fillStyle = p.green ? "#10b981" : "#b45309";
+                ctx.beginPath(); ctx.arc(p.x * w, p.y * h, 6, 0, 7); ctx.fill();
+            });
+            var ng = pop.filter(function (p) { return p.green; }).length;
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("适应者（绿）占比：" + Math.round(ng / 40 * 100) + "%——自然选择让有利性状扩散", w / 2, 18);
+        });
+    };
+
+    /* 细胞分裂：一分为二 */
+    registry["cell-division"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = ((t - t0) / 1000) % 6, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var cx = w / 2, cy = h / 2;
+            var sep = Math.max(0, (dt - 1.5) / 3);
+            var squeeze = Math.min(1, dt / 1.5);
+            // 细胞
+            ctx.fillStyle = "rgba(147,197,253,0.5)"; ctx.strokeStyle = "#3b82f6"; ctx.lineWidth = 2;
+            var R = Math.min(w, h) * 0.22;
+            ctx.beginPath();
+            ctx.ellipse(cx - sep * w * 0.18, cy, R * (1 + squeeze * 0.2), R * (1 - squeeze * 0.15 + sep * 0.1), 0, 0, 7);
+            ctx.fill(); ctx.stroke();
+            if (sep > 0.3) {
+                ctx.beginPath();
+                ctx.ellipse(cx + sep * w * 0.18, cy, R * (1 + squeeze * 0.2), R, 0, 0, 7);
+                ctx.fill(); ctx.stroke();
+            }
+            // 染色体排列分开
+            ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 3;
+            var nChr = 4;
+            for (var i = 0; i < nChr; i++) {
+                var yy = cy - 24 + i * 16;
+                if (dt < 1.5) {
+                    ctx.beginPath(); ctx.moveTo(cx - 8, yy); ctx.lineTo(cx + 8, yy); ctx.stroke();
+                } else {
+                    ctx.beginPath(); ctx.moveTo(cx - sep * w * 0.18 - 10, yy); ctx.lineTo(cx - sep * w * 0.18, yy); ctx.stroke();
+                    if (sep > 0.3) {
+                        ctx.beginPath(); ctx.moveTo(cx + sep * w * 0.18, yy); ctx.lineTo(cx + sep * w * 0.18 + 10, yy); ctx.stroke();
+                    }
+                }
+            }
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText(dt < 1.5 ? "染色体复制后排列到中央" : sep < 0.3 ? "染色体被拉向两极" : "细胞质分裂：一个变两个", w / 2, 18);
+            ctx.fillStyle = "#6b7280";
+            ctx.fillText("有丝分裂：每个子细胞得到一套完整遗传物质", w / 2, h - 12);
+        });
+    };
+
+    /* 神经元：动作电位沿轴突传导 */
+    registry["neuron"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            // 胞体
+            ctx.fillStyle = "#818cf8";
+            ctx.beginPath(); ctx.arc(w * 0.12, h / 2, 22, 0, 7); ctx.fill();
+            // 轴突
+            ctx.strokeStyle = "#818cf8"; ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.moveTo(w * 0.12, h / 2); ctx.lineTo(w * 0.88, h / 2); ctx.stroke();
+            // 电信号脉冲
+            var px = w * 0.12 + ((dt * 140) % (w * 0.76));
+            ctx.fillStyle = "#f59e0b";
+            ctx.beginPath(); ctx.arc(px, h / 2, 9, 0, 7); ctx.fill();
+            // 突触释放
+            if (px > w * 0.8) {
+                ctx.fillStyle = "#ef4444";
+                for (var i = 0; i < 6; i++) {
+                    ctx.beginPath(); ctx.arc(w * 0.9 + Math.cos(i) * 12 * ((dt * 3) % 1), h / 2 + Math.sin(i * 2) * 16 * ((dt * 3) % 1), 3, 0, 7); ctx.fill();
+                }
+            }
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("动作电位（黄）沿轴突传导，末端释放神经递质（红）", w / 2, 18);
+        });
+    };
+
+    /* 捕食者-猎物振荡（Lotka-Volterra） */
+    registry["ecosystem"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var pad = 46;
+            ctx.strokeStyle = "#9ca3af";
+            ctx.beginPath(); ctx.moveTo(pad, h - pad); ctx.lineTo(w - pad, h - pad); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(pad, h - pad); ctx.lineTo(pad, pad); ctx.stroke();
+            // 数值积分 Lotka-Volterra
+            var prey = 40, pred = 9, x = 0, ddt = 0.02;
+            var preyPts = [], predPts = [];
+            for (var i = 0; i < 900; i++) {
+                preyPts.push(prey); predPts.push(pred);
+                var dp = (0.6 * prey - 0.02 * prey * pred) * ddt;
+                var dq = (-0.5 * pred + 0.015 * prey * pred) * ddt;
+                prey += dp; pred += dq;
+            }
+            function draw(pts, color, maxV) {
+                ctx.strokeStyle = color; ctx.lineWidth = 2;
+                ctx.beginPath();
+                var show = Math.floor(Math.min(1, (dt % 12) / 4) * pts.length);
+                for (var i2 = 0; i2 < show; i2++) {
+                    var X = pad + i2 / pts.length * (w - 2 * pad);
+                    var Y = h - pad - pts[i2] / maxV * (h - 2 * pad);
+                    i2 === 0 ? ctx.moveTo(X, Y) : ctx.lineTo(X, Y);
+                }
+                ctx.stroke();
+            }
+            draw(preyPts, "#10b981", 120);
+            draw(predPts, "#ef4444", 120);
+            ctx.fillStyle = "#10b981"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
+            ctx.fillText("猎物（兔）", pad + 10, pad + 4);
+            ctx.fillStyle = "#ef4444";
+            ctx.fillText("捕食者（狐）", pad + 80, pad + 4);
+            ctx.fillStyle = "#374151"; ctx.textAlign = "center";
+            ctx.fillText("兔多 → 狐多 → 兔少 → 狐少 → 兔多……生态系统的周期振荡", w / 2, h - 12);
+        });
+    };
+
+    /* 导数：曲线上的切线与斜率 */
+    registry["derivative"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var pad = 40;
+            function f(x) { return (x - w * 0.3) * (x - w * 0.7) * 0.004; }
+            function df(x) { return (2 * x - w) * 0.004; }
+            ctx.strokeStyle = "#9ca3af";
+            ctx.beginPath(); ctx.moveTo(pad, h - pad + 60); ctx.lineTo(w - pad, h - pad + 60); ctx.stroke();
+            // 曲线
+            ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            for (var x = 20; x < w - 20; x += 4) {
+                var y = h * 0.6 - (f(x) - f(w / 2)) * 30;
+                x === 20 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            // 切线滑动
+            var px = w * 0.3 + (Math.sin(dt * 0.7) + 1) / 2 * w * 0.4;
+            var py = h * 0.6 - (f(px) - f(w / 2)) * 30;
+            var slope = df(px) * 30;
+            ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(px - 50, py + slope * 50);
+            ctx.lineTo(px + 50, py - slope * 50);
+            ctx.stroke();
+            ctx.fillStyle = "#ef4444";
+            ctx.beginPath(); ctx.arc(px, py, 6, 0, 7); ctx.fill();
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("切线斜率 = 导数（该点的瞬时变化率）", w / 2, 20);
+            ctx.fillStyle = "#ef4444";
+            ctx.fillText("f'(x) = " + df(px).toFixed(2), px, py - 14);
+        });
+    };
+
+    /* 单位圆生成正弦波 */
+    registry["sine"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var cx = w * 0.22, cy = h * 0.55, R = Math.min(w, h) * 0.32;
+            ctx.strokeStyle = "#9ca3af";
+            ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
+            var a = dt * 1.5;
+            var px = cx + Math.cos(-a) * R, py = cy + Math.sin(-a) * R;
+            ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.stroke();
+            ctx.fillStyle = "#ef4444";
+            ctx.beginPath(); ctx.arc(px, py, 6, 0, 7); ctx.fill();
+            // 正弦波
+            ctx.strokeStyle = "#ef4444";
+            ctx.beginPath();
+            for (var x = 0; x < w * 0.6; x += 3) {
+                var y = cy + Math.sin(-(x / R + a)) * R * 0 + Math.sin(-(x / R + a)) * 0; // placeholder
+                var yy = cy - Math.sin(x / R + a) * R * 0.6;
+                x === 0 ? ctx.moveTo(w * 0.38 + x, yy) : ctx.lineTo(w * 0.38 + x, yy);
+            }
+            ctx.stroke();
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("单位圆上点的纵坐标展开成正弦波", w / 2, 18);
+        });
+    };
+
+    /* 高尔顿板：正态分布的形成 */
+    registry["normaldist"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        var balls = [];
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            // 钉子
+            var rows = 7;
+            ctx.fillStyle = "#9ca3af";
+            for (var r = 0; r < rows; r++) {
+                for (var i = 0; i <= r; i++) {
+                    var nx = w / 2 + (i - r / 2) * w * 0.09;
+                    var ny = h * 0.18 + r * h * 0.07;
+                    ctx.beginPath(); ctx.arc(nx, ny, 3, 0, 7); ctx.fill();
+                }
+            }
+            // 落球
+            if (Math.floor(dt * 6) > balls.length && balls.length < 160) {
+                var x = w / 2;
+                for (var r2 = 0; r2 < rows; r2++) x += (Math.random() > 0.5 ? 1 : -1) * w * 0.045;
+                balls.push(x);
+            }
+            // 底部分布
+            var bins = {};
+            balls.forEach(function (bx) {
+                var b = Math.round(bx / (w * 0.045)) ;
+                bins[b] = (bins[b] || 0) + 1;
+            });
+            ctx.fillStyle = "#6366f1";
+            Object.keys(bins).forEach(function (k) {
+                var bx = k * w * 0.045;
+                var bh = bins[k] * 3;
+                ctx.fillRect(bx - w * 0.02, h - 30 - bh, w * 0.04, bh);
+            });
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("每个小球随机左右偏 → 底部自然堆成钟形曲线（正态分布）", w / 2, 16);
+        });
+    };
+
+    /* 冒泡排序可视化 */
+    registry["sortbars"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        var arr = [];
+        for (var i = 0; i < 24; i++) arr.push(0.1 + Math.random() * 0.9);
+        var ii = 0, jj = 0, sorted = false, lastSwap = 0;
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = t / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            if (!sorted && t - lastSwap > 90) {
+                lastSwap = t;
+                if (arr[jj] > arr[jj + 1]) { var tmp = arr[jj]; arr[jj] = arr[jj + 1]; arr[jj + 1] = tmp; }
+                jj++;
+                if (jj >= arr.length - 1 - ii) { jj = 0; ii++; }
+                if (ii >= arr.length - 1) sorted = true;
+            }
+            var bw = w / arr.length;
+            arr.forEach(function (v, i3) {
+                var isActive = !sorted && (i3 === jj || i3 === jj + 1);
+                ctx.fillStyle = sorted ? "#10b981" : isActive ? "#ef4444" : "#6366f1";
+                ctx.fillRect(i3 * bw + 1, h - 40 - v * (h - 90), bw - 2, v * (h - 90));
+            });
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText(sorted ? "排序完成！相邻比较、大的往后冒——冒泡排序" : "冒泡排序进行中：红色是正在比较的一对", w / 2, 18);
+        });
+    };
+
+    /* 二分查找 */
+    registry["binsearch"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        var N = 20;
+        var arr = []; for (var i = 0; i < N; i++) arr.push(i * 5 + 2);
+        var target = arr[Math.floor(Math.random() * N)];
+        var lo = 0, hi = N - 1, mid = -1, done = false, stepT = 0;
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            if (!done && t - stepT > 1100) {
+                stepT = t;
+                mid = Math.floor((lo + hi) / 2);
+                if (arr[mid] === target) done = true;
+                else if (arr[mid] < target) lo = mid + 1;
+                else hi = mid - 1;
+            }
+            var bw = (w - 60) / N;
+            arr.forEach(function (v, i2) {
+                var inRange = i2 >= lo && i2 <= hi;
+                ctx.fillStyle = done && i2 === mid ? "#10b981" : i2 === mid ? "#ef4444" : inRange ? "#6366f1" : "#d1d5db";
+                ctx.fillRect(30 + i2 * bw, h * 0.35, bw - 3, 26);
+                ctx.fillStyle = "#fff"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+                ctx.fillText(v, 30 + i2 * bw + bw / 2 - 1, h * 0.35 + 17);
+            });
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("在有序数组中找 " + target + "：每次排除一半（灰色已排除）", w / 2, 18);
+            ctx.fillText(done ? "找到了！大约只用了 " + Math.ceil(Math.log2(20)) + " 步" : "查找中…", w / 2, h - 14);
+        });
+    };
+
+    /* 二进制位 */
+    registry["binarybits"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var n = Math.floor(dt * 2) % 256;
+            var bits = n.toString(2).padStart(8, "0");
+            var bw = w * 0.09;
+            for (var i = 0; i < 8; i++) {
+                var on = bits[i] === "1";
+                var x = w / 2 + (i - 3.5) * bw * 1.25;
+                ctx.fillStyle = on ? "#4f46e5" : "#e5e7eb";
+                ctx.beginPath(); ctx.arc(x, h * 0.45, bw * 0.5, 0, 7); ctx.fill();
+                ctx.fillStyle = on ? "#fff" : "#9ca3af";
+                ctx.font = "bold 16px sans-serif"; ctx.textAlign = "center";
+                ctx.fillText(bits[i], x, h * 0.45 + 6);
+            }
+            ctx.fillStyle = "#374151"; ctx.font = "13px sans-serif";
+            ctx.fillText(bits + "₂ = " + n + "₁₀", w / 2, h * 0.72);
+            ctx.font = "12px sans-serif"; ctx.fillStyle = "#6b7280";
+            ctx.fillText("计算机只认识 0 和 1：8 位可以表示 0~255", w / 2, h - 12);
+        });
+    };
+
+    /* 网络包路由 */
+    registry["network"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        var nodes = [
+            [0.12, 0.5], [0.35, 0.25], [0.35, 0.75], [0.6, 0.4], [0.6, 0.7], [0.88, 0.5],
+        ];
+        var edges = [[0, 1], [0, 2], [1, 3], [2, 4], [3, 5], [4, 5], [1, 4], [2, 3]];
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            ctx.strokeStyle = "#c7d2fe"; ctx.lineWidth = 2;
+            edges.forEach(function (e) {
+                ctx.beginPath();
+                ctx.moveTo(nodes[e[0]][0] * w, nodes[e[0]][1] * h);
+                ctx.lineTo(nodes[e[1]][0] * w, nodes[e[1]][1] * h);
+                ctx.stroke();
+            });
+            nodes.forEach(function (n, i) {
+                ctx.fillStyle = i === 0 ? "#10b981" : i === 5 ? "#ef4444" : "#6366f1";
+                ctx.beginPath(); ctx.arc(n[0] * w, n[1] * h, 10, 0, 7); ctx.fill();
+            });
+            // 包沿路径飞行
+            var route = [0, 1, 4, 5];
+            var seg = Math.floor(dt * 1.5) % (route.length - 1);
+            var frac = (dt * 1.5) % 1;
+            var A = nodes[route[seg]], B = nodes[route[seg + 1]];
+            var px = (A[0] + (B[0] - A[0]) * frac) * w, py = (A[1] + (B[1] - A[1]) * frac) * h;
+            ctx.fillStyle = "#f59e0b";
+            ctx.beginPath(); ctx.arc(px, py, 6, 0, 7); ctx.fill();
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText("数据包（黄）从绿节点出发，经路由器一跳一跳到达红节点", w / 2, h - 10);
+        });
+    };
+
+    /* 机器学习分类：分割线自动学习 */
+    registry["mlclass"] = function (canvas) {
+        var g, ctx; var t0 = performance.now();
+        var ptsA = [], ptsB = [];
+        for (var i = 0; i < 18; i++) {
+            ptsA.push([0.15 + Math.random() * 0.25, 0.2 + Math.random() * 0.5]);
+            ptsB.push([0.6 + Math.random() * 0.25, 0.3 + Math.random() * 0.5]);
+        }
+        return loop(function (t) {
+            g = ctx2d(canvas); ctx = g.ctx;
+            var dt = (t - t0) / 1000, w = g.w, h = g.h;
+            ctx.clearRect(0, 0, w, h);
+            var learn = Math.min(1, dt / 5);
+            var slope = -1.2 + learn * 0.6;
+            var off = 0.35 + learn * 0.25;
+            // 分割线
+            ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(0, h * (off));
+            ctx.lineTo(w, h * (off + slope * 0.3));
+            ctx.stroke();
+            ptsA.forEach(function (p) { ctx.fillStyle = "#4f46e5"; ctx.beginPath(); ctx.arc(p[0] * w, p[1] * h, 6, 0, 7); ctx.fill(); });
+            ptsB.forEach(function (p) { ctx.fillStyle = "#f59e0b"; ctx.beginPath(); ctx.arc(p[0] * w, p[1] * h, 6, 0, 7); ctx.fill(); });
+            ctx.fillStyle = "#374151"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText(learn < 1 ? "训练：分割线不断调整，把两类点分开…" : "学会了！红线把蓝点和黄点分开了", w / 2, 18);
+            ctx.fillStyle = "#6b7280";
+            ctx.fillText("机器学习的本质：从数据中自动学出分界（参数）", w / 2, h - 12);
+        });
+    };
+
     return { start: start, stop: stop };
 })();

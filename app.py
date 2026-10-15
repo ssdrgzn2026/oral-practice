@@ -142,6 +142,9 @@ def portal():
 GRAPH_SUBJECTS = {
     "physics": {"title": "物理", "icon": "⚛️", "prize": "物理学奖"},
     "chemistry": {"title": "化学", "icon": "🧪", "prize": "化学奖"},
+    "biology": {"title": "生物", "icon": "🧬", "prize": "生理学或医学奖"},
+    "math": {"title": "数学", "icon": "📐", "prize": "（菲尔兹奖/阿贝尔奖）"},
+    "cs": {"title": "计算机科学", "icon": "💻", "prize": "（图灵奖）"},
 }
 
 

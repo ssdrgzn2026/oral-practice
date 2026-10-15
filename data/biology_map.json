@@ -1,0 +1,646 @@
+{
+  "name": "生物学",
+  "icon": "🧬",
+  "desc": "研究生命现象与生命活动规律的自然科学，从分子到生态系统",
+  "children": [
+    {
+      "id": "b-cell",
+      "name": "细胞生物学",
+      "icon": "🔬",
+      "desc": "细胞是生命的基本单位，研究其结构、功能与生命活动",
+      "demo": { "type": "canvas", "anim": "cell-division", "title": "细胞分裂：一个变两个" },
+      "children": [
+        {
+          "id": "b-cell-structure",
+          "name": "细胞结构",
+          "desc": "细胞膜、细胞器、细胞核的分工协作",
+          "children": [
+            {
+              "id": "b-membrane",
+              "name": "细胞膜与跨膜运输",
+              "desc": "磷脂双分子层与蛋白质构成的选择透过性屏障",
+              "demo": { "sim": "molecule-shapes", "title": "分子形状：理解磷脂的两亲性" }
+            },
+            {
+              "id": "b-organelle",
+              "name": "细胞器",
+              "desc": "线粒体供能、核糖体合成蛋白、内质网加工运输"
+            }
+          ]
+        },
+        {
+          "id": "b-cell-cycle",
+          "name": "细胞周期与分裂",
+          "desc": "有丝分裂与减数分裂，生长与繁殖的基础",
+          "demo": { "type": "canvas", "anim": "cell-division", "title": "染色体复制与分离" },
+          "children": [
+            {
+              "id": "b-mitosis",
+              "name": "有丝分裂",
+              "desc": "复制一次、分裂一次，子细胞染色体数目不变"
+            },
+            {
+              "id": "b-meiosis",
+              "name": "减数分裂",
+              "desc": "产生配子，染色体减半并发生基因重组",
+              "related": ["b-heredity"]
+            }
+          ],
+          "nobel": [
+            { "year": 2001, "who": "哈特韦尔、亨特、纳斯", "for": "细胞周期的关键调控因子（CDK 与周期蛋白）" }
+          ]
+        },
+        {
+          "id": "b-cell-death",
+          "name": "细胞凋亡与自噬",
+          "desc": "细胞的程序性死亡与自我清理机制",
+          "nobel": [
+            { "year": 2002, "who": "布伦纳、霍维茨、苏尔斯顿", "for": "器官发育与程序性细胞死亡的遗传调控" },
+            { "year": 2016, "who": "大隅良典", "for": "细胞自噬机制" }
+          ]
+        },
+        {
+          "id": "b-cell-energy",
+          "name": "细胞能量代谢",
+          "desc": "细胞呼吸与光合作用，ATP 是通用能量货币",
+          "demo": { "sim": "states-of-matter", "title": "分子运动：理解扩散与呼吸作用" },
+          "children": [
+            {
+              "id": "b-respiration",
+              "name": "细胞呼吸",
+              "desc": "糖酵解、三羧酸循环、氧化磷酸化逐级释能",
+              "nobel": [
+                { "year": 1953, "who": "克雷布斯、李普曼", "for": "三羧酸循环与辅酶 A 的发现" },
+                { "year": 1978, "who": "米切尔", "for": "化学渗透学说（ATP 合成机制，化学奖）" }
+              ]
+            },
+            {
+              "id": "b-photosynthesis",
+              "name": "光合作用",
+              "desc": "光能固定为化学能，地球几乎所有能量的源头",
+              "nobel": [
+                { "year": 1961, "who": "卡尔文", "for": "碳同化循环（卡尔文循环，化学奖）" },
+                { "year": 1988, "who": "戴森霍费尔、胡贝尔、米歇尔", "for": "光合作用反应中心结构（化学奖）" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b-genetics",
+      "name": "遗传学与进化",
+      "icon": "🧫",
+      "desc": "从孟德尔豌豆到双螺旋：遗传信息的传递与生命的演化",
+      "demo": { "type": "canvas", "anim": "evolution", "title": "种群基因频率的漂变与选择" },
+      "children": [
+        {
+          "id": "b-heredity",
+          "name": "经典遗传学",
+          "desc": "分离定律、自由组合定律与连锁互换",
+          "children": [
+            {
+              "id": "b-mendel",
+              "name": "孟德尔定律",
+              "desc": "豌豆实验揭示遗传因子的分离与自由组合"
+            },
+            {
+              "id": "b-chromosome",
+              "name": "染色体遗传学说",
+              "desc": "基因位于染色体上，摩尔根果蝇实验确证",
+              "nobel": [
+                { "year": 1933, "who": "摩尔根", "for": "染色体在遗传中的作用" },
+                { "year": 1946, "who": "穆勒", "for": "X 射线诱发基因突变" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b-dna",
+          "name": "DNA 与中心法则",
+          "desc": "DNA 复制、转录、翻译，遗传信息的流动",
+          "demo": { "sim": "gene-expression-essentials", "title": "基因表达：从 DNA 到蛋白质" },
+          "children": [
+            {
+              "id": "b-double-helix",
+              "name": "DNA 双螺旋",
+              "desc": "碱基互补配对，半保留复制的结构基础",
+              "related": ["c-dna", "c-xray"],
+              "nobel": [
+                { "year": 1962, "who": "沃森、克里克、威尔金斯", "for": "DNA 双螺旋结构（富兰克林提供关键 X 射线数据）" }
+              ]
+            },
+            {
+              "id": "b-genetic-code",
+              "name": "遗传密码",
+              "desc": "三联体密码子决定氨基酸，64 个密码子的破译",
+              "nobel": [
+                { "year": 1968, "who": "霍利、科拉纳、尼伦伯格", "for": "遗传密码的破译" }
+              ]
+            },
+            {
+              "id": "b-operon",
+              "name": "基因表达调控",
+              "desc": "操纵子模型：基因也有开关",
+              "nobel": [
+                { "year": 1965, "who": "雅各布、利沃夫、莫诺", "for": "操纵子学说与酶合成的遗传调控" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b-evolution",
+          "name": "进化论",
+          "desc": "变异、选择、隔离——生命多样性的来源",
+          "demo": { "type": "canvas", "anim": "evolution", "title": "自然选择下的种群演化" },
+          "children": [
+            {
+              "id": "b-nat-select",
+              "name": "自然选择",
+              "desc": "适者生存，达尔文与华莱士的伟大洞见",
+              "demo": { "sim": "natural-selection", "title": "自然选择模拟：兔子种群的颜色演化" }
+            },
+            {
+              "id": "b-speciation",
+              "name": "物种形成",
+              "desc": "生殖隔离造就新物种"
+            },
+            {
+              "id": "b-mol-evolution",
+              "name": "分子进化",
+              "desc": "分子钟与系统发育树，从序列读出演化史",
+              "nobel": [
+                { "year": 2022, "who": "佩博", "for": "古基因组学与人类演化（尼安德特人基因组）" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b-development",
+          "name": "发育遗传学",
+          "desc": "一个受精卵如何长成完整个体",
+          "nobel": [
+            { "year": 1995, "who": "刘易斯、纽斯林-沃尔哈德、维绍斯", "for": "早期胚胎发育的遗传控制" },
+            { "year": 2024, "who": "安布罗斯、鲁夫昆", "for": "microRNA 及其在基因调控中的作用" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b-biochem",
+      "name": "生物化学与分子生物学",
+      "icon": "⚗️",
+      "desc": "用化学语言解读生命：蛋白质、核酸、酶与代谢",
+      "children": [
+        {
+          "id": "b-protein",
+          "name": "蛋白质",
+          "desc": "氨基酸链折叠成纳米机器，功能由结构决定",
+          "children": [
+            {
+              "id": "b-enzyme",
+              "name": "酶",
+              "desc": "生物催化剂，降低活化能加速生命反应",
+              "related": ["c-catalyst"],
+              "nobel": [
+                { "year": 1929, "who": "哈登、奥伊勒-凯尔平", "for": "糖发酵与酶的作用（化学奖）" },
+                { "year": 1972, "who": "安芬森、摩尔、斯坦", "for": "核糖核酸酶结构与折叠（化学奖）" },
+                { "year": 2018, "who": "阿诺德", "for": "酶的定向进化（化学奖）" }
+              ]
+            },
+            {
+              "id": "b-protein-structure",
+              "name": "蛋白质结构解析",
+              "desc": "X 射线晶体学与冷冻电镜看清分子机器",
+              "related": ["c-xray"],
+              "nobel": [
+                { "year": 1958, "who": "桑格", "for": "胰岛素氨基酸序列测定（化学奖）" },
+                { "year": 1962, "who": "佩鲁茨、肯德鲁", "for": "血红蛋白与肌红蛋白结构（化学奖）" },
+                { "year": 2017, "who": "杜博歇、弗兰克、亨德森", "for": "冷冻电镜解析生物分子结构（化学奖）" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b-nucleic",
+          "name": "核酸的分子生物学",
+          "desc": "DNA 测序、PCR 与 RNA 世界",
+          "children": [
+            {
+              "id": "b-sequencing",
+              "name": "DNA 测序与 PCR",
+              "desc": "读出与复制遗传密码的技术革命",
+              "nobel": [
+                { "year": 1980, "who": "吉尔伯特、桑格", "for": "DNA 序列测定（化学奖）" },
+                { "year": 1993, "who": "穆利斯、史密斯", "for": "PCR 聚合酶链式反应（化学奖）" }
+              ]
+            },
+            {
+              "id": "b-rna",
+              "name": "RNA 的多样功能",
+              "desc": "RNA 不只是信使：催化、调控与干扰",
+              "nobel": [
+                { "year": 1989, "who": "切赫、奥尔特曼", "for": "核酶（RNA 的催化功能，化学奖）" },
+                { "year": 2006, "who": "法厄、梅洛", "for": "RNA 干扰（RNAi）" },
+                { "year": 2023, "who": "卡里科、魏斯曼", "for": "核苷修饰使 mRNA 疫苗成为可能" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b-metabolism",
+          "name": "代谢调控",
+          "desc": "糖、脂肪、氨基酸代谢的化学网络",
+          "children": [
+            {
+              "id": "b-atp",
+              "name": "ATP 合成酶",
+              "desc": "旋转的分子马达制造能量货币",
+              "nobel": [
+                { "year": 1997, "who": "博耶、沃克、斯科", "for": "ATP 合成酶机制与离子泵（化学奖）" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b-repair",
+          "name": "基因组稳定性",
+          "desc": "DNA 损伤修复与端粒保护",
+          "nobel": [
+            { "year": 2009, "who": "布莱克本、格雷德、绍斯塔克", "for": "端粒与端粒酶保护染色体" },
+            { "year": 2015, "who": "林达尔、莫德里奇、桑贾尔", "for": "DNA 修复机制（化学奖）" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b-physiology",
+      "name": "生理学",
+      "icon": "🫀",
+      "desc": "研究正常生命活动的功能与调节机制",
+      "children": [
+        {
+          "id": "b-circulation",
+          "name": "循环与呼吸",
+          "desc": "心脏泵血、气体交换与氧气运输",
+          "children": [
+            {
+              "id": "b-heart",
+              "name": "心脏与血压",
+              "desc": "心肌节律性收缩驱动血液循环",
+              "nobel": [
+                { "year": 1924, "who": "埃因托芬", "for": "心电图（ECG）" },
+                { "year": 1956, "who": "库尔南、福斯曼、理查兹", "for": "心导管术" }
+              ]
+            },
+            {
+              "id": "b-oxygen",
+              "name": "氧气感知与利用",
+              "desc": "血红蛋白携氧与细胞缺氧应答",
+              "nobel": [
+                { "year": 1938, "who": "海曼斯", "for": "颈动脉窦的呼吸调节" },
+                { "year": 2019, "who": "拉特克利夫、凯林、塞门扎", "for": "细胞感知与适应氧气供应（HIF）" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b-endocrine",
+          "name": "内分泌与激素",
+          "desc": "化学信使协调全身功能",
+          "children": [
+            {
+              "id": "b-insulin",
+              "name": "胰岛素与血糖",
+              "desc": "糖尿病的救星，第一个被提纯的激素蛋白",
+              "nobel": [
+                { "year": 1923, "who": "班廷、麦克劳德", "for": "发现胰岛素" },
+                { "year": 1977, "who": "耶洛", "for": "放射免疫分析（激素微量测定）" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b-senses",
+          "name": "感觉与知觉",
+          "desc": "光、声、触、味如何被感知",
+          "children": [
+            {
+              "id": "b-vision",
+              "name": "视觉",
+              "desc": "视杆视锥细胞把光子变成神经信号",
+              "nobel": [
+                { "year": 1967, "who": "格拉尼特、哈特兰、沃尔德", "for": "视觉的生理与化学机制" }
+              ]
+            },
+            {
+              "id": "b-touch",
+              "name": "触觉与痛觉",
+              "desc": "温度与机械感受器的发现",
+              "nobel": [
+                { "year": 1944, "who": "厄兰格、加塞", "for": "神经纤维的功能分化" },
+                { "year": 2021, "who": "朱利叶斯、帕塔普蒂安", "for": "温度与触觉感受器（TRP 与 Piezo 通道）" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b-homeostasis",
+          "name": "稳态与节律",
+          "desc": "内环境稳定与生物钟的分子机制",
+          "children": [
+            {
+              "id": "b-clock",
+              "name": "昼夜节律",
+              "desc": "period 基因与时钟蛋白的反馈回路",
+              "nobel": [
+                { "year": 2017, "who": "霍尔、罗斯巴什、扬", "for": "昼夜节律的分子机制" }
+              ]
+            },
+            {
+              "id": "b-vesicle",
+              "name": "囊泡运输",
+              "desc": "细胞内部的物流系统",
+              "nobel": [
+                { "year": 2013, "who": "罗思曼、谢克曼、祖德霍夫", "for": "囊泡运输的调控机制" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b-ecology",
+      "name": "生态学",
+      "icon": "🌍",
+      "desc": "生物与环境的关系：种群、群落、生态系统与地球",
+      "demo": { "type": "canvas", "anim": "ecosystem", "title": "捕食者-猎物种群的周期振荡" },
+      "children": [
+        {
+          "id": "b-population",
+          "name": "种群生态学",
+          "desc": "种群增长、调节与种间关系",
+          "children": [
+            {
+              "id": "b-logistic",
+              "name": "种群增长模型",
+              "desc": "指数增长与逻辑斯蒂曲线，环境容纳量 K",
+              "related": ["m-diffeq"]
+            },
+            {
+              "id": "b-predation",
+              "name": "捕食与竞争",
+              "desc": "洛特卡-沃尔泰拉方程描述的此消彼长",
+              "demo": { "type": "canvas", "anim": "ecosystem", "title": "兔与狐的数量振荡" }
+            }
+          ]
+        },
+        {
+          "id": "b-community",
+          "name": "群落与生态系统",
+          "desc": "食物网、能量流动与物质循环",
+          "children": [
+            {
+              "id": "b-foodweb",
+              "name": "食物链与营养级",
+              "desc": "能量逐级递减，十分之一法则"
+            },
+            {
+              "id": "b-biogeochem",
+              "name": "生物地球化学循环",
+              "desc": "碳、氮、水循环连接生物圈与大气圈",
+              "related": ["c-redox"]
+            }
+          ]
+        },
+        {
+          "id": "b-conservation",
+          "name": "生物多样性保护",
+          "desc": "第六次大灭绝背景下的保护生物学",
+          "children": [
+            {
+              "id": "b-biodiversity",
+              "name": "生物多样性",
+              "desc": "基因、物种、生态系统三个层次的多样性"
+            },
+            {
+              "id": "b-climate",
+              "name": "气候变化与生态",
+              "desc": "全球变暖重塑物种分布与物候",
+              "related": ["entropy", "turbulence"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b-micro",
+      "name": "微生物与免疫学",
+      "icon": "🦠",
+      "desc": "看不见的微生物世界与守护身体的免疫系统",
+      "children": [
+        {
+          "id": "b-bacteria",
+          "name": "细菌与病毒",
+          "desc": "原核生物的顽强与病毒的极简生存策略",
+          "children": [
+            {
+              "id": "b-virus",
+              "name": "病毒",
+              "desc": "寄生在细胞边缘的遗传物质包裹",
+              "nobel": [
+                { "year": 1954, "who": "恩德斯、韦勒、罗宾斯", "for": "脊髓灰质炎病毒的组织培养" },
+                { "year": 1975, "who": "巴尔的摩、杜尔贝科、特明", "for": "逆转录病毒与逆转录酶" },
+                { "year": 2008, "who": "豪森", "for": "HPV 病毒导致宫颈癌" }
+              ]
+            },
+            {
+              "id": "b-phage",
+              "name": "噬菌体",
+              "desc": "感染细菌的病毒，分子生物学的功勋模型",
+              "nobel": [
+                { "year": 1969, "who": "德尔布吕克、赫尔希、卢里亚", "for": "噬菌体的遗传机制" },
+                { "year": 2018, "who": "史密斯、温特", "for": "噬菌体展示技术（化学奖）" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b-antibiotic",
+          "name": "抗生素与药物",
+          "desc": "从青霉素到青蒿素，对抗微生物的武器",
+          "nobel": [
+            { "year": 1945, "who": "弗莱明、弗洛里、钱恩", "for": "青霉素的发现与应用" },
+            { "year": 1952, "who": "瓦克斯曼", "for": "链霉素（首个抗结核药）" },
+            { "year": 2015, "who": "坎贝尔、大村智、屠呦呦", "for": "阿维菌素与青蒿素抗寄生虫药" }
+          ]
+        },
+        {
+          "id": "b-immunity",
+          "name": "免疫学",
+          "desc": "先天与适应性免疫：身体的防御体系",
+          "children": [
+            {
+              "id": "b-antibody",
+              "name": "抗体与适应性免疫",
+              "desc": "B 细胞制造导弹，T 细胞执行杀伤",
+              "nobel": [
+                { "year": 1972, "who": "埃德尔曼、波特", "for": "抗体的化学结构" },
+                { "year": 1984, "who": "杰尼、科勒、米尔斯坦", "for": "单克隆抗体技术" },
+                { "year": 1987, "who": "利根川进", "for": "抗体多样性的遗传原理" }
+              ]
+            },
+            {
+              "id": "b-innate",
+              "name": "先天免疫",
+              "desc": "第一道防线：模式识别与炎症反应",
+              "nobel": [
+                { "year": 2011, "who": "博伊特勒、霍夫曼、斯坦曼", "for": "先天免疫激活与树突状细胞" }
+              ]
+            },
+            {
+              "id": "b-immunotherapy",
+              "name": "肿瘤免疫治疗",
+              "desc": "松开免疫系统的刹车，让 T 细胞攻击肿瘤",
+              "nobel": [
+                { "year": 2018, "who": "艾利森、本庶佑", "for": "免疫检查点抑制疗法（CTLA-4 与 PD-1）" }
+              ]
+            }
+          ],
+          "nobel": [
+            { "year": 1960, "who": "伯内特、梅达沃", "for": "免疫耐受" },
+            { "year": 1996, "who": "多尔蒂、津克纳格尔", "for": "MHC 限制的细胞免疫识别" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b-neuro",
+      "name": "神经科学",
+      "icon": "🧠",
+      "desc": "研究神经系统与脑：从离子通道到意识",
+      "demo": { "type": "canvas", "anim": "neuron", "title": "动作电位沿轴突传导" },
+      "children": [
+        {
+          "id": "b-neuron",
+          "name": "神经元与信号传导",
+          "desc": "动作电位与突触传递是神经系统的语言",
+          "children": [
+            {
+              "id": "b-action-potential",
+              "name": "动作电位",
+              "desc": "钠钾离子通道的开合产生电脉冲",
+              "demo": { "type": "canvas", "anim": "neuron", "title": "膜电位的爆发与恢复" },
+              "nobel": [
+                { "year": 1963, "who": "霍奇金、赫胥黎、埃克尔斯", "for": "神经冲动的离子机制（HH 方程）" },
+                { "year": 1991, "who": "内尔、萨克曼", "for": "膜片钳技术与单离子通道" }
+              ]
+            },
+            {
+              "id": "b-synapse",
+              "name": "突触传递",
+              "desc": "神经递质跨越突触间隙传递信息",
+              "nobel": [
+                { "year": 1970, "who": "卡茨、奥伊勒、阿克塞尔罗德", "for": "神经递质的储存与释放" },
+                { "year": 2000, "who": "卡尔松、格林加德、坎德尔", "for": "神经系统的信号转导（多巴胺与记忆）" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b-brain",
+          "name": "脑与认知",
+          "desc": "脑区功能定位与高级认知的神经基础",
+          "children": [
+            {
+              "id": "b-visual-cortex",
+              "name": "视觉皮层与信息加工",
+              "desc": "大脑如何逐级解析视觉世界",
+              "nobel": [
+                { "year": 1981, "who": "斯佩里、休伯尔、威塞尔", "for": "大脑半球分工与视觉系统发育" }
+              ]
+            },
+            {
+              "id": "b-gps",
+              "name": "脑内定位系统",
+              "desc": "位置细胞与网格细胞构成大脑 GPS",
+              "nobel": [
+                { "year": 2014, "who": "奥基夫、莫泽夫妇", "for": "大脑定位系统的细胞基础" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b-neuro-computing",
+          "name": "神经科学与人工智能",
+          "desc": "脑启发计算：从神经元模型到深度学习",
+          "related": ["cs-neural", "cs-deep-learning"],
+          "nobel": [
+            { "year": 2024, "who": "霍普菲尔德、辛顿", "for": "神经网络基础（物理学奖）" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b-biotech",
+      "name": "生物技术前沿",
+      "icon": "🧪",
+      "desc": "操纵生命的工程：基因编辑、干细胞与合成生物学",
+      "children": [
+        {
+          "id": "b-gene-edit",
+          "name": "基因编辑",
+          "desc": "CRISPR-Cas9：改写生命密码的分子剪刀",
+          "related": ["b-dna", "c-dna"],
+          "nobel": [
+            { "year": 2020, "who": "沙尔庞捷、杜德纳", "for": "CRISPR-Cas9 基因编辑（化学奖）" }
+          ]
+        },
+        {
+          "id": "b-stem-cell",
+          "name": "干细胞与再生医学",
+          "desc": "细胞命运的逆转：从成熟细胞回到多能状态",
+          "demo": { "type": "canvas", "anim": "cell-division", "title": "干细胞的分化与增殖" },
+          "nobel": [
+            { "year": 2007, "who": "卡佩奇、埃文斯、史密斯", "for": "基因靶向与胚胎干细胞（基因敲除小鼠）" },
+            { "year": 2012, "who": "格登、山中伸弥", "for": "细胞核重编程与 iPS 诱导多能干细胞" }
+          ]
+        },
+        {
+          "id": "b-synthetic",
+          "name": "合成生物学",
+          "desc": "设计与构建人工生命系统",
+          "children": [
+            {
+              "id": "b-directed-evolution",
+              "name": "定向进化",
+              "desc": "在试管中重演进化，定制酶与抗体",
+              "related": ["b-evolution"],
+              "nobel": [
+                { "year": 2018, "who": "阿诺德、史密斯、温特", "for": "酶的定向进化与噬菌体展示（化学奖）" }
+              ]
+            },
+            {
+              "id": "b-click",
+              "name": "点击化学与生物正交化学",
+              "desc": "在活细胞内拼装分子的乐高积木",
+              "nobel": [
+                { "year": 2022, "who": "贝托齐、梅尔达尔、沙普利斯", "for": "点击化学与生物正交化学（化学奖）" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b-vaccine",
+          "name": "疫苗技术",
+          "desc": "从灭活疫苗到 mRNA 疫苗的平台革命",
+          "related": ["b-immunity"],
+          "nobel": [
+            { "year": 1951, "who": "泰累尔", "for": "黄热病疫苗" },
+            { "year": 2023, "who": "卡里科、魏斯曼", "for": "mRNA 疫苗技术（核苷碱基修饰）" }
+          ]
+        }
+      ]
+    }
+  ]
+}
