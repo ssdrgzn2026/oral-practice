@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>知识星图 · MiscHub</title>
+    <title>星图模式 · 万象星图</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <style>
         .star-wrap { position: relative; width: 100%; height: 70vh; min-height: 420px; background: #0b1026; border-radius: 14px; overflow: hidden; }
@@ -23,9 +23,9 @@
 <body>
     <div class="app">
         <header class="header">
-            <h1>🌌 知识星图<span id="star-sub"></span></h1>
+            <h1>🌌 万象星图<span id="star-sub"></span></h1>
             <p class="subtitle">所有学科是一张网——拖动探索，点击星体进入知识点</p>
-            <p class="back-home"><a href="/graph">← 返回知识图谱</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="/">返回 MiscHub 首页</a></p>
+            <p class="back-home"><a href="/graph">← 返回万象星图</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="/">返回 MiscHub 首页</a></p>
         </header>
 
         <main class="main">
@@ -50,13 +50,13 @@
             math: "#fbbf24", cs: "#f472b6", philosophy: "#c084fc",
             astronomy: "#38bdf8", geography: "#a3e635", economics: "#fb923c",
             medicine: "#f87171", history: "#d4a574", law: "#94a3b8",
-            engineering: "#e879f9", buddhism: "#fde68a",
+            engineering: "#e879f9", buddhism: "#fde68a", psychology: "#f9a8d4",
         };
         var SUBJECT_NAMES = {
             physics: "物理", chemistry: "化学", biology: "生物", math: "数学",
             cs: "计算机", philosophy: "哲学", astronomy: "天文", geography: "地理",
             economics: "经济", medicine: "医学", history: "历史", law: "法学",
-            engineering: "工程", buddhism: "佛学",
+            engineering: "工程", buddhism: "佛学", psychology: "心理",
         };
         var activeSubject = "all";
         var qs = new URLSearchParams(location.search).get("s");
