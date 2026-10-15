@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>物理知识图谱 · MiscHub</title>
+    <title>{{ title }}知识图谱 · MiscHub</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
     <div class="app">
         <header class="header">
-            <h1>⚛️ 物理知识图谱</h1>
+            <h1>{{ icon }} {{ title }}知识图谱</h1>
             <p class="subtitle">从顶层分支逐层深入，💬 随时问 AI 拓展</p>
             <p class="back-home"><a href="/">← 返回 MiscHub 首页</a></p>
         </header>
@@ -54,6 +54,7 @@
     </div>
 
     <script>
+    var SUBJECT = {{ subject | tojson }};
     (function () {
         var tree = null;
         var path = [];  // 当前下钻路径上的节点
@@ -168,7 +169,7 @@
                 backBar.style.display = "none";
             }
             // 面包屑
-            var trail = ['<a href="#" data-i="-1" class="crumb">⚛️ 物理学</a>'];
+            var trail = ['<a href="#" data-i="-1" class="crumb">{{ icon }} {{ title }}</a>'];
             path.forEach(function (n, i) {
                 trail.push('<span class="crumb-sep">›</span><a href="#" data-i="' + i + '" class="crumb">' + esc(n.name) + "</a>");
             });
@@ -288,7 +289,7 @@
             childrenBox.querySelectorAll(".phy-ask").forEach(function (btn) {
                 btn.addEventListener("click", function () {
                     var k = kids[+btn.dataset.i];
-                    askAI("请用通俗易懂的语言讲解物理学中的「" + k.name + "」：" + (k.desc || "") +
+                    askAI("请用通俗易懂的语言讲解{{ title }}中的「" + k.name + "」：" + (k.desc || "") +
                           "。包括：核心概念、公式或规律、一个生活中的例子。", "💬 " + k.name);
                 });
             });
@@ -347,9 +348,9 @@
             // 词条区：AI 面板
             var relList = others.map(function (x) { return x.year + "年" + x.who + "（" + x.for + "）"; }).join("；");
             askAI(
-                "请简要介绍 " + prize.year + " 年诺贝尔物理学奖（获奖人：" + prize.who + "，获奖成果：" + prize.for + "）：" +
+                "请简要介绍 " + prize.year + " 年诺贝尔{{ prize }}（获奖人：" + prize.who + "，获奖成果：" + prize.for + "）：" +
                 "1. 获奖工作的背景与核心内容；2. 它对「" + fieldName + "」领域的贡献和长远影响；" +
-                "3. 它与哪些其他诺贝尔物理学奖有承接或关联关系（可参考：" + relList + "），请说明关联是什么。",
+                "3. 它与哪些其他诺贝尔{{ prize }}有承接或关联关系（可参考：" + relList + "），请说明关联是什么。",
                 "🏅 " + prize.year + " 年 · " + prize.who
             );
             // 相关奖项互链 chips（放在 AI 面板标题下）
@@ -401,7 +402,7 @@
                   "如果某些信息可能超出你的知识截止时间，请明确标注。", "🔬 " + n.name + " · 研究前沿");
         });
 
-        fetch("/api/physics-map")
+        fetch("/api/graph-map/" + SUBJECT)
             .then(function (r) { return r.json(); })
             .then(function (d) { tree = d; render(); })
             .catch(function () { nodeInfo.innerHTML = "<p class='hint'>知识图谱加载失败，请刷新</p>"; });

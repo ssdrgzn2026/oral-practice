@@ -110,6 +110,10 @@ PATH_NAMES = {
     "/oral": "口语",
     "/tickets": "票务",
     "/portal": "网站导航",
+    "/physics": "物理知识图谱",
+    "/graph": "知识图谱",
+    "/graph/physics": "知识图谱·物理",
+    "/graph/chemistry": "知识图谱·化学",
     "/convert/": "格式转换",
     "/dcf/": "DCF",
 }

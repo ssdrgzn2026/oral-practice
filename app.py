@@ -138,17 +138,46 @@ def portal():
     return render_template("portal.html")
 
 
+# ========== 知识图谱（学科通用） ==========
+GRAPH_SUBJECTS = {
+    "physics": {"title": "物理", "icon": "⚛️", "prize": "物理学奖"},
+    "chemistry": {"title": "化学", "icon": "🧪", "prize": "化学奖"},
+}
+
+
+@app.route("/graph")
+def graph_home():
+    return render_template("graphs.html")
+
+
+@app.route("/graph/<subject>")
+def graph_subject(subject):
+    if subject not in GRAPH_SUBJECTS:
+        return redirect("/graph")
+    cfg = GRAPH_SUBJECTS[subject]
+    return render_template("graph.html", subject=subject, **cfg)
+
+
 @app.route("/physics")
 def physics():
-    return render_template("physics.html")
+    # 旧链接兼容：跳到学科版页面
+    return redirect("/graph/physics")
+
+
+@app.route("/api/graph-map/<subject>")
+def graph_map(subject):
+    if subject not in GRAPH_SUBJECTS:
+        return jsonify({"error": "未知学科"}), 404
+    try:
+        return jsonify(json.loads((BASE_DIR / "data" / f"{subject}_map.json").read_text(encoding="utf-8")))
+    except (OSError, json.JSONDecodeError):
+        return jsonify({"error": "知识图谱数据缺失"}), 500
 
 
 @app.route("/api/physics-map")
 def physics_map():
-    try:
-        return jsonify(json.loads((BASE_DIR / "data" / "physics_map.json").read_text(encoding="utf-8")))
-    except (OSError, json.JSONDecodeError):
-        return jsonify({"error": "知识地图数据缺失"}), 500
+    # 旧接口兼容
+    return graph_map("physics")
 
 
 @app.route("/api/links")
