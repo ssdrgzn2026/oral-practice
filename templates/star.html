@@ -14,6 +14,10 @@
         .star-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
         .star-tip { position: absolute; pointer-events: none; background: rgba(17,24,39,0.95); color: #f9fafb; padding: 6px 10px; border-radius: 8px; font-size: 0.8rem; max-width: 260px; display: none; z-index: 10; }
         .star-hint { position: absolute; bottom: 10px; right: 12px; color: #6b7280; font-size: 0.72rem; }
+        .lg-filter { cursor: pointer; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+        .lg-filter:hover { background: rgba(255,255,255,0.12); }
+        .lg-filter.on { background: rgba(255,255,255,0.2); font-weight: 600; }
+        .star-legend { max-width: 92%; max-height: 44px; overflow-x: auto; overflow-y: hidden; white-space: nowrap; scrollbar-width: thin; }
     </style>
 </head>
 <body>
@@ -29,7 +33,7 @@
                 <canvas id="star-canvas"></canvas>
                 <div class="star-legend" id="legend"></div>
                 <div class="star-tip" id="tip"></div>
-                <div class="star-hint">实线=学科层级 · 紫色虚线=跨学科关联 · 拖动旋转视角</div>
+                <div class="star-hint">点左上角学科筛选 · 实线=学科层级 · 紫色虚线=跨学科关联 · 拖动平移</div>
             </div>
         </main>
 
@@ -44,7 +48,17 @@
         var SUBJECT_COLORS = {
             physics: "#818cf8", chemistry: "#34d399", biology: "#4ade80",
             math: "#fbbf24", cs: "#f472b6", philosophy: "#c084fc",
+            astronomy: "#38bdf8", geography: "#a3e635", economics: "#fb923c",
+            medicine: "#f87171", history: "#d4a574", law: "#94a3b8",
+            engineering: "#e879f9", buddhism: "#fde68a",
         };
+        var SUBJECT_NAMES = {
+            physics: "物理", chemistry: "化学", biology: "生物", math: "数学",
+            cs: "计算机", philosophy: "哲学", astronomy: "天文", geography: "地理",
+            economics: "经济", medicine: "医学", history: "历史", law: "法学",
+            engineering: "工程", buddhism: "佛学",
+        };
+        var activeSubject = "all";
         var canvas = document.getElementById("star-canvas");
         var tip = document.getElementById("tip");
         var ctx = canvas.getContext("2d");
@@ -74,13 +88,33 @@
             });
             links = links.filter(function (l) { return nodeById[l.source] && nodeById[l.target]; });
             // 图例
-            document.getElementById("legend").innerHTML = Object.keys(SUBJECT_COLORS).map(function (k) {
-                var names = { physics: "物理", chemistry: "化学", biology: "生物", math: "数学", cs: "计算机", philosophy: "哲学" };
-                return '<span><i style="background:' + SUBJECT_COLORS[k] + '"></i>' + names[k] + "</span>";
-            }).join("");
+            renderLegend();
             resize();
             requestAnimationFrame(tick);
         });
+
+        function renderLegend() {
+            var html = '<span class="lg-filter' + (activeSubject === "all" ? " on" : "") + '" data-s="all">🌐 全部学科</span>';
+            Object.keys(SUBJECT_COLORS).forEach(function (k) {
+                html += '<span class="lg-filter' + (activeSubject === k ? " on" : "") + '" data-s="' + k + '"><i style="background:' + SUBJECT_COLORS[k] + '"></i>' + SUBJECT_NAMES[k] + "</span>";
+            });
+            var lg = document.getElementById("legend");
+            lg.innerHTML = html;
+            lg.querySelectorAll(".lg-filter").forEach(function (el) {
+                el.addEventListener("click", function () {
+                    activeSubject = el.dataset.s;
+                    nodes.forEach(function (n) {
+                        n.hidden = activeSubject !== "all" && n.subject !== activeSubject;
+                        if (!n.hidden && !n.x) { n.x = canvas.clientWidth / 2; n.y = canvas.clientHeight / 2; }
+                    });
+                    renderLegend();
+                });
+            });
+        }
+
+        function visible(l) {
+            return !nodeById[l.source].hidden && !nodeById[l.target].hidden;
+        }
 
         function tick() {
             // 力导向模拟
@@ -88,10 +122,12 @@
             var i, j, a, b, dx, dy, dist, f;
             for (i = 0; i < nodes.length; i++) {
                 a = nodes[i];
+                if (a.hidden) continue;
                 a.vx += (W / 2 - a.x) * 0.0004;  // 向心力
                 a.vy += (H / 2 - a.y) * 0.0004;
                 for (j = i + 1; j < nodes.length; j++) {
                     b = nodes[j];
+                    if (b.hidden) continue;
                     dx = a.x - b.x; dy = a.y - b.y;
                     dist = Math.max(dx * dx + dy * dy, 4);
                     f = 220 / dist;
@@ -101,6 +137,7 @@
             }
             for (i = 0; i < links.length; i++) {
                 var l = links[i];
+                if (!visible(l)) continue;
                 a = nodeById[l.source]; b = nodeById[l.target];
                 dx = b.x - a.x; dy = b.y - a.y;
                 dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
@@ -110,7 +147,7 @@
                 b.vx -= dx / dist * f * dist * 0.01; b.vy -= dy / dist * f * dist * 0.01;
             }
             nodes.forEach(function (n) {
-                if (n === dragNode) return;
+                if (n === dragNode || n.hidden) return;
                 n.vx *= 0.86; n.vy *= 0.86;
                 n.x += n.vx; n.y += n.vy;
             });
@@ -124,6 +161,7 @@
             ctx.save();
             ctx.translate(panX, panY);
             links.forEach(function (l) {
+                if (!visible(l)) return;
                 var a = nodeById[l.source], b = nodeById[l.target];
                 if (l.kind === "rel") {
                     ctx.strokeStyle = "rgba(192,132,252,0.55)";
@@ -139,6 +177,7 @@
             ctx.setLineDash([]);
             ctx.textAlign = "center";
             nodes.forEach(function (n) {
+                if (n.hidden) return;
                 ctx.fillStyle = SUBJECT_COLORS[n.subject] || "#94a3b8";
                 ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, 7); ctx.fill();
                 if (n.r >= 6) {
@@ -154,6 +193,7 @@
             var x = mx - panX, y = my - panY;
             for (var i = nodes.length - 1; i >= 0; i--) {
                 var n = nodes[i];
+                if (n.hidden) continue;
                 if ((n.x - x) * (n.x - x) + (n.y - y) * (n.y - y) < Math.max(n.r + 4, 10) ** 2) return n;
             }
             return null;
