@@ -17,7 +17,7 @@
         if (ts && Date.now() - ts < DISMISS_DAYS * 864e5) return;
     } catch (e) {}
 
-    var BRAND = location.hostname === "atlas.pingxu.xin" ? "学科星图" : "MiscHub";
+    var BRAND = "MiscHub";
     var ua = navigator.userAgent;
     var isIOS = /iPhone|iPad|iPod/.test(ua);
     var isAndroid = /Android/.test(ua);

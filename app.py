@@ -63,22 +63,6 @@ def visit_beat():
 
 @app.route("/manifest.json")
 def manifest():
-    if is_atlas_host():
-        return jsonify({
-            "name": "学科星图",
-            "short_name": "学科星图",
-            "description": "一站式学科知识图谱：下钻、演示、AI 导学、学科时间线",
-            "start_url": "/",
-            "scope": "/",
-            "display": "standalone",
-            "background_color": "#f5f5f4",
-            "theme_color": "#0b1026",
-            "lang": "zh-CN",
-            "icons": [
-                {"src": "/static/img/atlas-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-                {"src": "/static/img/atlas-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
-            ],
-        })
     return send_from_directory("static", "manifest.json")
 
 
@@ -108,37 +92,9 @@ def download_file(token, filename):
                            raw_url=f"/files/{token}/{quote(filename)}?raw=1")
 
 
-def is_atlas_host():
-    """学科星图独立站点域名"""
-    return request.host.split(":")[0] == "atlas.pingxu.xin"
-
-
 @app.route("/")
 def index():
-    if is_atlas_host():
-        return render_template("graphs.html", base="")
     return render_template("index.html")
-
-
-# ========== 学科星图独立站点（atlas.pingxu.xin）==========
-# 该域名下用短路径：/physics /star /physics?node=xx 等
-
-
-@app.route("/star")
-def atlas_star():
-    if not is_atlas_host():
-        return redirect("/graph/star")
-    return render_template("star.html", base="")
-
-
-@app.route("/<subject>")
-def atlas_subject(subject):
-    if not is_atlas_host():
-        return redirect(f"/graph/{subject}")
-    if subject not in GRAPH_SUBJECTS:
-        return redirect("/")
-    cfg = GRAPH_SUBJECTS[subject]
-    return render_template("graph.html", subject=subject, base="", **cfg)
 
 
 @app.route("/convert")
@@ -185,107 +141,6 @@ def tickets():
 @app.route("/portal")
 def portal():
     return render_template("portal.html")
-
-
-# ========== 知识图谱（学科通用） ==========
-GRAPH_SUBJECTS = {
-    "physics": {"title": "物理", "icon": "⚛️", "prize": "物理学奖", "awardLabel": "相关诺贝尔奖", "awardDetail": "诺贝尔物理学奖"},
-    "chemistry": {"title": "化学", "icon": "🧪", "prize": "化学奖", "awardLabel": "相关诺贝尔奖", "awardDetail": "诺贝尔化学奖"},
-    "biology": {"title": "生物", "icon": "🧬", "prize": "生理学或医学奖", "awardLabel": "相关诺贝尔奖", "awardDetail": "诺贝尔生理学或医学奖"},
-    "math": {"title": "数学", "icon": "📐", "prize": "奖项", "awardLabel": "菲尔兹奖与阿贝尔奖", "awardDetail": "菲尔兹奖或阿贝尔奖"},
-    "cs": {"title": "计算机科学", "icon": "💻", "prize": "图灵奖", "awardLabel": "图灵奖", "awardDetail": "图灵奖"},
-    "philosophy": {"title": "哲学", "icon": "💭", "prize": "", "awardLabel": "代表人物与著作", "awardDetail": "哲学代表人物与著作"},
-    "astronomy": {"title": "天文学", "icon": "🔭", "prize": "物理学奖", "awardLabel": "相关诺贝尔奖（物理学）", "awardDetail": "诺贝尔物理学奖"},
-    "geography": {"title": "地理与地质", "icon": "🌍", "prize": "", "awardLabel": "学科发展大事记", "awardDetail": "学科大事记"},
-    "economics": {"title": "经济学", "icon": "💹", "prize": "经济学奖", "awardLabel": "诺贝尔经济学奖", "awardDetail": "诺贝尔经济学奖"},
-    "medicine": {"title": "医学与药学", "icon": "🏥", "prize": "生理学或医学奖", "awardLabel": "相关诺贝尔奖", "awardDetail": "诺贝尔生理学或医学奖"},
-    "history": {"title": "历史", "icon": "📜", "prize": "", "awardLabel": "历史大事记", "awardDetail": "历史大事记"},
-    "law": {"title": "法学", "icon": "⚖️", "prize": "", "awardLabel": "法治里程碑", "awardDetail": "法治里程碑"},
-    "engineering": {"title": "工程学", "icon": "⚙️", "prize": "", "awardLabel": "工程里程碑", "awardDetail": "工程里程碑"},
-    "buddhism": {"title": "佛学", "icon": "🪷", "prize": "", "awardLabel": "佛学大事记", "awardDetail": "佛学大事记"},
-    "psychology": {"title": "心理学", "icon": "🧠", "prize": "", "awardLabel": "心理学里程碑", "awardDetail": "心理学里程碑"},
-}
-
-
-@app.route("/graph")
-def graph_home():
-    return render_template("graphs.html", base="/graph")
-
-
-@app.route("/graph/<subject>")
-def graph_subject(subject):
-    if subject not in GRAPH_SUBJECTS:
-        return redirect("/graph")
-    cfg = GRAPH_SUBJECTS[subject]
-    return render_template("graph.html", subject=subject, base="/graph", **cfg)
-
-
-@app.route("/physics")
-def physics():
-    # atlas 域名下 /physics 即学科页；oral 域名下兼容旧链接
-    if is_atlas_host():
-        cfg = GRAPH_SUBJECTS["physics"]
-        return render_template("graph.html", subject="physics", base="", **cfg)
-    return redirect("/graph/physics")
-
-
-@app.route("/api/graph-map/<subject>")
-def graph_map(subject):
-    if subject not in GRAPH_SUBJECTS:
-        return jsonify({"error": "未知学科"}), 404
-    try:
-        return jsonify(json.loads((BASE_DIR / "data" / f"{subject}_map.json").read_text(encoding="utf-8")))
-    except (OSError, json.JSONDecodeError):
-        return jsonify({"error": "知识图谱数据缺失"}), 500
-
-
-@app.route("/api/physics-map")
-def physics_map():
-    # 旧接口兼容
-    return graph_map("physics")
-
-
-@app.route("/graph/star")
-def graph_star():
-    return render_template("star.html", base="/graph")
-
-
-@app.route("/api/graph-network")
-def graph_network():
-    """聚合全部学科为 节点+边 网络（树边 + related 跨学科关联）"""
-    nodes = []
-    links = []
-    seen = set()
-    for sub in GRAPH_SUBJECTS:
-        try:
-            data = json.loads((BASE_DIR / "data" / f"{sub}_map.json").read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            continue
-
-        def walk(node, parent_id, depth):
-            nid = node.get("id")
-            if nid and nid not in seen:
-                seen.add(nid)
-                nodes.append({
-                    "id": nid,
-                    "name": node["name"],
-                    "subject": sub,
-                    "desc": (node.get("desc") or "")[:60],
-                    "depth": depth,
-                    "kids": len(node.get("children", [])),
-                })
-            if nid and parent_id:
-                links.append({"source": parent_id, "target": nid, "kind": "tree"})
-            if nid:
-                for rid in node.get("related", []):
-                    links.append({"source": nid, "target": rid, "kind": "rel"})
-            for c in node.get("children", []):
-                walk(c, nid, depth + 1)
-
-        walk(data, None, 0)
-    # related 边只保留两端都存在的
-    links = [l for l in links if l["kind"] == "tree" or (l["source"] in seen and l["target"] in seen)]
-    return jsonify({"nodes": nodes, "links": links})
 
 
 @app.route("/api/links")
