@@ -38,7 +38,7 @@ jobs:
           host: ${{ secrets.ORAL_HOST }}
           username: ${{ secrets.ORAL_USERNAME }}
           key: ${{ secrets.ORAL_SSH_KEY }}
-          script_timeout: 60m
+          command_timeout: 60m
           script: |
             set -e
             cd ${{ env.DEPLOY_PATH }}
