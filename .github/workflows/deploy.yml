@@ -27,7 +27,7 @@ jobs:
         with:
           host: ${{ secrets.ORAL_HOST }}
           username: ${{ secrets.ORAL_USERNAME }}
-          password: ${{ secrets.ORAL_PASSWORD }}
+          key: ${{ secrets.ORAL_SSH_KEY }}
           source: "mischub-src.tar.gz"
           target: "${{ env.DEPLOY_PATH }}"
           overwrite: true
@@ -37,7 +37,7 @@ jobs:
         with:
           host: ${{ secrets.ORAL_HOST }}
           username: ${{ secrets.ORAL_USERNAME }}
-          password: ${{ secrets.ORAL_PASSWORD }}
+          key: ${{ secrets.ORAL_SSH_KEY }}
           script_timeout: 60m
           script: |
             set -e
