@@ -53,10 +53,10 @@ def _api_headers():
 def gen_storyboard(topic: str, n: int) -> list:
     prompt = (
         f"你是一名短视频导演。请为主题「{topic}」写一个 {n} 个分镜的短视频脚本。\n"
-        "只输出 JSON 数组，不要输出其他任何内容。每个元素格式：\n"
+        '只输出一个 JSON 对象，格式为 {"shots": [...]}，不要输出其他任何内容。shots 数组每个元素格式：\n'
         '{"desc": "该镜头的画面描述（英文，用于文生图模型，风格电影感、高质量）", '
         '"narration": "该镜头的中文解说词（20~40字）", "seconds": 秒数(数字,3~8)}\n'
-        f"共 {n} 个元素。"
+        f"shots 数组共 {n} 个元素。"
     )
     payload = {
         "model": CHAT_MODEL,
@@ -93,10 +93,13 @@ def _parse_shots(text: str) -> list:
         if m:
             data = json.loads(m.group(0))
     if isinstance(data, dict):
-        for v in data.values():
-            if isinstance(v, list):
-                data = v
-                break
+        if "desc" in data:  # 模型只返回了单个分镜对象
+            data = [data]
+        else:
+            for v in data.values():
+                if isinstance(v, list):
+                    data = v
+                    break
     if not isinstance(data, list):
         return []
     shots = []
