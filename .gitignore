@@ -34,3 +34,7 @@ Thumbs.db
 
 downloads/
 reminder-data/
+
+# AI 视频制作缓存
+data/video_cache/
+AI视频制作/data/

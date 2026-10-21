@@ -67,7 +67,7 @@ jobs:
 
             # 健康检查
             ok=1
-            for target in "5000/" "8501/convert/healthz" "8502/dcf/healthz"; do
+            for target in "5000/" "8501/convert/healthz" "8502/dcf/healthz" "8503/video/healthz"; do
               HEALTH=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${target}" || echo "000")
               echo "健康检查 ${target}: HTTP ${HEALTH}"
               if [ "$HEALTH" != "200" ]; then ok=0; fi

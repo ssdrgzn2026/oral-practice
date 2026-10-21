@@ -96,7 +96,7 @@ nginx (443)
 |---|---|
 | `ORAL_HOST` | 服务器地址 |
 | `ORAL_USERNAME` | SSH 用户名 |
-| `ORAL_PASSWORD` | SSH 密码 |
+| `ORAL_SSH_KEY` | SSH 私钥 |
 | `OPENAI_API_KEY` | （可选）AI 对话 API Key |
 | `OPENAI_BASE_URL` | （可选）API Base URL |
 | `OPENAI_MODEL` | （可选）模型名，默认 `gpt-4o-mini` |

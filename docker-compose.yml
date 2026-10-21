@@ -69,6 +69,31 @@ services:
       --server.enableXsrfProtection=false
       --browser.gatherUsageStats=false
 
+  mischub-video:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    image: mischub-streamlit:latest
+    container_name: mischub-video
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8503:8503"
+    environment:
+      - TZ=Asia/Shanghai
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - OPENAI_MODEL=${OPENAI_MODEL:-Qwen/Qwen3-14B}
+    volumes:
+      - ./AI视频制作/data:/app/AI视频制作/data
+    command: >
+      streamlit run AI视频制作/app.py
+      --server.port=8503
+      --server.address=0.0.0.0
+      --server.baseUrlPath=video
+      --server.enableCORS=false
+      --server.enableXsrfProtection=false
+      --browser.gatherUsageStats=false
+
   mischub-reminder:
     build:
       context: .
