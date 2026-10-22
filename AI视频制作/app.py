@@ -153,7 +153,10 @@ def _parse_shots(text: str) -> list:
 
 
 def _parse_manual_shots(text: str) -> list:
-    """解析手工录入：优先 JSON（复用 _parse_shots），否则按行 "画面描述 | 解说词 | 秒数"（秒数可省）"""
+    """解析手工录入：优先 JSON（复用 _parse_shots），否则按行解析。
+    行格式："画面描述 | 解说词 | 秒数"（秒数可省，默认5）；没有 | 时整行作为解说词，
+    画面描述默认取解说词（配图 prompt 可直接用）。行首「镜1：」「镜头2.」「1.」等序号前缀会剥掉。
+    """
     text = text.strip()
     if not text:
         return []
@@ -161,17 +164,22 @@ def _parse_manual_shots(text: str) -> list:
         return _parse_shots(text)
     shots = []
     for line in text.splitlines():
-        line = line.strip()
+        line = re.sub(r"^\s*(?:第\s*)?(?:镜\s*头?\s*)?\d+\s*[：:.、．]\s*", "", line.strip())
         if not line:
             continue
         parts = [p.strip() for p in re.split(r"[|｜]", line)]
-        if len(parts) < 2 or not parts[0] or not parts[1]:
+        if len(parts) < 2:
+            desc, narration, sec_str = parts[0], parts[0], ""
+        else:
+            desc, narration = parts[0], parts[1]
+            sec_str = parts[2] if len(parts) > 2 else ""
+        if not narration:
             continue
         try:
-            seconds = max(2.0, min(15.0, float(parts[2]))) if len(parts) > 2 and parts[2] else 5.0
+            seconds = max(2.0, min(15.0, float(sec_str))) if sec_str else 5.0
         except ValueError:
             seconds = 5.0
-        shots.append({"desc": parts[0], "narration": parts[1], "seconds": seconds})
+        shots.append({"desc": desc, "narration": narration, "seconds": seconds})
     return shots
 
 
@@ -294,6 +302,31 @@ def audio_duration(audio: Path) -> float:
         return max(1.0, float(r.stdout.strip()))
     except ValueError:
         return 5.0
+
+
+def placeholder_image(idx: int, size_wh) -> Path:
+    """纯色深蓝底 + 白色镜头序号的占位图，供跳过配图时使用"""
+    w, h = size_wh
+    out = IMG_DIR / f"ph_{idx}_{w}x{h}.png"
+    if not out.exists():
+        img = Image.new("RGB", (w, h), (15, 32, 64))
+        d = ImageDraw.Draw(img)
+        font = ImageFont.truetype(find_cjk_font(), max(40, int(h * 0.08)))
+        t = f"镜头 {idx + 1}"
+        tw = d.textlength(t, font=font)
+        d.text(((w - tw) / 2, h / 2), t, font=font, fill=(255, 255, 255))
+        img.save(out)
+    return out
+
+
+def silent_audio(seconds: float) -> Path:
+    """静音 wav 占位音频，供跳过配音时使用"""
+    out = AUD_DIR / f"silence_{seconds:.1f}.wav"
+    if not out.exists():
+        subprocess.run(
+            ["ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
+             "-t", f"{seconds:.2f}", str(out)], check=True, capture_output=True, timeout=60)
+    return out
 
 
 def compose_video(shots: list, images: list, audios: list, size_wh, work: Path,
@@ -453,7 +486,9 @@ with st.container(border=True):
     st.subheader("③ 分镜脚本")
     with st.expander("✍️ 直接录入分镜（跳过 AI 生成脚本）"):
         manual = st.text_area(
-            "每行一个镜头：画面描述 | 解说词 | 秒数（秒数可省，默认5）；也可直接粘贴分镜 JSON",
+            "每行一个镜头：画面描述 | 解说词 | 秒数（秒数可省，默认5）；"
+            "行内没有 | 时整行作为解说词（画面描述自动取解说词）；也可直接粘贴分镜 JSON。"
+            "「镜1：」「1.」等序号前缀会自动去掉",
             height=140, key="manual_shots_text",
             placeholder="谢安站在淝水岸边，东晋铠甲，远眺远方 | 公元383年，淝水之战一触即发 | 5")
         if st.button("✅ 使用这份分镜", key="use_manual_shots"):
@@ -468,7 +503,16 @@ with st.container(border=True):
             st.rerun()
     if shots is None:
         if not st.session_state.get("making"):
-            st.info("确认上方文案后点击「用此文案开始制作」")
+            st.info("确认上方文案后点击「用此文案开始制作」，或使用下方任一跳过通道")
+        if st.button("⏭ 跳过，直接去配图", key="skip_shots",
+                     help="按分镜数生成空白占位镜头，之后在配图步逐镜上传或生成"):
+            st.session_state.shots = [{"desc": "", "narration": "", "seconds": 5.0}
+                                      for _ in range(st.session_state.get("n_shots", 5))]
+            st.session_state.making = True
+            for k in ("images", "audios", "video", "seeds", "uploads", "audio_uploads"):
+                st.session_state.pop(k, None)
+            st.rerun()
+        if not st.session_state.get("making"):
             st.stop()
         with st.spinner("LLM 正在拆分分镜脚本…"):
             try:
@@ -499,6 +543,8 @@ with st.container(border=True):
             try:
                 if str(i) in uploads:  # 已上传自定义图片的镜头跳过 AI 生成
                     images.append(uploads[str(i)])
+                elif not s["desc"].strip():  # 占位镜头（跳过分镜录入）：用占位图
+                    images.append(str(placeholder_image(i, size_wh)))
                 else:
                     images.append(str(gen_image(s["desc"], size_str)))
             except Exception as e:  # noqa: BLE001
@@ -509,7 +555,13 @@ with st.container(border=True):
         if failed:
             st.session_state.images = images or None
             st.error(failed)
-            if st.button("↻ 重试本步", key="retry_img"):
+            c1, c2 = st.columns(2)
+            if c1.button("↻ 重试本步", key="retry_img"):
+                st.rerun()
+            if c2.button("⏭ 跳过失败镜头，用占位图继续", key="skip_img_on_fail"):
+                while len(images) < len(shots):
+                    images.append(str(placeholder_image(len(images), size_wh)))
+                st.session_state.images = images
                 st.rerun()
             st.stop()
         st.session_state.images = images
@@ -543,6 +595,10 @@ with st.container(border=True):
         for k in ("images", "audios", "video", "seeds"):
             st.session_state.pop(k, None)
         st.rerun()
+    if st.button("⏭ 全部用占位图，直接去配音", key="skip_all_images"):
+        st.session_state.images = [str(placeholder_image(i, size_wh)) for i in range(len(shots))]
+        st.session_state.pop("video", None)
+        st.rerun()
 
 # ========== 第 5 步：TTS 配音 ==========
 with st.container(border=True):
@@ -556,6 +612,8 @@ with st.container(border=True):
             try:
                 if str(i) in audio_uploads:  # 已上传自定义音频的镜头跳过 TTS
                     audios.append(audio_uploads[str(i)])
+                elif not s["narration"].strip():  # 占位镜头：用静音音频
+                    audios.append(str(silent_audio(s["seconds"])))
                 else:
                     audios.append(str(gen_audio(s["narration"])))
             except Exception as e:  # noqa: BLE001
@@ -566,7 +624,13 @@ with st.container(border=True):
         if failed:
             st.session_state.audios = audios or None
             st.error(failed)
-            if st.button("↻ 重试本步", key="retry_tts"):
+            c1, c2 = st.columns(2)
+            if c1.button("↻ 重试本步", key="retry_tts"):
+                st.rerun()
+            if c2.button("⏭ 跳过失败镜头，用静音占位继续", key="skip_tts_on_fail"):
+                while len(audios) < len(shots):
+                    audios.append(str(silent_audio(shots[len(audios)]["seconds"])))
+                st.session_state.audios = audios
                 st.rerun()
             st.stop()
         st.session_state.audios = audios
@@ -593,6 +657,10 @@ with st.container(border=True):
         for k in ("audios", "video"):
             st.session_state.pop(k, None)
         st.rerun()
+    if st.button("⏭ 全部用静音占位，直接去合成", key="skip_all_tts"):
+        st.session_state.audios = [str(silent_audio(s["seconds"])) for s in shots]
+        st.session_state.pop("video", None)
+        st.rerun()
 
 # ========== 第 6 步：合成视频（手动触发） ==========
 with st.container(border=True):
@@ -601,10 +669,14 @@ with st.container(border=True):
     ok_shots = n >= 1
     ok_images = bool(images) and len(images) == n
     ok_audios = bool(audios) and len(audios) == n
+    ph_images = sum(1 for p in (images or []) if Path(p).name.startswith("ph_"))
+    ph_audios = sum(1 for p in (audios or []) if Path(p).name.startswith("silence_"))
+    img_note = f"（{ph_images} 张占位）" if ph_images else ""
+    aud_note = f"（{ph_audios} 段静音占位）" if ph_audios else ""
     st.markdown(
         f"{'✅' if ok_shots else '⬜'} {n} 个分镜　"
-        f"{'✅' if ok_images else '⬜'} {len(images) if images else 0}/{n} 张配图　"
-        f"{'✅' if ok_audios else '⬜'} {len(audios) if audios else 0}/{n} 段配音")
+        f"{'✅' if ok_images else '⬜'} {len(images) if images else 0}/{n} 张配图{img_note}　"
+        f"{'✅' if ok_audios else '⬜'} {len(audios) if audios else 0}/{n} 段配音{aud_note}")
     ready = ok_shots and ok_images and ok_audios
     motion = st.checkbox("启用运镜效果（zoompan 缓慢推进，低性能服务器可关闭提速）",
                          value=True, key="motion")
