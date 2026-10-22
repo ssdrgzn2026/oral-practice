@@ -128,6 +128,8 @@ PATH_NAMES = {
     "/graph/psychology": "星图·心理",
     "/convert/": "格式转换",
     "/dcf/": "DCF",
+    "/video": "AI视频",
+    "/video/": "AI视频",
 }
 
 
