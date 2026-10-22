@@ -152,6 +152,29 @@ def _parse_shots(text: str) -> list:
     return shots
 
 
+def _parse_manual_shots(text: str) -> list:
+    """解析手工录入：优先 JSON（复用 _parse_shots），否则按行 "画面描述 | 解说词 | 秒数"（秒数可省）"""
+    text = text.strip()
+    if not text:
+        return []
+    if text[0] in "[{":
+        return _parse_shots(text)
+    shots = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        parts = [p.strip() for p in re.split(r"[|｜]", line)]
+        if len(parts) < 2 or not parts[0] or not parts[1]:
+            continue
+        try:
+            seconds = max(2.0, min(15.0, float(parts[2]))) if len(parts) > 2 and parts[2] else 5.0
+        except ValueError:
+            seconds = 5.0
+        shots.append({"desc": parts[0], "narration": parts[1], "seconds": seconds})
+    return shots
+
+
 # ========== 第 4 步：文生图 ==========
 def gen_image(desc: str, size: str, seed: int = 0) -> Path:
     """Kolors 中文原生模型，直接用中文描述；seed 用于单镜重跑时绕过缓存/换随机性"""
@@ -273,26 +296,32 @@ def audio_duration(audio: Path) -> float:
         return 5.0
 
 
-def compose_video(shots: list, images: list, audios: list, size_wh, work: Path) -> Path:
+def compose_video(shots: list, images: list, audios: list, size_wh, work: Path,
+                  motion: bool = True) -> Path:
     w, h = size_wh
-    key = _sha("video|" + "|".join(f"{p.name}{a.name}" for p, a in zip(images, audios)) + f"{w}x{h}")
+    key = _sha("video|" + "|".join(f"{p.name}{a.name}" for p, a in zip(images, audios))
+               + f"{w}x{h}|motion={int(motion)}")
     final = OUT_DIR / f"{key}.mp4"
     if final.exists():
         return final
     work.mkdir(parents=True, exist_ok=True)
-    fps = 25
+    fps = 24
     segs = []
     for i, (img, aud) in enumerate(zip(images, audios)):
         dur = audio_duration(aud)
         seg = work / f"seg{i}.mp4"
-        frames = int(dur * fps) + 1
-        # zoompan 缓慢推进 + 音频轨，按配音时长定该镜时长
-        vf = (f"scale={w*2}:{h*2},"
-              f"zoompan=z='min(1+0.15*on/{frames},1.15)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
-              f":d={frames}:s={w}x{h}:fps={fps}")
+        if motion:
+            # zoompan 缓慢推进 + 音频轨，按配音时长定该镜时长
+            frames = int(dur * fps) + 1
+            vf = (f"scale={w*2}:{h*2},"
+                  f"zoompan=z='min(1+0.15*on/{frames},1.15)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
+                  f":d={frames}:s={w}x{h}:fps={fps}")
+        else:
+            # 低性能服务器：静态图 + 音频，直接输出画幅分辨率
+            vf = f"scale={w}:{h}"
         subprocess.run(
             ["ffmpeg", "-y", "-loop", "1", "-i", str(img), "-i", str(aud),
-             "-vf", vf, "-c:v", "libx264", "-pix_fmt", "yuv420p",
+             "-vf", vf, "-r", str(fps), "-c:v", "libx264", "-pix_fmt", "yuv420p",
              "-c:a", "aac", "-b:a", "128k", "-shortest", "-t", f"{dur:.2f}",
              str(seg)], check=True, capture_output=True, timeout=600)
         segs.append(seg)
@@ -307,6 +336,48 @@ def compose_video(shots: list, images: list, audios: list, size_wh, work: Path) 
 # ========== 无 API Key 提示 ==========
 if not API_KEY:
     st.warning("⚠️ 未配置 OPENAI_API_KEY。请在服务器 .env 中设置 SiliconFlow 的密钥（OPENAI_API_KEY / OPENAI_BASE_URL）后重启服务。")
+    st.stop()
+
+
+def render_works():
+    """📁 我的作品：列出 output 目录下所有已合成视频"""
+    st.subheader("📁 我的作品")
+    videos = sorted(OUT_DIR.glob("*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True)
+    if not videos:
+        st.info("暂无作品，合成完成的视频会自动出现在这里。")
+        return
+    from datetime import datetime
+    for v in videos:
+        stt = v.stat()
+        dur = audio_duration(v)
+        with st.container(border=True):
+            c1, c2 = st.columns([2, 3])
+            c1.markdown(f"**{v.name}**")
+            c1.caption(f"创建时间：{datetime.fromtimestamp(stt.st_mtime):%Y-%m-%d %H:%M}　"
+                       f"大小：{stt.st_size/1024/1024:.1f} MB　时长：{dur:.1f}s")
+            st.video(str(v))
+            d1, d2 = st.columns(2)
+            with open(v, "rb") as f:
+                d1.download_button("⬇️ 下载", f, file_name=v.name, mime="video/mp4",
+                                   key=f"dl_{v.name}", use_container_width=True)
+            if d2.button("🗑 删除", key=f"del_{v.name}", use_container_width=True):
+                v.unlink()
+                st.rerun()
+
+
+# ========== 页面导航：制作 / 我的作品 ==========
+nav1, nav2, _ = st.columns([1, 1, 4])
+page = st.session_state.get("page", "make")
+if nav1.button("🎬 视频制作", use_container_width=True,
+               type="primary" if page == "make" else "secondary"):
+    st.session_state.page = "make"
+    st.rerun()
+if nav2.button("📁 我的作品", use_container_width=True,
+               type="primary" if page == "works" else "secondary"):
+    st.session_state.page = "works"
+    st.rerun()
+if page == "works":
+    render_works()
     st.stop()
 
 # ========== 第 1 步：输入主题 ==========
@@ -358,13 +429,13 @@ with st.container(border=True):
             st.stop()
         st.session_state.script = edited.strip()
         st.session_state.making = True
-        for k in ("shots", "images", "audios", "video", "seeds", "uploads"):
+        for k in ("shots", "images", "audios", "video", "seeds", "uploads", "audio_uploads"):
             st.session_state.pop(k, None)
         st.rerun()
     if cc2.button("↻ 重新生成文案", key="redo_script_text"):
         st.session_state.pop("script", None)
         st.session_state.pop("making", None)
-        for k in ("shots", "images", "audios", "video", "seeds", "uploads"):
+        for k in ("shots", "images", "audios", "video", "seeds", "uploads", "audio_uploads"):
             st.session_state.pop(k, None)
         st.rerun()
 
@@ -378,6 +449,21 @@ video = st.session_state.get("video")
 # ========== 第 3 步：分镜脚本 ==========
 with st.container(border=True):
     st.subheader("③ 分镜脚本")
+    with st.expander("✍️ 直接录入分镜（跳过 AI 生成脚本）"):
+        manual = st.text_area(
+            "每行一个镜头：画面描述 | 解说词 | 秒数（秒数可省，默认5）；也可直接粘贴分镜 JSON",
+            height=140, key="manual_shots_text",
+            placeholder="谢安站在淝水岸边，东晋铠甲，远眺远方 | 公元383年，淝水之战一触即发 | 5")
+        if st.button("✅ 使用这份分镜", key="use_manual_shots"):
+            parsed = _parse_manual_shots(manual)
+            if not parsed:
+                st.error("未能解析出任何镜头，请检查格式")
+                st.stop()
+            st.session_state.shots = parsed
+            st.session_state.making = True
+            for k in ("images", "audios", "video", "seeds", "uploads", "audio_uploads"):
+                st.session_state.pop(k, None)
+            st.rerun()
     if shots is None:
         if not st.session_state.get("making"):
             st.info("确认上方文案后点击「用此文案开始制作」")
@@ -395,7 +481,7 @@ with st.container(border=True):
         st.markdown(f"**镜头 {i+1}**（{s['seconds']}s）：{s['narration']}")
         st.caption(f"画面描述：{s['desc']}")
     if st.button("↻ 重新生成脚本", key="redo_script"):
-        for k in ("shots", "images", "audios", "video", "seeds", "uploads"):
+        for k in ("shots", "images", "audios", "video", "seeds", "uploads", "audio_uploads"):
             st.session_state.pop(k, None)
         st.rerun()
 
@@ -458,14 +544,18 @@ with st.container(border=True):
 
 # ========== 第 5 步：TTS 配音 ==========
 with st.container(border=True):
-    st.subheader("⑤ 分镜配音（CosyVoice2）")
+    st.subheader("⑤ 分镜配音（CosyVoice2 / 自定义音频）")
+    audio_uploads = st.session_state.setdefault("audio_uploads", {})  # 镜头序号(str) -> 自定义音频路径
     if audios is None:
         audios = []
         prog = st.progress(0.0, text="生成配音中…")
         failed = None
         for i, s in enumerate(shots):
             try:
-                audios.append(str(gen_audio(s["narration"])))
+                if str(i) in audio_uploads:  # 已上传自定义音频的镜头跳过 TTS
+                    audios.append(audio_uploads[str(i)])
+                else:
+                    audios.append(str(gen_audio(s["narration"])))
             except Exception as e:  # noqa: BLE001
                 failed = f"镜头 {i+1} 配音失败：{e}"
                 break
@@ -480,37 +570,65 @@ with st.container(border=True):
         st.session_state.audios = audios
     cols = st.columns(len(audios))
     for i, p in enumerate(audios):
+        source = "自定义上传" if str(i) in audio_uploads else "AI 配音"
+        cols[i].caption(f"镜头 {i+1} · {source}")
         cols[i].audio(p)
+        up = cols[i].file_uploader("上传自定义音频", type=["mp3", "wav"],
+                                   key=f"upload_audio_{i}", label_visibility="collapsed")
+        if up is not None and st.session_state.get(f"uploaded_audio_id_{i}") != up.file_id:
+            data = up.getvalue()
+            ext = Path(up.name).suffix.lower() or ".mp3"
+            path = AUD_DIR / f"up_{_sha_bytes(data)}{ext}"
+            if not path.exists():
+                path.write_bytes(data)
+            audio_uploads[str(i)] = str(path)
+            audios[i] = str(path)
+            st.session_state.audios = audios
+            st.session_state[f"uploaded_audio_id_{i}"] = up.file_id
+            st.session_state.pop("video", None)
+            st.rerun()
     if st.button("↻ 重新生成配音", key="redo_tts"):
         for k in ("audios", "video"):
             st.session_state.pop(k, None)
         st.rerun()
 
-# ========== 第 6 步：合成视频 ==========
+# ========== 第 6 步：合成视频（手动触发） ==========
 with st.container(border=True):
     st.subheader("⑥ 合成视频")
-    if video is None:
-        with st.spinner("正在渲染字幕并合成视频（zoompan 运镜 + 配音），请稍候…"):
+    n = len(shots)
+    ok_shots = n >= 1
+    ok_images = bool(images) and len(images) == n
+    ok_audios = bool(audios) and len(audios) == n
+    st.markdown(
+        f"{'✅' if ok_shots else '⬜'} {n} 个分镜　"
+        f"{'✅' if ok_images else '⬜'} {len(images) if images else 0}/{n} 张配图　"
+        f"{'✅' if ok_audios else '⬜'} {len(audios) if audios else 0}/{n} 段配音")
+    ready = ok_shots and ok_images and ok_audios
+    motion = st.checkbox("启用运镜效果（zoompan 缓慢推进，低性能服务器可关闭提速）",
+                         value=True, key="motion")
+    if st.button("🎬 合成视频", type="primary", disabled=not ready,
+                 use_container_width=True):
+        with st.spinner("正在渲染字幕并合成视频，请稍候…"):
             try:
                 sub_imgs = [render_subtitle(Path(images[i]), shots[i]["narration"], size_wh)
-                            for i in range(len(shots))]
-                work = OUT_DIR / ("work_" + _sha(st.session_state.topic + str(time.time())))
-                video = str(compose_video(shots, sub_imgs, [Path(a) for a in audios], size_wh, work))
-                st.session_state.video = video
+                            for i in range(n)]
+                work = OUT_DIR / ("work_" + _sha(st.session_state.get("topic", "") + str(time.time())))
+                st.session_state.video = str(
+                    compose_video(shots, sub_imgs, [Path(a) for a in audios], size_wh, work,
+                                  motion=motion))
+                video = st.session_state.video
             except subprocess.CalledProcessError as e:
                 st.error(f"ffmpeg 合成失败：{e.stderr.decode(errors='ignore')[-500:] if e.stderr else e}")
-                if st.button("↻ 重试本步", key="retry_compose"):
-                    st.rerun()
                 st.stop()
             except Exception as e:  # noqa: BLE001
                 st.error(f"合成失败：{e}")
-                if st.button("↻ 重试本步", key="retry_compose2"):
-                    st.rerun()
                 st.stop()
-    st.video(video)
-    with open(video, "rb") as f:
-        st.download_button("⬇️ 下载视频 (mp4)", f, file_name="AI视频.mp4",
-                           mime="video/mp4", use_container_width=True)
-    if st.button("↻ 重新合成", key="redo_compose"):
-        st.session_state.pop("video", None)
         st.rerun()
+    if video:
+        st.video(video)
+        with open(video, "rb") as f:
+            st.download_button("⬇️ 下载视频 (mp4)", f, file_name="AI视频.mp4",
+                               mime="video/mp4", use_container_width=True)
+        if st.button("↻ 清除结果，重新合成", key="redo_compose"):
+            st.session_state.pop("video", None)
+            st.rerun()
