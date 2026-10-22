@@ -17,10 +17,30 @@ services:
       - OPENAI_MODEL=${OPENAI_MODEL:-Qwen/Qwen3-14B}
       - OPENAI_WHISPER_MODEL=${OPENAI_WHISPER_MODEL:-Qwen/Qwen3-ASR-1.7B}
     volumes:
-      - ./口语AI伴侣/data:/app/口语AI伴侣/data
       - ./stats:/app/stats
       - ./downloads:/app/downloads
       - ./reminder-data:/app/reminder-data
+
+  mischub-oral:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mischub:latest
+    container_name: mischub-oral
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8504:8504"
+    environment:
+      - TZ=Asia/Shanghai
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - OPENAI_MODEL=${OPENAI_MODEL:-Qwen/Qwen3-14B}
+      - OPENAI_WHISPER_MODEL=${OPENAI_WHISPER_MODEL:-Qwen/Qwen3-ASR-1.7B}
+    volumes:
+      - ./口语AI伴侣/data:/app/口语AI伴侣/data
+    # 口语含流式对话，timeout 放宽；中文目录用 --chdir 进入后按模块名加载
+    command: ["gunicorn", "-w", "2", "-b", "0.0.0.0:8504", "--timeout", "300",
+              "--chdir", "口语AI伴侣", "app:app"]
 
   mischub-convert:
     build:

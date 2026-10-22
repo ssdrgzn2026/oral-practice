@@ -6,7 +6,8 @@
 
 | 模块 | 路径 | 技术栈 | 说明 |
 |------|------|--------|------|
-| **口语AI伴侣** | `/oral` | Flask Blueprint + Web Speech API | AI 情景对话、话题独白、影子跟读、每日表达、雅思口语、练习记录 |
+| **口语AI伴侣** | `/oral` | 独立 Flask 容器 + Web Speech API | AI 情景对话、话题独白、影子跟读、每日表达、雅思口语、练习记录 |
+| **AI 视频制作** | `/video/` | Streamlit + ffmpeg | 输入主题自动生成分镜、Kolors 配图、CosyVoice2 配音并合成短视频 |
 | **格式转换系统** | `/convert/` | Streamlit | PDF / Word / 图片 / 音视频等 18+ 种格式互转，本地处理，隐私安全 |
 | **DCF 工具** | `/dcf/` | Streamlit | 两阶段/三阶段现金流折现估值，敏感性分析，支持年报数据自动抓取 |
 
@@ -27,7 +28,14 @@
 
 ## 快速启动（本地）
 
-口语模块（主站）：
+口语模块（本地开发，独立进程）：
+
+```bash
+pip install -r requirements.txt
+python 口语AI伴侣/app.py   # http://127.0.0.1:8504/oral
+```
+
+主站（首页导航）：
 
 1. 双击运行 `start.bat`
 2. 等待浏览器自动打开 `http://127.0.0.1:5000`
@@ -52,18 +60,19 @@ streamlit run DCF估值分析系统/streamlit_app.py --server.port=8502
 
 ```
 MiscHub/
-├── app.py                 # Flask 主应用（首页导航 + 加载口语 Blueprint）
+├── app.py                 # Flask 主应用（首页导航 + 票务提醒 + 访问统计）
 ├── requirements.txt       # 主应用依赖
-├── Dockerfile             # 主应用镜像（Flask + gunicorn）
-├── Dockerfile.streamlit   # Streamlit 模块镜像（格式转换 + DCF 共用）
-├── docker-compose.yml     # 三个服务：mischub / mischub-convert / mischub-dcf
+├── Dockerfile             # 主应用镜像（Flask + gunicorn，口语容器共用）
+├── Dockerfile.streamlit   # Streamlit 模块镜像（格式转换 + DCF + AI 视频制作共用）
+├── docker-compose.yml     # 六个服务：mischub / mischub-oral / mischub-convert / mischub-dcf / mischub-video / mischub-reminder
 ├── start.bat              # 本地一键启动脚本
 ├── configure.bat          # 本地 API 配置入口
 ├── configure_api.py       # 本地 API 配置脚本
 ├── .github/workflows/     # GitHub Actions 自动部署
 ├── templates/index.html   # MiscHub 工具导航首页
 ├── static/css/style.css   # 首页样式
-├── 口语AI伴侣/            # 口语模块（Flask Blueprint）
+├── 口语AI伴侣/            # 口语模块（独立 Flask 容器）
+│   ├── app.py             # 独立服务入口（gunicorn，0.0.0.0:8504）
 │   ├── blueprint.py       # 口语模块路由与 API
 │   ├── templates/oral.html
 │   ├── static/css|js/
@@ -71,9 +80,11 @@ MiscHub/
 ├── 格式转换系统/          # Streamlit 应用
 │   ├── app.py
 │   └── converter.py       # 转换核心逻辑
-└── DCF估值分析系统/       # Streamlit 应用
-    ├── streamlit_app.py
-    └── core/              # DCF 计算引擎与数据抓取
+├── DCF估值分析系统/       # Streamlit 应用
+│   ├── streamlit_app.py
+│   └── core/              # DCF 计算引擎与数据抓取
+└── AI视频制作/            # Streamlit 应用
+    └── app.py             # 图文视频合成器（分镜 → 配图 → 配音 → ffmpeg 合成）
 ```
 
 ## 部署架构
@@ -84,11 +95,13 @@ MiscHub/
   ▼
 nginx (443)
   ├── /          → mischub (Flask, 127.0.0.1:5000)
+  ├── /oral      → mischub-oral (Flask, 127.0.0.1:8504，口语专属 /api/* 也走这里)
   ├── /convert/  → mischub-convert (Streamlit, 127.0.0.1:8501, WebSocket)
-  └── /dcf/      → mischub-dcf (Streamlit, 127.0.0.1:8502, WebSocket)
+  ├── /dcf/      → mischub-dcf (Streamlit, 127.0.0.1:8502, WebSocket)
+  └── /video/    → mischub-video (Streamlit, 127.0.0.1:8503, WebSocket)
 ```
 
-每次 push 到 `main` 分支，GitHub Actions 会将源码上传到服务器（`/opt/oral-practice`），在服务器上构建镜像并用 docker compose 重启三个服务。
+每次 push 到 `main` 分支，GitHub Actions 会将源码上传到服务器（`/opt/oral-practice`），在服务器上构建镜像并用 docker compose 重启全部服务。
 
 ### GitHub Secrets
 
