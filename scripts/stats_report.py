@@ -23,6 +23,17 @@ STATS_DIR = Path(__file__).resolve().parent.parent / "stats"
 
 BAD_GEO = (None, "", "查询中", "未知")
 
+# ===== 自己人标记（2026-10-22 核实）=====
+OWNER_IPS = {
+    "103.233.163.150": "我·主力电脑",
+    "124.64.22.102": "我·第二台设备",
+    "183.241.219.4": "我·手机",
+    "120.244.13.83": "我·手机",
+    "223.104.3.130": "我·手机",
+    "183.242.227.165": "我·手机",
+    "114.254.2.176": "我·手机",
+}
+
 
 def read_jsonl(path):
     if not path.exists():
@@ -272,27 +283,45 @@ def main():
             d["user_ids"].add(s["user_id"])
         d["pages"] |= set(s["paths"])
 
-    print(pad("首次访问", 13) + pad("最近访问", 13) + pad("IP", 17) + pad("归属地", 14) + pad("运营商", 8) + pad("类型", 9)
+    print(pad("首次访问", 13) + pad("最近访问", 13) + pad("IP", 17) + pad("归属地", 14) + pad("运营商", 8) + pad("身份", 10)
           + pad("浏览", 5) + pad("会话", 5) + pad("总停留", 10) + "访问过的页面")
-    print("-" * 118)
+    print("-" * 120)
     # 按最近访问时间倒序
     rows = sorted(visitors.items(),
                   key=lambda kv: kv[1]["last"] or datetime.min, reverse=True)
+    n_me = n_bot = n_real = 0
+    real_rows = []
     for ip, d in rows:
-        kind = "真人" if d["sessions"] > 0 else "扫描/爬虫"
+        if ip in OWNER_IPS:
+            kind = OWNER_IPS[ip]
+            n_me += 1
+        elif d["sessions"] > 0:
+            kind = "真人"
+            n_real += 1
+            real_rows.append((ip, d))
+        else:
+            kind = "爬虫"
+            n_bot += 1
         print(pad(d["first"].strftime("%m-%d %H:%M") if d["first"] else "-", 13)
               + pad(d["last"].strftime("%m-%d %H:%M") if d["last"] else "-", 13)
               + pad(ip, 17)
               + pad(geo_short(d["geo"]), 14)
               + pad(carrier_of(d["geo"]), 8)
-              + pad(kind, 9)
+              + pad(kind, 10)
               + pad(d["visits"], 5)
               + pad(d["sessions"], 5)
               + pad(fmt_duration(d["total_sec"]), 10)
               + page_names(d["pages"]))
-    real = sum(1 for d in visitors.values() if d["sessions"] > 0)
-    print(f"\n共 {len(visitors)} 个独立 IP（真人 {real} 个，扫描/爬虫 {len(visitors) - real} 个），"
+    print(f"\n共 {len(visitors)} 个独立 IP：自己 {n_me} 个，爬虫 {n_bot} 个（已排除），真人访客 {n_real} 人，"
           f"{len(visits)} 次页面浏览，{len(session_info)} 个会话")
+    if real_rows:
+        real_rows.sort(key=lambda x: x[1]["total_sec"], reverse=True)
+        print("\n===== 结论：真实外部访客（按停留时长） =====")
+        for ip, d in real_rows[:15]:
+            print(f"  {pad(geo_short(d['geo']), 14)}{pad(ip, 17)}"
+                  f"停留 {pad(fmt_duration(d['total_sec']), 10)} 会话 {d['sessions']} · {page_names(d['pages'])}")
+        if len(real_rows) > 15:
+            print(f"  ……另有 {len(real_rows) - 15} 人（多为短暂浏览）")
 
     # 各模块访问量汇总（按页面路径统计）
     page_counts = defaultdict(int)
