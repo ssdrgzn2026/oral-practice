@@ -28,6 +28,24 @@ PHO_DIR = CACHE_DIR / "photo_desc"  # VLM 对参考照片的内容描述
 for d in (IMG_DIR, AUD_DIR, SUB_DIR, OUT_DIR, SCRIPT_DIR, PHO_DIR):
     d.mkdir(parents=True, exist_ok=True)
 
+
+def _cleanup_cache(days: int = 30):
+    """启动时清理可再生的缓存（output/成品、subtitled/字幕图）；images/audio 需重新调用 API，不删"""
+    cutoff = time.time() - days * 86400
+    removed = 0
+    for d in (OUT_DIR, SUB_DIR):
+        for f in d.rglob("*"):
+            try:
+                if f.is_file() and f.stat().st_mtime < cutoff:
+                    f.unlink()
+                    removed += 1
+            except OSError:
+                pass
+    print(f"[video-cache] 已清理 {removed} 个超过 {days} 天的可再生缓存文件")
+
+
+_cleanup_cache()
+
 API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
 BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.siliconflow.cn/v1").rstrip("/")
 CHAT_MODEL = os.environ.get("OPENAI_MODEL", "Qwen/Qwen3-14B")
@@ -449,6 +467,7 @@ def render_works():
         st.info("暂无作品，合成完成的视频会自动出现在这里。")
         return
     from datetime import datetime
+    playing = st.session_state.get("works_playing")
     for v in videos:
         stt = v.stat()
         dur = audio_duration(v)
@@ -457,13 +476,23 @@ def render_works():
             c1.markdown(f"**{v.name}**")
             c1.caption(f"创建时间：{datetime.fromtimestamp(stt.st_mtime):%Y-%m-%d %H:%M}　"
                        f"大小：{stt.st_size/1024/1024:.1f} MB　时长：{dur:.1f}s")
-            st.video(str(v))
+            # 懒加载：点「▶ 播放」才渲染播放器，避免列表页同时缓冲所有视频
+            if playing == v.name:
+                st.video(str(v))
+                if st.button("▲ 收起", key=f"close_{v.name}", use_container_width=True):
+                    st.session_state.works_playing = None
+                    st.rerun()
+            elif st.button("▶ 播放", key=f"play_{v.name}", use_container_width=True):
+                st.session_state.works_playing = v.name
+                st.rerun()
             d1, d2 = st.columns(2)
             with open(v, "rb") as f:
                 d1.download_button("⬇️ 下载", f, file_name=v.name, mime="video/mp4",
                                    key=f"dl_{v.name}", use_container_width=True)
             if d2.button("🗑 删除", key=f"del_{v.name}", use_container_width=True):
                 v.unlink()
+                if st.session_state.get("works_playing") == v.name:
+                    st.session_state.works_playing = None
                 st.rerun()
 
 
