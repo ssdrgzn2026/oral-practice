@@ -76,7 +76,9 @@ def describe_photo(img_bytes: bytes) -> str:
     payload = {
         "model": VLM_MODEL,
         "messages": [{"role": "user", "content": [
-            {"type": "text", "text": "用一两句话描述这张图片的内容、主体、风格"},
+            {"type": "text", "text": (
+                "这是一张产品界面截图/照片。请描述：1) 这是什么系统/页面（念出可见的标题文字）"
+                " 2) 界面上有哪些功能模块或元素 3) 整体风格。三句话以内，用中文。")},
             {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
         ]}],
         "max_tokens": 200,
@@ -548,7 +550,12 @@ with st.container(border=True):
         pcols = st.columns(len(photos))
         for i, p in enumerate(photos):
             pcols[i].image(p["path"], use_container_width=True)
-            pcols[i].caption(f"第{i+1}张" + (f"：{p['desc']}" if p["desc"] else "（未识别）"))
+            edited_desc = pcols[i].text_area(
+                f"第{i+1}张描述（可编辑）", value=p["desc"], height=90,
+                key=f"photo_desc_{i}",
+                placeholder="（VLM 未识别，可手填这张照片的内容）")
+            if edited_desc.strip() != p["desc"]:
+                st.session_state.photos[i]["desc"] = edited_desc.strip()
 
 photo_descs = [p["desc"] for p in st.session_state.get("photos", []) if p.get("desc")]
 photo_paths = [p["path"] for p in st.session_state.get("photos", [])]
