@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """AI 视频制作：图文视频合成器（Streamlit 单页应用）
 
-流水线：主题 -> LLM 分镜脚本 -> 文生图(Kolors) -> TTS(CosyVoice2) -> ffmpeg 合成 mp4。
+流水线：主题 -> LLM 口播文案（可编辑）-> 分镜脚本（中文画面描述）-> 文生图(Kolors) -> TTS(CosyVoice2) -> ffmpeg 合成 mp4。
 所有中间产物按内容 sha1 缓存在 data/video_cache/，重跑不重复调用 API。
 """
 import base64
@@ -23,7 +23,8 @@ IMG_DIR = CACHE_DIR / "images"
 AUD_DIR = CACHE_DIR / "audio"
 SUB_DIR = CACHE_DIR / "subtitled"  # 渲染了字幕条的图片
 OUT_DIR = CACHE_DIR / "output"
-for d in (IMG_DIR, AUD_DIR, SUB_DIR, OUT_DIR):
+SCRIPT_DIR = CACHE_DIR / "scripts"  # LLM 生成的口播文案
+for d in (IMG_DIR, AUD_DIR, SUB_DIR, OUT_DIR, SCRIPT_DIR):
     d.mkdir(parents=True, exist_ok=True)
 
 API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
@@ -32,12 +33,14 @@ CHAT_MODEL = os.environ.get("OPENAI_MODEL", "Qwen/Qwen3-14B")
 TTS_MODEL = os.environ.get("OPENAI_TTS_MODEL", "FunAudioLLM/CosyVoice2-0.5B")
 TTS_VOICE = os.environ.get("OPENAI_TTS_VOICE", "FunAudioLLM/CosyVoice2-0.5B:alex")
 IMAGE_MODEL = "Kwai-Kolors/Kolors"
+# 文生图统一风格后缀，保证多镜画面一致性
+IMG_STYLE_SUFFIX = "，中国风写实插画，电影感光影，细节丰富，高质量"
 
 SIZES = {"竖屏 576×1024": (576, 1024), "横屏 1024×576": (1024, 576)}
 
 st.set_page_config(page_title="AI 视频制作", page_icon="🎬", layout="wide")
 st.title("🎬 AI 视频制作 · 图文视频合成器")
-st.caption("主题 → 分镜脚本 → AI 配图 → AI 配音 → 自动合成视频。所有中间产物已缓存，重跑不重复消耗额度。")
+st.caption("主题 → 口播文案 → 分镜脚本 → AI 配图 → AI 配音 → 自动合成视频。所有中间产物已缓存，重跑不重复消耗额度。")
 st.markdown("<img src='/api/pv?p=video' style='display:none' alt=''>", unsafe_allow_html=True)
 
 
@@ -49,14 +52,41 @@ def _api_headers():
     return {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 
 
-# ========== 第 2 步：LLM 分镜脚本 ==========
-def gen_storyboard(topic: str, n: int) -> list:
+# ========== 第 2 步：LLM 口播文案 ==========
+def gen_script(topic: str) -> str:
+    """根据主题生成适合 1 分钟短视频的中文口播文案（200~300 字），按内容 sha1 缓存"""
+    key = _sha(f"script|{CHAT_MODEL}|{topic}")
+    cache = SCRIPT_DIR / f"{key}.txt"
+    if cache.exists():
+        return cache.read_text(encoding="utf-8")
     prompt = (
-        f"你是一名短视频导演。请为主题「{topic}」写一个 {n} 个分镜的短视频脚本。\n"
+        f"你是一名短视频编剧。请为主题「{topic}」写一段适合 1 分钟左右短视频的中文口播文案。\n"
+        "要求：200~300 字；口语化、有吸引力，开头一句要抓人；叙述有画面感，方便后续拆分成分镜；"
+        "涉及中国历史/人物题材时写清朝代与人物姓名。只输出文案正文，不要标题、不要解释。"
+    )
+    r = requests.post(f"{BASE_URL}/chat/completions", headers=_api_headers(),
+                      json={"model": CHAT_MODEL, "temperature": 0.8,
+                            "messages": [{"role": "user", "content": prompt}]}, timeout=120)
+    r.raise_for_status()
+    text = r.json()["choices"][0]["message"]["content"].strip()
+    cache.write_text(text, encoding="utf-8")
+    return text
+
+
+# ========== 第 3 步：LLM 分镜脚本 ==========
+def gen_storyboard(script: str, n: int) -> list:
+    prompt = (
+        "你是一名短视频导演。请把下面的口播文案拆成 "
+        f"{n} 个分镜的短视频脚本。\n"
         '只输出一个 JSON 对象，格式为 {"shots": [...]}，不要输出其他任何内容。shots 数组每个元素格式：\n'
-        '{"desc": "该镜头的画面描述（英文，用于文生图模型，风格电影感、高质量）", '
-        '"narration": "该镜头的中文解说词（20~40字）", "seconds": 秒数(数字,3~8)}\n'
-        f"shots 数组共 {n} 个元素。"
+        '{"desc": "该镜头的画面描述（中文，用于文生图模型）", '
+        '"narration": "该镜头的中文解说词（从文案中截取或改写，20~40字）", "seconds": 秒数(数字,3~8)}\n'
+        "对 desc 的硬性要求：\n"
+        "1. 必须紧扣该镜解说词的具体内容——写清画面里的人物、朝代、场景、动作，禁止泛泛的「战场」「宫殿」这类空泛描述；\n"
+        "2. 涉及中国历史/人物题材时，必须写明朝代与服饰约束，例如「中国南北朝时期服饰」「中国古代铠甲」「唐代圆领袍」，"
+        "严禁出现欧洲骑士、西式盔甲、欧洲城堡等元素；\n"
+        "3. 各镜头画面风格保持一致。\n"
+        f"shots 数组共 {n} 个元素。\n\n文案：\n{script}"
     )
     payload = {
         "model": CHAT_MODEL,
@@ -117,14 +147,19 @@ def _parse_shots(text: str) -> list:
     return shots
 
 
-# ========== 第 3 步：文生图 ==========
-def gen_image(desc: str, size: str) -> Path:
-    key = _sha(f"img|{IMAGE_MODEL}|{desc}|{size}")
+# ========== 第 4 步：文生图 ==========
+def gen_image(desc: str, size: str, seed: int = 0) -> Path:
+    """Kolors 中文原生模型，直接用中文描述；seed 用于单镜重跑时绕过缓存/换随机性"""
+    prompt = desc.rstrip("，。") + IMG_STYLE_SUFFIX
+    key = _sha(f"img|{IMAGE_MODEL}|{prompt}|{size}|{seed}")
     out = IMG_DIR / f"{key}.png"
     if out.exists():
         return out
+    body = {"model": IMAGE_MODEL, "prompt": prompt, "size": size}
+    if seed:
+        body["seed"] = seed
     r = requests.post(f"{BASE_URL}/images/generations", headers=_api_headers(),
-                      json={"model": IMAGE_MODEL, "prompt": desc, "size": size}, timeout=300)
+                      json=body, timeout=300)
     r.raise_for_status()
     item = r.json()["data"][0]
     if item.get("b64_json"):
@@ -136,7 +171,7 @@ def gen_image(desc: str, size: str) -> Path:
     return out
 
 
-# ========== 第 4 步：TTS 配音 ==========
+# ========== 第 5 步：TTS 配音 ==========
 def gen_audio(narration: str) -> Path:
     key = _sha(f"tts|{TTS_VOICE}|{narration}")
     out = AUD_DIR / f"{key}.mp3"
@@ -150,7 +185,7 @@ def gen_audio(narration: str) -> Path:
     return out
 
 
-# ========== 第 5 步：字幕渲染 + ffmpeg 合成 ==========
+# ========== 第 6 步：字幕渲染 + ffmpeg 合成 ==========
 def find_cjk_font() -> str:
     try:
         out = subprocess.run(["fc-list", ":lang=zh", "file"], capture_output=True,
@@ -247,25 +282,64 @@ if not API_KEY:
     st.warning("⚠️ 未配置 OPENAI_API_KEY。请在服务器 .env 中设置 SiliconFlow 的密钥（OPENAI_API_KEY / OPENAI_BASE_URL）后重启服务。")
     st.stop()
 
-# ========== 第 1 步：输入 ==========
+# ========== 第 1 步：输入主题 ==========
 with st.container(border=True):
-    st.subheader("① 输入")
+    st.subheader("① 输入主题")
     c1, c2, c3 = st.columns([3, 1, 1])
-    topic = c1.text_area("视频主题 / 文案", value=st.session_state.get("topic", ""),
-                         height=100, placeholder="例如：三分钟带你看懂黑洞是什么")
-    n_shots = c2.slider("分镜数", 3, 5, st.session_state.get("n_shots", 3))
+    topic = c1.text_area("视频主题 / 提示词", value=st.session_state.get("topic", ""),
+                         height=100, placeholder="例如：三分钟讲清淝水之战")
+    n_shots = c2.slider("分镜数", 3, 8, st.session_state.get("n_shots", 5))
     aspect_label = c3.radio("画幅", list(SIZES.keys()), index=st.session_state.get("aspect_idx", 0))
-    if st.button("🚀 开始生成 / 重新运行全流程", type="primary", use_container_width=True):
+    bc1, bc2 = st.columns(2)
+    gen_clicked = bc1.button("✍️ 生成文案", use_container_width=True)
+    if gen_clicked:
         if not topic.strip():
             st.error("请先填写视频主题")
             st.stop()
-        st.session_state.update(topic=topic, n_shots=n_shots, aspect_idx=list(SIZES).index(aspect_label))
+        st.session_state.update(topic=topic, n_shots=n_shots,
+                                aspect_idx=list(SIZES).index(aspect_label))
+        with st.spinner("LLM 正在撰写口播文案…"):
+            try:
+                st.session_state.script = gen_script(topic.strip())
+            except Exception as e:  # noqa: BLE001
+                st.error(f"文案生成失败：{e}")
+                st.stop()
         for k in ("shots", "images", "audios", "video"):
             st.session_state.pop(k, None)
         st.rerun()
+    if bc2.button("📝 直接手写/粘贴文案", use_container_width=True):
+        if not topic.strip():
+            st.error("请先填写或粘贴内容")
+            st.stop()
+        st.session_state.update(topic=topic, n_shots=n_shots,
+                                aspect_idx=list(SIZES).index(aspect_label))
+        st.session_state.setdefault("script", topic.strip())
+        st.rerun()
 
-if "topic" not in st.session_state:
+if "script" not in st.session_state:
     st.stop()
+
+# ========== 第 2 步：文案确认 / 编辑 ==========
+with st.container(border=True):
+    st.subheader("② 口播文案（可编辑）")
+    edited = st.text_area("分镜脚本将基于这份文案拆分", value=st.session_state.script,
+                          height=180, label_visibility="collapsed")
+    cc1, cc2 = st.columns([1, 3])
+    if cc1.button("🚀 用此文案开始制作", type="primary", use_container_width=True):
+        if not edited.strip():
+            st.error("文案不能为空")
+            st.stop()
+        st.session_state.script = edited.strip()
+        st.session_state.making = True
+        for k in ("shots", "images", "audios", "video", "seeds"):
+            st.session_state.pop(k, None)
+        st.rerun()
+    if cc2.button("↻ 重新生成文案", key="redo_script_text"):
+        st.session_state.pop("script", None)
+        st.session_state.pop("making", None)
+        for k in ("shots", "images", "audios", "video", "seeds"):
+            st.session_state.pop(k, None)
+        st.rerun()
 
 size_wh = SIZES[aspect_label]
 size_str = f"{size_wh[0]}x{size_wh[1]}"
@@ -274,13 +348,16 @@ images = st.session_state.get("images")
 audios = st.session_state.get("audios")
 video = st.session_state.get("video")
 
-# ========== 第 2 步：分镜脚本 ==========
+# ========== 第 3 步：分镜脚本 ==========
 with st.container(border=True):
-    st.subheader("② 分镜脚本")
+    st.subheader("③ 分镜脚本")
     if shots is None:
-        with st.spinner("LLM 正在撰写分镜脚本…"):
+        if not st.session_state.get("making"):
+            st.info("确认上方文案后点击「用此文案开始制作」")
+            st.stop()
+        with st.spinner("LLM 正在拆分分镜脚本…"):
             try:
-                shots = gen_storyboard(st.session_state.topic, st.session_state.n_shots)
+                shots = gen_storyboard(st.session_state.script, st.session_state.n_shots)
                 st.session_state.shots = shots
             except Exception as e:  # noqa: BLE001
                 st.error(f"分镜脚本生成失败：{e}")
@@ -289,15 +366,15 @@ with st.container(border=True):
                 st.stop()
     for i, s in enumerate(shots):
         st.markdown(f"**镜头 {i+1}**（{s['seconds']}s）：{s['narration']}")
-        st.caption(f"画面提示词：{s['desc']}")
+        st.caption(f"画面描述：{s['desc']}")
     if st.button("↻ 重新生成脚本", key="redo_script"):
-        for k in ("shots", "images", "audios", "video"):
+        for k in ("shots", "images", "audios", "video", "seeds"):
             st.session_state.pop(k, None)
         st.rerun()
 
-# ========== 第 3 步：文生图 ==========
+# ========== 第 4 步：文生图 ==========
 with st.container(border=True):
-    st.subheader("③ 分镜配图（Kolors）")
+    st.subheader("④ 分镜配图（Kolors · 中文描述）")
     if images is None:
         images = []
         prog = st.progress(0.0, text="生成配图中…")
@@ -317,17 +394,25 @@ with st.container(border=True):
                 st.rerun()
             st.stop()
         st.session_state.images = images
+    seeds = st.session_state.setdefault("seeds", [0] * len(shots))
     cols = st.columns(len(images))
     for i, p in enumerate(images):
         cols[i].image(p, caption=f"镜头 {i+1}", use_container_width=True)
-    if st.button("↻ 重新生成配图", key="redo_img"):
-        for k in ("images", "audios", "video"):
+        if cols[i].button("↻ 重生成此图", key=f"redo_img_{i}", use_container_width=True):
+            seeds[i] = int(time.time() * 1000) % (2**31)
+            with st.spinner(f"重新生成镜头 {i+1} 配图…"):
+                images[i] = str(gen_image(shots[i]["desc"], size_str, seed=seeds[i]))
+            st.session_state.images = images
+            st.session_state.pop("video", None)
+            st.rerun()
+    if st.button("↻ 重新生成全部配图", key="redo_img"):
+        for k in ("images", "audios", "video", "seeds"):
             st.session_state.pop(k, None)
         st.rerun()
 
-# ========== 第 4 步：TTS 配音 ==========
+# ========== 第 5 步：TTS 配音 ==========
 with st.container(border=True):
-    st.subheader("④ 分镜配音（CosyVoice2）")
+    st.subheader("⑤ 分镜配音（CosyVoice2）")
     if audios is None:
         audios = []
         prog = st.progress(0.0, text="生成配音中…")
@@ -355,9 +440,9 @@ with st.container(border=True):
             st.session_state.pop(k, None)
         st.rerun()
 
-# ========== 第 5 步：合成视频 ==========
+# ========== 第 6 步：合成视频 ==========
 with st.container(border=True):
-    st.subheader("⑤ 合成视频")
+    st.subheader("⑥ 合成视频")
     if video is None:
         with st.spinner("正在渲染字幕并合成视频（zoompan 运镜 + 配音），请稍候…"):
             try:
