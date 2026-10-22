@@ -24,7 +24,8 @@ AUD_DIR = CACHE_DIR / "audio"
 SUB_DIR = CACHE_DIR / "subtitled"  # 渲染了字幕条的图片
 OUT_DIR = CACHE_DIR / "output"
 SCRIPT_DIR = CACHE_DIR / "scripts"  # LLM 生成的口播文案
-for d in (IMG_DIR, AUD_DIR, SUB_DIR, OUT_DIR, SCRIPT_DIR):
+PHO_DIR = CACHE_DIR / "photo_desc"  # VLM 对参考照片的内容描述
+for d in (IMG_DIR, AUD_DIR, SUB_DIR, OUT_DIR, SCRIPT_DIR, PHO_DIR):
     d.mkdir(parents=True, exist_ok=True)
 
 API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
@@ -33,6 +34,7 @@ CHAT_MODEL = os.environ.get("OPENAI_MODEL", "Qwen/Qwen3-14B")
 TTS_MODEL = os.environ.get("OPENAI_TTS_MODEL", "FunAudioLLM/CosyVoice2-0.5B")
 TTS_VOICE = os.environ.get("OPENAI_TTS_VOICE", "FunAudioLLM/CosyVoice2-0.5B:alex")
 IMAGE_MODEL = "Kwai-Kolors/Kolors"
+VLM_MODEL = os.environ.get("OPENAI_VLM_MODEL", "Qwen/Qwen2.5-VL-72B-Instruct")
 # 文生图统一风格后缀，保证多镜画面一致性
 IMG_STYLE_SUFFIX = "，中国风写实插画，电影感光影，细节丰富，高质量"
 
@@ -57,17 +59,56 @@ def _api_headers():
     return {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 
 
+# ========== VLM 参考照片理解 ==========
+def describe_photo(img_bytes: bytes) -> str:
+    """用 VLM（Qwen2.5-VL-72B）生成照片内容描述，按图片字节 sha1 缓存。
+    图片先缩到长边 768px 再 base64，省 token。"""
+    key = _sha_bytes(img_bytes)
+    cache = PHO_DIR / f"{key}.txt"
+    if cache.exists():
+        return cache.read_text(encoding="utf-8")
+    from io import BytesIO
+    im = Image.open(BytesIO(img_bytes)).convert("RGB")
+    im.thumbnail((768, 768))
+    buf = BytesIO()
+    im.save(buf, format="JPEG", quality=85)
+    b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+    payload = {
+        "model": VLM_MODEL,
+        "messages": [{"role": "user", "content": [
+            {"type": "text", "text": "用一两句话描述这张图片的内容、主体、风格"},
+            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
+        ]}],
+        "max_tokens": 200,
+    }
+    r = requests.post(f"{BASE_URL}/chat/completions", headers=_api_headers(),
+                      json=payload, timeout=120)
+    r.raise_for_status()
+    desc = r.json()["choices"][0]["message"]["content"].strip()
+    cache.write_text(desc, encoding="utf-8")
+    return desc
+
+
 # ========== 第 2 步：LLM 口播文案 ==========
-def gen_script(topic: str) -> str:
-    """根据主题生成适合 1 分钟短视频的中文口播文案（200~300 字），按内容 sha1 缓存"""
-    key = _sha(f"script|{CHAT_MODEL}|{topic}")
+def gen_script(topic: str, photo_descs: list = None) -> str:
+    """根据主题（可选结合参考照片描述）生成 1 分钟短视频口播文案（200~300 字），sha1 缓存"""
+    photo_descs = [d for d in (photo_descs or []) if d]
+    key = _sha(f"script|{CHAT_MODEL}|{topic}|{'|'.join(photo_descs)}")
     cache = SCRIPT_DIR / f"{key}.txt"
     if cache.exists():
         return cache.read_text(encoding="utf-8")
+    photo_block = ""
+    if photo_descs:
+        listing = "\n".join(f"第{i+1}张：{d}" for i, d in enumerate(photo_descs))
+        photo_block = (
+            f"\n用户还提供了 {len(photo_descs)} 张参考照片，内容如下：\n{listing}\n"
+            "文案要结合这些照片的内容，让观众感觉视频在讲照片里的人/事。\n"
+        )
     prompt = (
         f"你是一名短视频编剧。请为主题「{topic}」写一段适合 1 分钟左右短视频的中文口播文案。\n"
         "要求：200~300 字；口语化、有吸引力，开头一句要抓人；叙述有画面感，方便后续拆分成分镜；"
         "涉及中国历史/人物题材时写清朝代与人物姓名。只输出文案正文，不要标题、不要解释。"
+        + photo_block
     )
     r = requests.post(f"{BASE_URL}/chat/completions", headers=_api_headers(),
                       json={"model": CHAT_MODEL, "temperature": 0.8,
@@ -79,19 +120,31 @@ def gen_script(topic: str) -> str:
 
 
 # ========== 第 3 步：LLM 分镜脚本 ==========
-def gen_storyboard(script: str, n: int) -> list:
+def gen_storyboard(script: str, n: int, photo_descs: list = None) -> list:
+    photo_descs = [d for d in (photo_descs or []) if d]
+    photo_block = ""
+    photo_field = '"photo": 0（数字；0 表示此镜用 AI 生成配图）'
+    if photo_descs:
+        listing = "\n".join(f"第{i+1}张：{d}" for i, d in enumerate(photo_descs))
+        photo_block = (
+            f"\n用户提供了 {len(photo_descs)} 张参考照片，内容如下：\n{listing}\n"
+            "如果某镜头的解说词与某张照片内容切题，把该镜 photo 字段设为这张照片的序号（1 起），"
+            "该镜将直接使用这张照片做配图；不切题就填 0，不强行全用。\n"
+        )
+        photo_field = '"photo": 照片序号（1 起；0 表示此镜用 AI 生成配图）'
     prompt = (
         "你是一名短视频导演。请把下面的口播文案拆成 "
         f"{n} 个分镜的短视频脚本。\n"
         '只输出一个 JSON 对象，格式为 {"shots": [...]}，不要输出其他任何内容。shots 数组每个元素格式：\n'
         '{"desc": "该镜头的画面描述（中文，用于文生图模型）", '
-        '"narration": "该镜头的中文解说词（从文案中截取或改写，20~40字）", "seconds": 秒数(数字,3~8)}\n'
+        '"narration": "该镜头的中文解说词（从文案中截取或改写，20~40字）", "seconds": 秒数(数字,3~8), '
+        + photo_field + "}\n"
         "对 desc 的硬性要求：\n"
         "1. 必须紧扣该镜解说词的具体内容——写清画面里的人物、朝代、场景、动作，禁止泛泛的「战场」「宫殿」这类空泛描述；\n"
         "2. 涉及中国历史/人物题材时，必须写明朝代与服饰约束，例如「中国南北朝时期服饰」「中国古代铠甲」「唐代圆领袍」，"
         "严禁出现欧洲骑士、西式盔甲、欧洲城堡等元素；\n"
         "3. 各镜头画面风格保持一致。\n"
-        f"shots 数组共 {n} 个元素。\n\n文案：\n{script}"
+        f"shots 数组共 {n} 个元素。\n" + photo_block + f"\n文案：\n{script}"
     )
     payload = {
         "model": CHAT_MODEL,
@@ -147,8 +200,15 @@ def _parse_shots(text: str) -> list:
             seconds = max(2.0, min(15.0, float(item.get("seconds", 5))))
         except (TypeError, ValueError):
             seconds = 5.0
+        try:  # photo 字段：1-based 照片序号，0/null/越界视为 AI 生成
+            photo = int(item.get("photo") or 0)
+            if not 0 <= photo <= 8:
+                photo = 0
+        except (TypeError, ValueError):
+            photo = 0
         if desc and narration:
-            shots.append({"desc": desc, "narration": narration, "seconds": seconds})
+            shots.append({"desc": desc, "narration": narration, "seconds": seconds,
+                          "photo": photo})
     return shots
 
 
@@ -433,7 +493,9 @@ with st.container(border=True):
                                 aspect_idx=list(SIZES).index(aspect_label))
         with st.spinner("LLM 正在撰写口播文案…"):
             try:
-                st.session_state.script = gen_script(topic.strip())
+                st.session_state.script = gen_script(
+                    topic.strip(),
+                    [p["desc"] for p in st.session_state.get("photos", []) if p.get("desc")])
             except Exception as e:  # noqa: BLE001
                 st.error(f"文案生成失败：{e}")
                 st.stop()
@@ -448,6 +510,41 @@ with st.container(border=True):
                                 aspect_idx=list(SIZES).index(aspect_label))
         st.session_state.setdefault("script", topic.strip())
         st.rerun()
+    # ---- 参考照片（可选，最多 8 张）----
+    photo_files = st.file_uploader(
+        "📷 上传参考照片（可选，最多 8 张；AI 会看图生成文案/分镜，被选中的照片直接用作配图）",
+        type=["png", "jpg", "jpeg"], accept_multiple_files=True, key="photo_files")
+    photo_files = (photo_files or [])[:8]
+    ids = [f.file_id for f in photo_files]
+    if ids != st.session_state.get("photo_ids"):
+        photos, vlm_failed = [], False
+        if photo_files:
+            prog = st.progress(0.0, text="AI 正在识别照片…")
+            for i, f in enumerate(photo_files):
+                data = f.getvalue()
+                path = IMG_DIR / f"up_{_sha_bytes(data)}.png"
+                if not path.exists():
+                    path.write_bytes(data)
+                try:
+                    desc = describe_photo(data)
+                except Exception:  # noqa: BLE001 —— VLM 不可用时降级为纯文字流程
+                    desc, vlm_failed = "", True
+                photos.append({"path": str(path), "desc": desc})
+                prog.progress((i + 1) / len(photo_files), text=f"已识别 {i+1}/{len(photo_files)} 张")
+            prog.empty()
+        st.session_state.update(photos=photos, photo_ids=ids, vlm_failed=vlm_failed)
+        st.rerun()
+    photos = st.session_state.get("photos", [])
+    if st.session_state.get("vlm_failed") and photos:
+        st.warning("⚠️ VLM 暂不可用，已按纯文字流程继续（照片仍可作为分镜配图使用）")
+    if photos:
+        pcols = st.columns(len(photos))
+        for i, p in enumerate(photos):
+            pcols[i].image(p["path"], use_container_width=True)
+            pcols[i].caption(f"第{i+1}张" + (f"：{p['desc']}" if p["desc"] else "（未识别）"))
+
+photo_descs = [p["desc"] for p in st.session_state.get("photos", []) if p.get("desc")]
+photo_paths = [p["path"] for p in st.session_state.get("photos", [])]
 
 if "script" not in st.session_state:
     st.stop()
@@ -516,7 +613,8 @@ with st.container(border=True):
             st.stop()
         with st.spinner("LLM 正在拆分分镜脚本…"):
             try:
-                shots = gen_storyboard(st.session_state.script, st.session_state.n_shots)
+                shots = gen_storyboard(st.session_state.script, st.session_state.n_shots,
+                                       photo_descs)
                 st.session_state.shots = shots
             except Exception as e:  # noqa: BLE001
                 st.error(f"分镜脚本生成失败：{e}")
@@ -541,8 +639,11 @@ with st.container(border=True):
         failed = None
         for i, s in enumerate(shots):
             try:
+                ph = s.get("photo", 0)
                 if str(i) in uploads:  # 已上传自定义图片的镜头跳过 AI 生成
                     images.append(uploads[str(i)])
+                elif ph >= 1 and ph <= len(photo_paths):  # 分镜指定用参考照片
+                    images.append(photo_paths[ph - 1])
                 elif not s["desc"].strip():  # 占位镜头（跳过分镜录入）：用占位图
                     images.append(str(placeholder_image(i, size_wh)))
                 else:
@@ -568,7 +669,15 @@ with st.container(border=True):
     seeds = st.session_state.setdefault("seeds", [0] * len(shots))
     cols = st.columns(len(images))
     for i, p in enumerate(images):
-        source = "自定义上传" if str(i) in uploads else "AI 生成"
+        ph = shots[i].get("photo", 0) if i < len(shots) else 0
+        if str(i) in uploads:
+            source = "自定义上传"
+        elif ph >= 1 and ph <= len(photo_paths) and p == photo_paths[ph - 1]:
+            source = "📷 上传照片"
+        elif Path(p).name.startswith("ph_"):
+            source = "占位图"
+        else:
+            source = "AI 生成"
         cols[i].image(p, caption=f"镜头 {i+1} · {source}", use_container_width=True)
         if cols[i].button("↻ 重生成此图", key=f"redo_img_{i}", use_container_width=True):
             seeds[i] = int(time.time() * 1000) % (2**31)
