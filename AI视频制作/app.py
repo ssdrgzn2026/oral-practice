@@ -159,17 +159,28 @@ def gen_image(desc: str, size: str, seed: int = 0) -> Path:
     body = {"model": IMAGE_MODEL, "prompt": prompt, "size": size}
     if seed:
         body["seed"] = seed
-    r = requests.post(f"{BASE_URL}/images/generations", headers=_api_headers(),
-                      json=body, timeout=300)
-    r.raise_for_status()
-    item = r.json()["data"][0]
-    if item.get("b64_json"):
-        out.write_bytes(base64.b64decode(item["b64_json"]))
-    else:
-        img = requests.get(item["url"], timeout=300)
-        img.raise_for_status()
-        out.write_bytes(img.content)
-    return out
+    last_err = None
+    for attempt in range(4):  # 429 限流时退避重试：20s/40s/60s
+        try:
+            r = requests.post(f"{BASE_URL}/images/generations", headers=_api_headers(),
+                              json=body, timeout=300)
+            if r.status_code == 429:
+                raise RuntimeError("限流")
+            r.raise_for_status()
+            item = r.json()["data"][0]
+            if item.get("b64_json"):
+                out.write_bytes(base64.b64decode(item["b64_json"]))
+            else:
+                img = requests.get(item["url"], timeout=300)
+                img.raise_for_status()
+                out.write_bytes(img.content)
+            time.sleep(6)  # 每镜之间间隔，避免触发限流
+            return out
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+            if attempt < 3:
+                time.sleep(20 * (attempt + 1))
+    raise RuntimeError(f"配图失败（已重试3次）：{last_err}")
 
 
 # ========== 第 5 步：TTS 配音 ==========
@@ -178,12 +189,23 @@ def gen_audio(narration: str) -> Path:
     out = AUD_DIR / f"{key}.mp3"
     if out.exists():
         return out
-    r = requests.post(f"{BASE_URL}/audio/speech", headers=_api_headers(),
-                      json={"model": TTS_MODEL, "input": narration,
-                            "voice": TTS_VOICE, "response_format": "mp3"}, timeout=300)
-    r.raise_for_status()
-    out.write_bytes(r.content)
-    return out
+    last_err = None
+    for attempt in range(4):
+        try:
+            r = requests.post(f"{BASE_URL}/audio/speech", headers=_api_headers(),
+                              json={"model": TTS_MODEL, "input": narration,
+                                    "voice": TTS_VOICE, "response_format": "mp3"}, timeout=300)
+            if r.status_code == 429:
+                raise RuntimeError("限流")
+            r.raise_for_status()
+            out.write_bytes(r.content)
+            time.sleep(2)
+            return out
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+            if attempt < 3:
+                time.sleep(10 * (attempt + 1))
+    raise RuntimeError(f"配音失败（已重试3次）：{last_err}")
 
 
 # ========== 第 6 步：字幕渲染 + ffmpeg 合成 ==========
