@@ -382,10 +382,12 @@ if page == "works":
 
 # ========== 第 1 步：输入主题 ==========
 with st.container(border=True):
-    st.subheader("① 输入主题")
+    st.subheader("① 输入主题或文案")
     c1, c2, c3 = st.columns([3, 1, 1])
-    topic = c1.text_area("视频主题 / 提示词", value=st.session_state.get("topic", ""),
-                         height=100, placeholder="例如：三分钟讲清淝水之战")
+    topic = c1.text_area("视频主题 / 提示词 / 完整文案",
+                         value=st.session_state.get("topic", ""),
+                         height=140,
+                         placeholder="两种用法：\n· 写主题（如：三分钟讲清淝水之战）→ 点「生成文案」\n· 直接粘贴完整口播文案 → 点「直接手写/粘贴文案」")
     n_shots = c2.slider("分镜数", 3, 8, st.session_state.get("n_shots", 5))
     aspect_label = c3.radio("画幅", list(SIZES.keys()), index=st.session_state.get("aspect_idx", 0))
     bc1, bc2 = st.columns(2)
@@ -407,7 +409,7 @@ with st.container(border=True):
         st.rerun()
     if bc2.button("📝 直接手写/粘贴文案", use_container_width=True):
         if not topic.strip():
-            st.error("请先填写或粘贴内容")
+            st.error("请先把完整文案粘贴到上方文本框，再点此按钮")
             st.stop()
         st.session_state.update(topic=topic, n_shots=n_shots,
                                 aspect_idx=list(SIZES).index(aspect_label))
