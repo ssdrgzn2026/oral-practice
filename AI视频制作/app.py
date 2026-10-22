@@ -34,7 +34,7 @@ CHAT_MODEL = os.environ.get("OPENAI_MODEL", "Qwen/Qwen3-14B")
 TTS_MODEL = os.environ.get("OPENAI_TTS_MODEL", "FunAudioLLM/CosyVoice2-0.5B")
 TTS_VOICE = os.environ.get("OPENAI_TTS_VOICE", "FunAudioLLM/CosyVoice2-0.5B:alex")
 IMAGE_MODEL = "Kwai-Kolors/Kolors"
-VLM_MODEL = os.environ.get("OPENAI_VLM_MODEL", "Qwen/Qwen2.5-VL-72B-Instruct")
+VLM_MODEL = os.environ.get("OPENAI_VLM_MODEL", "Qwen/Qwen3-VL-8B-Instruct")
 # 文生图统一风格后缀，保证多镜画面一致性
 IMG_STYLE_SUFFIX = "，中国风写实插画，电影感光影，细节丰富，高质量"
 
