@@ -49,6 +49,10 @@ def _sha(text: str) -> str:
     return hashlib.sha1(text.encode("utf-8")).hexdigest()[:16]
 
 
+def _sha_bytes(data: bytes) -> str:
+    return hashlib.sha1(data).hexdigest()[:16]
+
+
 def _api_headers():
     return {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 
@@ -354,13 +358,13 @@ with st.container(border=True):
             st.stop()
         st.session_state.script = edited.strip()
         st.session_state.making = True
-        for k in ("shots", "images", "audios", "video", "seeds"):
+        for k in ("shots", "images", "audios", "video", "seeds", "uploads"):
             st.session_state.pop(k, None)
         st.rerun()
     if cc2.button("↻ 重新生成文案", key="redo_script_text"):
         st.session_state.pop("script", None)
         st.session_state.pop("making", None)
-        for k in ("shots", "images", "audios", "video", "seeds"):
+        for k in ("shots", "images", "audios", "video", "seeds", "uploads"):
             st.session_state.pop(k, None)
         st.rerun()
 
@@ -391,20 +395,24 @@ with st.container(border=True):
         st.markdown(f"**镜头 {i+1}**（{s['seconds']}s）：{s['narration']}")
         st.caption(f"画面描述：{s['desc']}")
     if st.button("↻ 重新生成脚本", key="redo_script"):
-        for k in ("shots", "images", "audios", "video", "seeds"):
+        for k in ("shots", "images", "audios", "video", "seeds", "uploads"):
             st.session_state.pop(k, None)
         st.rerun()
 
 # ========== 第 4 步：文生图 ==========
 with st.container(border=True):
     st.subheader("④ 分镜配图（Kolors · 中文描述）")
+    uploads = st.session_state.setdefault("uploads", {})  # 镜头序号(str) -> 自定义图片路径
     if images is None:
         images = []
         prog = st.progress(0.0, text="生成配图中…")
         failed = None
         for i, s in enumerate(shots):
             try:
-                images.append(str(gen_image(s["desc"], size_str)))
+                if str(i) in uploads:  # 已上传自定义图片的镜头跳过 AI 生成
+                    images.append(uploads[str(i)])
+                else:
+                    images.append(str(gen_image(s["desc"], size_str)))
             except Exception as e:  # noqa: BLE001
                 failed = f"镜头 {i+1} 配图失败：{e}"
                 break
@@ -420,12 +428,27 @@ with st.container(border=True):
     seeds = st.session_state.setdefault("seeds", [0] * len(shots))
     cols = st.columns(len(images))
     for i, p in enumerate(images):
-        cols[i].image(p, caption=f"镜头 {i+1}", use_container_width=True)
+        source = "自定义上传" if str(i) in uploads else "AI 生成"
+        cols[i].image(p, caption=f"镜头 {i+1} · {source}", use_container_width=True)
         if cols[i].button("↻ 重生成此图", key=f"redo_img_{i}", use_container_width=True):
             seeds[i] = int(time.time() * 1000) % (2**31)
             with st.spinner(f"重新生成镜头 {i+1} 配图…"):
                 images[i] = str(gen_image(shots[i]["desc"], size_str, seed=seeds[i]))
+            uploads.pop(str(i), None)  # AI 重生成后恢复为 AI 来源
             st.session_state.images = images
+            st.session_state.pop("video", None)
+            st.rerun()
+        up = cols[i].file_uploader("上传自定义图片", type=["png", "jpg", "jpeg"],
+                                   key=f"upload_{i}", label_visibility="collapsed")
+        if up is not None and st.session_state.get(f"uploaded_id_{i}") != up.file_id:
+            data = up.getvalue()
+            path = IMG_DIR / f"up_{_sha_bytes(data)}.png"
+            if not path.exists():
+                path.write_bytes(data)
+            uploads[str(i)] = str(path)
+            images[i] = str(path)
+            st.session_state.images = images
+            st.session_state[f"uploaded_id_{i}"] = up.file_id
             st.session_state.pop("video", None)
             st.rerun()
     if st.button("↻ 重新生成全部配图", key="redo_img"):
