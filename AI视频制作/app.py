@@ -489,6 +489,7 @@ with st.container(border=True):
     topic = c1.text_area("视频主题 / 提示词 / 完整文案",
                          value=st.session_state.get("topic", ""),
                          height=140,
+                         key="topic_input",
                          placeholder="两种用法：\n· 写主题（如：三分钟讲清淝水之战）→ 点「生成文案」\n· 直接粘贴完整口播文案 → 点「直接手写/粘贴文案」")
     n_shots = c2.slider("分镜数", 3, 8, st.session_state.get("n_shots", 5))
     aspect_label = c3.radio("画幅", list(SIZES.keys()), index=st.session_state.get("aspect_idx", 0))
