@@ -39,6 +39,7 @@ IMG_STYLE_SUFFIX = "，中国风写实插画，电影感光影，细节丰富，
 SIZES = {"竖屏 576×1024": (576, 1024), "横屏 1024×576": (1024, 576)}
 
 st.set_page_config(page_title="AI 视频制作", page_icon="🎬", layout="wide")
+st.markdown("[← 返回杂具小栈首页](/)", unsafe_allow_html=False)
 st.title("🎬 AI 视频制作 · 图文视频合成器")
 st.caption("主题 → 口播文案 → 分镜脚本 → AI 配图 → AI 配音 → 自动合成视频。所有中间产物已缓存，重跑不重复消耗额度。")
 st.markdown("<img src='/api/pv?p=video' style='display:none' alt=''>", unsafe_allow_html=True)
