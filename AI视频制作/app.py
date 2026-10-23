@@ -80,10 +80,26 @@ KLING_BASE = "https://api-beijing.klingai.com"
 KLING_MODEL = os.environ.get("KLING_MODEL", "kling-v2-5-turbo")
 KLING_DAILY_LIMIT = int(os.environ.get("KLING_DAILY_LIMIT", "5"))
 KLING_QUOTA_FILE = CACHE_DIR / "kling_quota.json"
+# 站长 IP 白名单：豁免每日限额
+KLING_ADMIN_IPS = {"103.233.163.150", "124.64.22.102", "183.241.219.4", "183.242.227.165"}
+
+
+def _client_ip() -> str:
+    try:
+        xff = st.context.headers.get("X-Forwarded-For", "")
+        return xff.split(",")[0].strip()
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def is_kling_admin() -> bool:
+    return _client_ip() in KLING_ADMIN_IPS
 
 
 def kling_quota_left() -> int:
-    """今日剩余可灵次数（按自然日封顶，防止超额消费）"""
+    """今日剩余可灵次数（按自然日封顶，防止超额消费）；站长白名单不限量"""
+    if is_kling_admin():
+        return KLING_DAILY_LIMIT
     try:
         q = json.loads(KLING_QUOTA_FILE.read_text(encoding="utf-8"))
     except Exception:
@@ -94,6 +110,8 @@ def kling_quota_left() -> int:
 
 
 def _kling_quota_inc():
+    if is_kling_admin():
+        return
     today = time.strftime("%Y-%m-%d")
     try:
         q = json.loads(KLING_QUOTA_FILE.read_text(encoding="utf-8"))
@@ -440,8 +458,8 @@ def find_cjk_font() -> str:
     raise RuntimeError("未找到中文字体，请确认镜像已安装 fonts-noto-cjk")
 
 
-def render_subtitle(img_path: Path, narration: str, size_wh, bar_h_ratio=0.14) -> Path:
-    key = _sha(f"sub|{img_path.name}|{narration}|{size_wh}")
+def render_subtitle(img_path: Path, narration: str, size_wh, bar_h_ratio=0.12) -> Path:
+    key = _sha(f"sub|v2|{img_path.name}|{narration}|{size_wh}")
     out = SUB_DIR / f"{key}.png"
     if out.exists():
         return out
@@ -450,7 +468,7 @@ def render_subtitle(img_path: Path, narration: str, size_wh, bar_h_ratio=0.14) -
     draw = ImageDraw.Draw(img, "RGBA")
     bar_h = int(h * bar_h_ratio)
     draw.rectangle([0, h - bar_h, w, h], fill=(0, 0, 0, 150))
-    font_size = max(24, int(h * 0.045))
+    font_size = max(20, h // 34)
     font = ImageFont.truetype(find_cjk_font(), font_size)
     # 简单按宽度换行
     lines, cur = [], ""
@@ -462,8 +480,13 @@ def render_subtitle(img_path: Path, narration: str, size_wh, bar_h_ratio=0.14) -
             cur += ch
     if cur:
         lines.append(cur)
-    line_h = int(font_size * 1.35)
-    y = h - bar_h + (bar_h - line_h * len(lines)) // 2
+    line_h = int(font_size * 1.3)
+    total = line_h * len(lines)
+    pad_bottom = int(h * 0.02)  # 离底边留 padding，防裁切
+    y = h - bar_h + (bar_h - total) // 2  # 条内垂直居中
+    y = min(y, h - pad_bottom - total)    # 底边 padding 优先，防裁切
+    if total <= bar_h - pad_bottom:
+        y = max(y, h - bar_h + 2)         # 放得下时保持不出字幕条上沿
     for line in lines:
         lw = draw.textlength(line, font=font)
         draw.text(((w - lw) / 2, y), line, font=font, fill=(255, 255, 255, 255))
@@ -528,11 +551,13 @@ def compose_video(shots: list, images: list, audios: list, size_wh, work: Path,
             if narration:
                 txt = work / f"sub{i}.txt"
                 txt.write_text(narration, encoding="utf-8")
-                bar_h = int(h * 0.14)
+                bar_h = int(h * 0.12)
+                pad_bottom = int(h * 0.02)  # 离底边留 padding，防裁切
                 vf += (f",drawbox=y={h - bar_h}:w={w}:h={bar_h}:color=black@0.45:t=fill"
                        f",drawtext=fontfile='{find_cjk_font()}':textfile='{txt}':"
-                       f"fontcolor=white:fontsize={max(18, h // 26)}:"
-                       f"x=(w-text_w)/2:y={h - bar_h}+({bar_h}-text_h)/2")
+                       f"fontcolor=white:fontsize={max(18, h // 34)}:"
+                       f"x=(w-text_w)/2:"
+                       f"y=min({h - bar_h}+({bar_h}-text_h)/2,h-{pad_bottom}-text_h)")
             subprocess.run(
                 ["ffmpeg", "-y", "-stream_loop", "-1", "-i", str(img), "-i", str(aud),
                  "-vf", vf, "-c:v", "libx264", "-pix_fmt", "yuv420p",
@@ -852,8 +877,10 @@ with st.container(border=True):
                 st.rerun()
         if KLING_KEY and not is_video:
             left = kling_quota_left()
-            if cols[i].button(f"✨ 可灵动态片段（今日余 {left}）", key=f"kling_{i}",
-                              use_container_width=True, disabled=left <= 0):
+            admin = is_kling_admin()
+            quota_note = "站长不限量" if admin else f"今日余 {left}"
+            if cols[i].button(f"✨ 可灵动态片段（{quota_note}）", key=f"kling_{i}",
+                              use_container_width=True, disabled=(not admin and left <= 0)):
                 with st.spinner(f"可灵正在生成镜头 {i+1} 动态片段（约1~5分钟）…"):
                     try:
                         images[i] = str(gen_kling_video(shots[i]["desc"], size_wh, image_path=p))
@@ -872,17 +899,18 @@ with st.container(border=True):
             st.rerun()
         up = cols[i].file_uploader("上传自定义图片", type=["png", "jpg", "jpeg"],
                                    key=f"upload_{i}", label_visibility="collapsed")
-        if up is not None and st.session_state.get(f"uploaded_id_{i}") != up.file_id:
+        if up is not None:
             data = up.getvalue()
             path = IMG_DIR / f"up_{_sha_bytes(data)}.png"
-            if not path.exists():
-                path.write_bytes(data)
-            uploads[str(i)] = str(path)
-            images[i] = str(path)
-            st.session_state.images = images
-            st.session_state[f"uploaded_id_{i}"] = up.file_id
-            st.session_state.pop("video", None)
-            st.rerun()
+            # 按内容 hash 幂等判断：状态被重置（uploads 清空）后重跑也能重新生效
+            if uploads.get(str(i)) != str(path) or not path.exists():
+                if not path.exists():
+                    path.write_bytes(data)
+                uploads[str(i)] = str(path)
+                images[i] = str(path)
+                st.session_state.images = images
+                st.session_state.pop("video", None)
+                st.rerun()
     if st.button("↻ 重新生成全部配图", key="redo_img"):
         for k in ("images", "audios", "video", "seeds"):
             st.session_state.pop(k, None)
@@ -933,18 +961,18 @@ with st.container(border=True):
         cols[i].audio(p)
         up = cols[i].file_uploader("上传自定义音频", type=["mp3", "wav"],
                                    key=f"upload_audio_{i}", label_visibility="collapsed")
-        if up is not None and st.session_state.get(f"uploaded_audio_id_{i}") != up.file_id:
+        if up is not None:
             data = up.getvalue()
             ext = Path(up.name).suffix.lower() or ".mp3"
             path = AUD_DIR / f"up_{_sha_bytes(data)}{ext}"
-            if not path.exists():
-                path.write_bytes(data)
-            audio_uploads[str(i)] = str(path)
-            audios[i] = str(path)
-            st.session_state.audios = audios
-            st.session_state[f"uploaded_audio_id_{i}"] = up.file_id
-            st.session_state.pop("video", None)
-            st.rerun()
+            if audio_uploads.get(str(i)) != str(path) or not path.exists():
+                if not path.exists():
+                    path.write_bytes(data)
+                audio_uploads[str(i)] = str(path)
+                audios[i] = str(path)
+                st.session_state.audios = audios
+                st.session_state.pop("video", None)
+                st.rerun()
     if st.button("↻ 重新生成配音", key="redo_tts"):
         for k in ("audios", "video"):
             st.session_state.pop(k, None)
@@ -961,7 +989,8 @@ with st.container(border=True):
     ok_shots = n >= 1
     ok_images = bool(images) and len(images) == n
     ok_audios = bool(audios) and len(audios) == n
-    ph_images = sum(1 for p in (images or []) if Path(p).name.startswith("ph_"))
+    ph_shots = [i + 1 for i, p in enumerate(images or []) if Path(p).name.startswith("ph_")]
+    ph_images = len(ph_shots)
     ph_audios = sum(1 for p in (audios or []) if Path(p).name.startswith("silence_"))
     img_note = f"（{ph_images} 张占位，可升级为 AI 图）" if ph_images else ""
     aud_note = f"（{ph_audios} 段静音占位）" if ph_audios else ""
@@ -970,10 +999,29 @@ with st.container(border=True):
         f"{'✅' if ok_images else '⬜'} {len(images) if images else 0}/{n} 张配图{img_note}　"
         f"{'✅' if ok_audios else '⬜'} {len(audios) if audios else 0}/{n} 段配音{aud_note}")
     ready = ok_shots and ok_images and ok_audios
+    if ph_shots:
+        st.warning("⚠️ 以下镜头仍是占位图（无实际画面）："
+                   + "、".join(f"镜头{i}" for i in ph_shots)
+                   + "。建议回到第 ④ 步生成或上传配图。")
     motion = st.checkbox("启用运镜效果（zoompan 缓慢推进，低性能服务器可关闭提速）",
                          value=True, key="motion")
+    confirm_ph = st.session_state.get("confirm_compose_with_ph", False)
     if st.button("🎬 合成视频", type="primary", disabled=not ready,
                  use_container_width=True):
+        if ph_shots and not confirm_ph:
+            st.session_state.confirm_compose_with_ph = True
+            st.rerun()
+        else:
+            st.session_state.confirm_compose_with_ph = False
+            st.session_state.do_compose = True
+            st.rerun()
+    if ph_shots and confirm_ph:
+        st.warning("⚠️ 确认包含占位图镜头也要合成吗？占位镜头将显示为纯色背景。")
+        if st.button("仍要合成（含占位图）", key="confirm_compose_ph", use_container_width=True):
+            st.session_state.confirm_compose_with_ph = False
+            st.session_state.do_compose = True
+            st.rerun()
+    if st.session_state.pop("do_compose", False):
         with st.spinner("正在渲染字幕并合成视频，请稍候…"):
             try:
                 sub_imgs = [Path(images[i]) if str(images[i]).lower().endswith(".mp4")
