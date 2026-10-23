@@ -53,6 +53,7 @@ jobs:
             cat > .env <<EOF
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY || '' }}
             OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL || 'https://api.openai.com/v1' }}
+            KLING_API_KEY=${{ secrets.KLING_API_KEY || '' }}
             EOF
 
             # 在服务器上构建镜像并重启服务

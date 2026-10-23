@@ -103,6 +103,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
       - OPENAI_MODEL=${OPENAI_MODEL:-Qwen/Qwen3-14B}
+      - KLING_API_KEY=${KLING_API_KEY:-}
     volumes:
       - ./AI视频制作/data:/app/AI视频制作/data
     command: >

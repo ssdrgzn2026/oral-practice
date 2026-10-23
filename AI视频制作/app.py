@@ -25,7 +25,8 @@ SUB_DIR = CACHE_DIR / "subtitled"  # 渲染了字幕条的图片
 OUT_DIR = CACHE_DIR / "output"
 SCRIPT_DIR = CACHE_DIR / "scripts"  # LLM 生成的口播文案
 PHO_DIR = CACHE_DIR / "photo_desc"  # VLM 对参考照片的内容描述
-for d in (IMG_DIR, AUD_DIR, SUB_DIR, OUT_DIR, SCRIPT_DIR, PHO_DIR):
+KLING_DIR = CACHE_DIR / "kling"  # 可灵生成的视频片段
+for d in (IMG_DIR, AUD_DIR, SUB_DIR, OUT_DIR, SCRIPT_DIR, PHO_DIR, KLING_DIR):
     d.mkdir(parents=True, exist_ok=True)
 
 
@@ -71,6 +72,79 @@ def _sha(text: str) -> str:
 
 def _sha_bytes(data: bytes) -> str:
     return hashlib.sha1(data).hexdigest()[:16]
+
+
+# ========== 可灵（Kling）文生/图生视频 ==========
+KLING_KEY = os.environ.get("KLING_API_KEY", "")
+KLING_BASE = "https://api-beijing.klingai.com"
+KLING_MODEL = os.environ.get("KLING_MODEL", "kling-v2-5-turbo")
+KLING_DAILY_LIMIT = int(os.environ.get("KLING_DAILY_LIMIT", "5"))
+KLING_QUOTA_FILE = CACHE_DIR / "kling_quota.json"
+
+
+def kling_quota_left() -> int:
+    """今日剩余可灵次数（按自然日封顶，防止超额消费）"""
+    try:
+        q = json.loads(KLING_QUOTA_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        q = {}
+    today = time.strftime("%Y-%m-%d")
+    used = q.get("count", 0) if q.get("date") == today else 0
+    return max(0, KLING_DAILY_LIMIT - used)
+
+
+def _kling_quota_inc():
+    today = time.strftime("%Y-%m-%d")
+    try:
+        q = json.loads(KLING_QUOTA_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        q = {}
+    q = {"date": today, "count": (q.get("count", 0) if q.get("date") == today else 0) + 1}
+    KLING_QUOTA_FILE.write_text(json.dumps(q), encoding="utf-8")
+
+
+def gen_kling_video(desc: str, size_wh, image_path: str = None) -> Path:
+    """可灵生成 5 秒动态片段；有配图时用图生视频（以配图为首帧）。返回 mp4 路径"""
+    prompt = desc.rstrip("，。") + IMG_STYLE_SUFFIX
+    img_b64 = ""
+    if image_path:
+        img_b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
+    key = _sha(f"kling|{KLING_MODEL}|{prompt}|{size_wh[0]}x{size_wh[1]}|{img_b64[:64]}")
+    out = KLING_DIR / f"{key}.mp4"
+    if out.exists():
+        return out
+    if kling_quota_left() <= 0:
+        raise RuntimeError(f"今日可灵额度已用完（每天 {KLING_DAILY_LIMIT} 次），明天再来")
+    headers = {"Authorization": f"Bearer {KLING_KEY}", "Content-Type": "application/json"}
+    body = {"model_name": KLING_MODEL, "prompt": prompt, "duration": "5",
+            "aspect_ratio": "9:16" if size_wh[1] > size_wh[0] else "16:9"}
+    if img_b64:
+        body["image"] = img_b64
+        url = f"{KLING_BASE}/v1/videos/image2video"
+    else:
+        url = f"{KLING_BASE}/v1/videos/text2video"
+    r = requests.post(url, headers=headers, json=body, timeout=60)
+    r.raise_for_status()
+    resp = r.json()
+    if resp.get("code") != 0:
+        raise RuntimeError(f"可灵返回错误：{resp.get('message')}")
+    task_id = resp["data"]["task_id"]
+    _kling_quota_inc()
+    # 轮询任务状态（异步生成，通常 1~5 分钟）
+    qurl = f"{url}/{task_id}"
+    for _ in range(36):
+        time.sleep(10)
+        q = requests.get(qurl, headers=headers, timeout=30).json()
+        status = (q.get("data") or {}).get("task_status")
+        if status == "succeed":
+            vurl = q["data"]["task_result"]["videos"][0]["url"]
+            v = requests.get(vurl, timeout=300)
+            v.raise_for_status()
+            out.write_bytes(v.content)
+            return out
+        if status == "failed":
+            raise RuntimeError(f"可灵生成失败：{(q.get('data') or {}).get('task_status_msg')}")
+    raise RuntimeError("可灵生成超时（6 分钟未完成）")
 
 
 def _api_headers():
@@ -430,6 +504,15 @@ def compose_video(shots: list, images: list, audios: list, size_wh, work: Path,
     for i, (img, aud) in enumerate(zip(images, audios)):
         dur = audio_duration(aud)
         seg = work / f"seg{i}.mp4"
+        if str(img).lower().endswith(".mp4"):
+            # 可灵动态片段：循环/截断到配音时长
+            subprocess.run(
+                ["ffmpeg", "-y", "-stream_loop", "-1", "-i", str(img), "-i", str(aud),
+                 "-vf", f"scale={w}:{h},fps={fps}", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                 "-c:a", "aac", "-b:a", "128k", "-shortest", "-t", f"{dur:.2f}",
+                 str(seg)], check=True, capture_output=True, timeout=600)
+            segs.append(seg)
+            continue
         if motion:
             # zoompan 缓慢推进 + 音频轨，按配音时长定该镜时长
             frames = int(dur * fps) + 1
@@ -714,7 +797,10 @@ with st.container(border=True):
     cols = st.columns(len(images))
     for i, p in enumerate(images):
         ph = shots[i].get("photo", 0) if i < len(shots) else 0
-        if str(i) in uploads:
+        is_video = str(p).lower().endswith(".mp4")
+        if is_video:
+            source = "🎬 可灵视频"
+        elif str(i) in uploads:
             source = "自定义上传"
         elif ph >= 1 and ph <= len(photo_paths) and p == photo_paths[ph - 1]:
             source = "📷 上传照片"
@@ -722,7 +808,23 @@ with st.container(border=True):
             source = "占位图"
         else:
             source = "AI 生成"
-        cols[i].image(p, caption=f"镜头 {i+1} · {source}", use_container_width=True)
+        if is_video:
+            cols[i].video(p)
+            cols[i].caption(f"镜头 {i+1} · {source}")
+        else:
+            cols[i].image(p, caption=f"镜头 {i+1} · {source}", use_container_width=True)
+        if KLING_KEY and not is_video:
+            left = kling_quota_left()
+            if cols[i].button(f"✨ 可灵动态片段（今日余 {left}）", key=f"kling_{i}",
+                              use_container_width=True, disabled=left <= 0):
+                with st.spinner(f"可灵正在生成镜头 {i+1} 动态片段（约1~5分钟）…"):
+                    try:
+                        images[i] = str(gen_kling_video(shots[i]["desc"], size_wh, image_path=p))
+                        st.session_state.images = images
+                        st.session_state.pop("video", None)
+                        st.rerun()
+                    except Exception as e:  # noqa: BLE001
+                        st.error(f"镜头 {i+1} 可灵生成失败：{e}")
         if cols[i].button("↻ 重生成此图", key=f"redo_img_{i}", use_container_width=True):
             seeds[i] = int(time.time() * 1000) % (2**31)
             with st.spinner(f"重新生成镜头 {i+1} 配图…"):
