@@ -522,10 +522,20 @@ def compose_video(shots: list, images: list, audios: list, size_wh, work: Path,
         dur = audio_duration(aud)
         seg = work / f"seg{i}.mp4"
         if str(img).lower().endswith(".mp4"):
-            # 可灵动态片段：循环/截断到配音时长
+            # 可灵动态片段：循环/截断到配音时长，字幕用 drawtext 烧制
+            vf = f"scale={w}:{h},fps={fps}"
+            narration = (shots[i].get("narration") or "").strip()
+            if narration:
+                txt = work / f"sub{i}.txt"
+                txt.write_text(narration, encoding="utf-8")
+                bar_h = int(h * 0.14)
+                vf += (f",drawbox=y={h - bar_h}:w={w}:h={bar_h}:color=black@0.45:t=fill"
+                       f",drawtext=fontfile='{find_cjk_font()}':textfile='{txt}':"
+                       f"fontcolor=white:fontsize={max(18, h // 26)}:"
+                       f"x=(w-text_w)/2:y={h - bar_h}+({bar_h}-text_h)/2")
             subprocess.run(
                 ["ffmpeg", "-y", "-stream_loop", "-1", "-i", str(img), "-i", str(aud),
-                 "-vf", f"scale={w}:{h},fps={fps}", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                 "-vf", vf, "-c:v", "libx264", "-pix_fmt", "yuv420p",
                  "-c:a", "aac", "-b:a", "128k", "-shortest", "-t", f"{dur:.2f}",
                  str(seg)], check=True, capture_output=True, timeout=600)
             segs.append(seg)
@@ -966,7 +976,8 @@ with st.container(border=True):
                  use_container_width=True):
         with st.spinner("正在渲染字幕并合成视频，请稍候…"):
             try:
-                sub_imgs = [render_subtitle(Path(images[i]), shots[i]["narration"], size_wh)
+                sub_imgs = [Path(images[i]) if str(images[i]).lower().endswith(".mp4")
+                            else render_subtitle(Path(images[i]), shots[i]["narration"], size_wh)
                             for i in range(n)]
                 work = OUT_DIR / ("work_" + _sha(st.session_state.get("topic", "") + str(time.time())))
                 st.session_state.video = str(
