@@ -317,14 +317,31 @@ def _parse_manual_shots(text: str) -> list:
     """解析手工录入：优先 JSON（复用 _parse_shots），否则按行解析。
     行格式："画面描述 | 解说词 | 秒数"（秒数可省，默认5）；没有 | 时整行作为解说词，
     画面描述默认取解说词（配图 prompt 可直接用）。行首「镜1：」「镜头2.」「1.」等序号前缀会剥掉。
+    断行容错：两行合并成一行时（出现多个「|纯数字」秒数边界），按边界切成多个镜头；
+    只有 | 后跟纯数字才算秒数边界，解说词里的普通数字（如「3比2」）不会误拆。
     """
     text = text.strip()
     if not text:
         return []
     if text[0] in "[{":
         return _parse_shots(text)
-    shots = []
+    raw_lines = []
     for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        marks = list(re.finditer(r"[|｜]\s*\d+(?:\.\d+)?", line))
+        cuts = [m for m in marks if m.end() < len(line)]  # 后面还有内容的才算断行边界
+        if len(marks) >= 2 and cuts:
+            pos = 0
+            for m in cuts:
+                raw_lines.append(line[pos:m.end()])
+                pos = m.end()
+            raw_lines.append(line[pos:])
+        else:
+            raw_lines.append(line)
+    shots = []
+    for line in raw_lines:
         line = re.sub(r"^\s*(?:第\s*)?(?:镜\s*头?\s*)?\d+\s*[：:.、．]\s*", "", line.strip())
         if not line:
             continue
@@ -761,38 +778,37 @@ with st.container(border=True):
     st.subheader("④ 分镜配图（Kolors · 中文描述）")
     uploads = st.session_state.setdefault("uploads", {})  # 镜头序号(str) -> 自定义图片路径
     if images is None:
+        # 懒生成：不自动消耗 Kolors 额度，先用参考照片/占位图就位，AI 配图由按钮触发
         images = []
-        prog = st.progress(0.0, text="生成配图中…")
-        failed = None
         for i, s in enumerate(shots):
-            try:
-                ph = s.get("photo", 0)
-                if str(i) in uploads:  # 已上传自定义图片的镜头跳过 AI 生成
-                    images.append(uploads[str(i)])
-                elif ph >= 1 and ph <= len(photo_paths):  # 分镜指定用参考照片
-                    images.append(photo_paths[ph - 1])
-                elif not s["desc"].strip():  # 占位镜头（跳过分镜录入）：用占位图
-                    images.append(str(placeholder_image(i, size_wh)))
-                else:
-                    images.append(str(gen_image(s["desc"], size_str)))
-            except Exception as e:  # noqa: BLE001
-                failed = f"镜头 {i+1} 配图失败：{e}"
-                break
-            prog.progress((i + 1) / len(shots), text=f"已生成 {i+1}/{len(shots)} 张")
-        prog.empty()
-        if failed:
-            st.session_state.images = images or None
-            st.error(failed)
-            c1, c2 = st.columns(2)
-            if c1.button("↻ 重试本步", key="retry_img"):
-                st.rerun()
-            if c2.button("⏭ 跳过失败镜头，用占位图继续", key="skip_img_on_fail"):
-                while len(images) < len(shots):
-                    images.append(str(placeholder_image(len(images), size_wh)))
-                st.session_state.images = images
-                st.rerun()
-            st.stop()
+            ph = s.get("photo", 0)
+            if str(i) in uploads:  # 已上传自定义图片的镜头
+                images.append(uploads[str(i)])
+            elif ph >= 1 and ph <= len(photo_paths):  # 分镜指定用参考照片
+                images.append(photo_paths[ph - 1])
+            else:
+                images.append(str(placeholder_image(i, size_wh)))
         st.session_state.images = images
+    ph_count = sum(1 for p in images if Path(p).name.startswith("ph_"))
+    if ph_count:
+        st.info(f"当前 {ph_count} 个镜头为占位图/照片，点下方按钮生成 AI 配图（消耗 Kolors 额度）")
+        if st.button("✨ 生成全部 AI 配图", type="primary", key="gen_all_images",
+                     use_container_width=True):
+            prog = st.progress(0.0, text="生成 AI 配图中…")
+            todo = [i for i, p in enumerate(images)
+                    if Path(p).name.startswith("ph_") and shots[i]["desc"].strip()]
+            for j, i in enumerate(todo):
+                try:
+                    images[i] = str(gen_image(shots[i]["desc"], size_str))
+                    uploads.pop(str(i), None)
+                except Exception as e:  # noqa: BLE001
+                    st.error(f"镜头 {i+1} 配图失败：{e}")
+                prog.progress((j + 1) / max(1, len(todo)),
+                              text=f"已生成 {j+1}/{len(todo)} 张")
+            prog.empty()
+            st.session_state.images = images
+            st.session_state.pop("video", None)
+            st.rerun()
     seeds = st.session_state.setdefault("seeds", [0] * len(shots))
     cols = st.columns(len(images))
     for i, p in enumerate(images):
@@ -813,6 +829,17 @@ with st.container(border=True):
             cols[i].caption(f"镜头 {i+1} · {source}")
         else:
             cols[i].image(p, caption=f"镜头 {i+1} · {source}", use_container_width=True)
+        if Path(p).name.startswith("ph_") and shots[i]["desc"].strip():
+            if cols[i].button("✨ 生成此图（AI）", key=f"gen_img_{i}", use_container_width=True):
+                with st.spinner(f"生成镜头 {i+1} AI 配图…"):
+                    try:
+                        images[i] = str(gen_image(shots[i]["desc"], size_str))
+                        uploads.pop(str(i), None)
+                        st.session_state.images = images
+                        st.session_state.pop("video", None)
+                    except Exception as e:  # noqa: BLE001
+                        st.error(f"镜头 {i+1} 配图失败：{e}")
+                st.rerun()
         if KLING_KEY and not is_video:
             left = kling_quota_left()
             if cols[i].button(f"✨ 可灵动态片段（今日余 {left}）", key=f"kling_{i}",
@@ -926,7 +953,7 @@ with st.container(border=True):
     ok_audios = bool(audios) and len(audios) == n
     ph_images = sum(1 for p in (images or []) if Path(p).name.startswith("ph_"))
     ph_audios = sum(1 for p in (audios or []) if Path(p).name.startswith("silence_"))
-    img_note = f"（{ph_images} 张占位）" if ph_images else ""
+    img_note = f"（{ph_images} 张占位，可升级为 AI 图）" if ph_images else ""
     aud_note = f"（{ph_audios} 段静音占位）" if ph_audios else ""
     st.markdown(
         f"{'✅' if ok_shots else '⬜'} {n} 个分镜　"
