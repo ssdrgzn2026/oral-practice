@@ -50,11 +50,16 @@ jobs:
             mkdir -p 口语AI伴侣/data
 
             # 创建或覆盖环境变量文件（模型配置走 docker-compose.yml 的默认值，不再由 secret 覆盖）
+            EXISTING_KLING=$(grep '^KLING_API_KEY=' .env 2>/dev/null | cut -d= -f2-)
             cat > .env <<EOF
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY || '' }}
             OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL || 'https://api.openai.com/v1' }}
             KLING_API_KEY=${{ secrets.KLING_API_KEY || '' }}
             EOF
+            # 若 secret 未配置 KLING_API_KEY，保留服务器上已有的值（防清空）
+            if [ -z "${{ secrets.KLING_API_KEY || '' }}" ] && [ -n "$EXISTING_KLING" ]; then
+              sed -i "s/^KLING_API_KEY=.*/KLING_API_KEY=$EXISTING_KLING/" .env
+            fi
 
             # 在服务器上构建镜像并重启服务
             docker compose build
