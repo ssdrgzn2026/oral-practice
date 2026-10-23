@@ -553,11 +553,14 @@ def compose_video(shots: list, images: list, audios: list, size_wh, work: Path,
                 txt.write_text(narration, encoding="utf-8")
                 bar_h = int(h * 0.12)
                 pad_bottom = int(h * 0.02)  # 离底边留 padding，防裁切
+                fontsize = max(18, h // 34)
+                text_h = int(fontsize * 1.3)  # 单行文字估算高度
+                # y 坐标在 Python 里算好（min 表达式里的逗号会被 ffmpeg 误解析）
+                y_pos = min(h - bar_h + (bar_h - text_h) // 2, h - pad_bottom - text_h)
                 vf += (f",drawbox=y={h - bar_h}:w={w}:h={bar_h}:color=black@0.45:t=fill"
                        f",drawtext=fontfile='{find_cjk_font()}':textfile='{txt}':"
-                       f"fontcolor=white:fontsize={max(18, h // 34)}:"
-                       f"x=(w-text_w)/2:"
-                       f"y=min({h - bar_h}+({bar_h}-text_h)/2,h-{pad_bottom}-text_h)")
+                       f"fontcolor=white:fontsize={fontsize}:"
+                       f"x=(w-text_w)/2:y={y_pos}")
             subprocess.run(
                 ["ffmpeg", "-y", "-stream_loop", "-1", "-i", str(img), "-i", str(aud),
                  "-vf", vf, "-c:v", "libx264", "-pix_fmt", "yuv420p",
