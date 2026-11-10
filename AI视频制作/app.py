@@ -173,6 +173,9 @@ COMFY_WF_FILE = MODULE_DIR / "pulid_workflow.json"  # PuLID_simple 导出的 API
 COMFY_DIR.mkdir(parents=True, exist_ok=True)
 CHAR_DIR.mkdir(parents=True, exist_ok=True)
 CHAR_FILE = CHAR_DIR / "characters.json"
+TPL_FILE = CACHE_DIR / "prompt_templates.json"   # 提示词模板库
+PROJ_DIR = CACHE_DIR / "projects"                # 项目存档（一集一个）
+PROJ_DIR.mkdir(parents=True, exist_ok=True)
 # PuLID 工作流节点编号（来自 pulid_workflow.json）
 _WF_PROMPT, _WF_NEG, _WF_IMG, _WF_SEED, _WF_SIZE = "22", "23", "12", "3", "5"
 
@@ -202,6 +205,54 @@ def save_character(name: str, desc_en: str, img_bytes: bytes):
     chars = load_characters()
     chars[name] = {"desc_en": desc_en, "face": str(face)}
     CHAR_FILE.write_text(json.dumps(chars, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+# ========== 项目存档（刷新不丢状态） ==========
+PROJ_KEYS = ("topic", "script", "shots", "images", "audios", "video",
+             "prompts_en", "pulid_history", "kling_history", "kling_src",
+             "active_char", "n_shots", "aspect_idx", "making")
+
+
+def save_project(name: str):
+    """把当前制作状态存入项目文件夹"""
+    name = name.strip()
+    if not name:
+        return
+    d = PROJ_DIR / name
+    d.mkdir(parents=True, exist_ok=True)
+    state = {k: st.session_state.get(k) for k in PROJ_KEYS if st.session_state.get(k) is not None}
+    (d / "project.json").write_text(json.dumps(state, ensure_ascii=False, indent=2),
+                                    encoding="utf-8")
+
+
+def load_project(name: str):
+    """从项目文件夹恢复全部状态"""
+    state = json.loads((PROJ_DIR / name / "project.json").read_text(encoding="utf-8"))
+    for k, v in state.items():
+        st.session_state[k] = v
+    st.session_state.proj_name = name
+
+
+def autosave():
+    """每次页面重跑后自动落盘（有项目名才生效）"""
+    name = st.session_state.get("proj_name", "")
+    if name.strip() and st.session_state.get("shots"):
+        save_project(name)
+
+
+# ========== 提示词模板库 ==========
+def load_templates() -> dict:
+    try:
+        return json.loads(TPL_FILE.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def save_template(name: str, text: str):
+    tpls = load_templates()
+    tpls[name.strip()] = text.strip()
+    TPL_FILE.write_text(json.dumps(tpls, ensure_ascii=False, indent=2), encoding="utf-8")
+
 
 
 def gen_prompt_en(desc: str, char_desc_en: str) -> str:
@@ -774,6 +825,28 @@ if page == "works":
 # ========== 第 1 步：输入主题 ==========
 with st.container(border=True):
     st.subheader("① 输入主题或文案")
+    # ---- 项目存档 ----
+    proj_names = sorted(p.name for p in PROJ_DIR.iterdir() if p.is_dir())
+    pj1, pj2, pj3 = st.columns([2, 1, 1])
+    pj1.text_input("📁 项目名（启用后所有进度自动保存，刷新/换电脑不丢）",
+                   value=st.session_state.get("proj_name", ""), key="proj_name_input",
+                   placeholder="如：持械入宋-01")
+    st.session_state.proj_name = st.session_state.proj_name_input  # 输入即绑定项目
+    if pj2.button("💾 保存项目", use_container_width=True):
+        st.session_state.proj_name = st.session_state.proj_name_input
+        save_project(st.session_state.proj_name)
+        st.success("已保存")
+    if pj3.button("📂 打开项目", use_container_width=True, disabled=not proj_names):
+        st.session_state.show_proj_list = True
+    if st.session_state.get("show_proj_list") and proj_names:
+        pick = st.selectbox("选择要打开的项目", proj_names, key="proj_pick")
+        if st.button("加载这个项目", key="proj_load_btn"):
+            load_project(pick)
+            st.session_state.show_proj_list = False
+            st.rerun()
+    if st.session_state.get("proj_name"):
+        st.caption(f"当前项目：{st.session_state.proj_name}（自动保存中）")
+
     c1, c2, c3 = st.columns([3, 1, 1])
     topic = c1.text_area("视频主题 / 提示词 / 完整文案",
                          value=st.session_state.get("topic", ""),
@@ -980,6 +1053,28 @@ with st.container(border=True):
     active_char = st.session_state.get("active_char", "（不使用）")
     active_char = chars.get(active_char) if active_char != "（不使用）" else None
 
+    # ---- 提示词模板库 ----
+    tpls = load_templates()
+    with st.expander(f"📝 提示词模板库（{len(tpls)} 条，把好用的提示词存下来复用）"):
+        if tpls:
+            for tname, ttext in tpls.items():
+                tc1, tc2 = st.columns([5, 1])
+                tc1.markdown(f"**{tname}**")
+                tc1.caption(ttext[:100] + ("…" if len(ttext) > 100 else ""))
+                if tc2.button("🗑 删除", key=f"tpl_del_{tname}"):
+                    tpls.pop(tname)
+                    TPL_FILE.write_text(json.dumps(tpls, ensure_ascii=False, indent=2),
+                                        encoding="utf-8")
+                    st.rerun()
+        tn1, tn2 = st.columns([1, 3])
+        tpl_name = tn1.text_input("模板名", key="tpl_name", placeholder="如：单脸对峙构图")
+        tpl_text = tn2.text_area("模板内容（英文提示词）", key="tpl_text", height=68)
+        if st.button("💾 存为模板", key="tpl_save"):
+            if tpl_name.strip() and tpl_text.strip():
+                save_template(tpl_name, tpl_text)
+                st.success(f"模板「{tpl_name}」已保存")
+                st.rerun()
+
     if images is None:
         # 懒生成：不自动消耗 Kolors 额度，先用参考照片/占位图就位，AI 配图由按钮触发
         images = []
@@ -1112,6 +1207,14 @@ with st.container(border=True):
                                                key=f"pen_{i}", height=68,
                                                label_visibility="collapsed",
                                                placeholder="英文提示词")
+                if tpls:
+                    with cols[i].popover("📋 套模板", use_container_width=True):
+                        for tname, ttext in load_templates().items():
+                            if st.button(tname, key=f"tpl_apply_{i}_{tname}",
+                                         use_container_width=True):
+                                st.session_state.prompts_en[str(i)] = ttext
+                                st.session_state.pop(f"pen_{i}", None)
+                                st.rerun()
             if not is_online:
                 cols[i].button("🔒 锁脸生成（离线）", key=f"pulid_{i}",
                                use_container_width=True, disabled=True)
@@ -1151,6 +1254,14 @@ with st.container(border=True):
                         st.session_state.images = images
                         st.session_state.pop("video", None)
                         st.rerun()
+        if cols[i].button("↺ 重做此镜配图", key=f"rebuild_{i}", use_container_width=True,
+                          help="清空该镜配图和提示词缓存，回到占位图重新生成"):
+            images[i] = str(placeholder_image(i, size_wh))
+            st.session_state.get("prompts_en", {}).pop(str(i), None)
+            st.session_state.pop(f"pen_{i}", None)
+            st.session_state.images = images
+            st.session_state.pop("video", None)
+            st.rerun()
         up = cols[i].file_uploader("上传自定义图片", type=["png", "jpg", "jpeg"],
                                    key=f"upload_{i}", label_visibility="collapsed")
         if up is not None:
@@ -1301,3 +1412,6 @@ with st.container(border=True):
         if st.button("↻ 清除结果，重新合成", key="redo_compose"):
             st.session_state.pop("video", None)
             st.rerun()
+
+# 每次页面渲染结束自动保存项目（有项目名且有分镜时）
+autosave()
