@@ -121,13 +121,13 @@ def _kling_quota_inc():
     KLING_QUOTA_FILE.write_text(json.dumps(q), encoding="utf-8")
 
 
-def gen_kling_video(desc: str, size_wh, image_path: str = None) -> Path:
-    """可灵生成 5 秒动态片段；有配图时用图生视频（以配图为首帧）。返回 mp4 路径"""
+def gen_kling_video(desc: str, size_wh, image_path: str = None, salt: str = "") -> Path:
+    """可灵生成 5 秒动态片段；有配图时用图生视频（以配图为首帧）。salt 用于重抽时绕过缓存"""
     prompt = desc.rstrip("，。") + IMG_STYLE_SUFFIX
     img_b64 = ""
     if image_path:
         img_b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
-    key = _sha(f"kling|{KLING_MODEL}|{prompt}|{size_wh[0]}x{size_wh[1]}|{img_b64[:64]}")
+    key = _sha(f"kling|{KLING_MODEL}|{prompt}|{size_wh[0]}x{size_wh[1]}|{img_b64[:64]}|{salt}")
     out = KLING_DIR / f"{key}.mp4"
     if out.exists():
         return out
@@ -1038,12 +1038,44 @@ with st.container(border=True):
                               use_container_width=True, disabled=(not admin and left <= 0)):
                 with st.spinner(f"可灵正在生成镜头 {i+1} 动态片段（约1~5分钟）…"):
                     try:
+                        st.session_state.setdefault("kling_src", {})[str(i)] = p  # 记住首帧，供重抽用
                         images[i] = str(gen_kling_video(shots[i]["desc"], size_wh, image_path=p))
+                        st.session_state.setdefault("kling_history", {}).setdefault(
+                            str(i), []).append(images[i])
                         st.session_state.images = images
                         st.session_state.pop("video", None)
                         st.rerun()
                     except Exception as e:  # noqa: BLE001
                         st.error(f"镜头 {i+1} 可灵生成失败：{e}")
+        # 可灵片段的重抽 + 抽片历史
+        khist = st.session_state.get("kling_history", {}).get(str(i), [])
+        if KLING_KEY and is_video and khist:
+            left = kling_quota_left()
+            admin = is_kling_admin()
+            quota_note = "站长不限量" if admin else f"今日余 {left}"
+            if cols[i].button(f"↻ 重抽可灵片段（{quota_note}）", key=f"kling_re_{i}",
+                              use_container_width=True, disabled=(not admin and left <= 0)):
+                with st.spinner(f"可灵正在重抽镜头 {i+1}（约1~5分钟）…"):
+                    try:
+                        src = st.session_state.get("kling_src", {}).get(str(i))
+                        images[i] = str(gen_kling_video(
+                            shots[i]["desc"], size_wh, image_path=src,
+                            salt=str(time.time())))
+                        khist.append(images[i])
+                        st.session_state.images = images
+                        st.session_state.pop("video", None)
+                        st.rerun()
+                    except Exception as e:  # noqa: BLE001
+                        st.error(f"镜头 {i+1} 重抽失败：{e}")
+            with cols[i].expander(f"🎬 抽片历史（{len(khist)} 段，点击选用）"):
+                for j, vp in enumerate(khist):
+                    st.video(vp)
+                    cur = "（当前使用）" if p == vp else ""
+                    if st.button(f"选用第 {j+1} 版{cur}", key=f"khist_{i}_{j}"):
+                        images[i] = vp
+                        st.session_state.images = images
+                        st.session_state.pop("video", None)
+                        st.rerun()
         if active_char and not is_video:
             # 英文提示词可见可改：手动改过就用手动的，否则自动翻译（LLM 缓存，不重复消耗）
             pe = st.session_state.setdefault("prompts_en", {})
