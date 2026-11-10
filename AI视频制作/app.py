@@ -1064,6 +1064,7 @@ with st.container(border=True):
                                 key=f"pulid_{i}", use_container_width=True):
                 with st.spinner(f"ComfyUI 正在锁脸生成镜头 {i+1}（约1分钟）…"):
                     try:
+                        seeds[i] = int(time.time() * 1000) % (2**31)  # 每次点击换新种子（抽卡）
                         images[i] = str(gen_comfy_pulid(shots[i]["desc"], active_char,
                                                         size_wh, seed=seeds[i],
                                                         prompt_en=pe.get(str(i)) or None))
