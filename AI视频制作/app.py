@@ -222,6 +222,8 @@ def gen_prompt_en(desc: str, char_desc_en: str) -> str:
                             "messages": [{"role": "user", "content": prompt}]}, timeout=120)
     r.raise_for_status()
     text = r.json()["choices"][0]["message"]["content"].strip()
+    text += (", cinematic film still, epic wide composition, dramatic volumetric lighting, "
+             "rich intricate details, depth of field, masterpiece, 8k")
     cache.write_text(text, encoding="utf-8")
     return text
 
