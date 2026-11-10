@@ -214,7 +214,10 @@ def gen_prompt_en(desc: str, char_desc_en: str) -> str:
         "把下面的中文画面描述改写成一段英文 AI 绘图提示词（SDXL 用）。要求：\n"
         "1. 电影感、具体、画面化，保留人物动作/场景/朝代元素；\n"
         f"2. 画面中的主角外貌固定描述为：{char_desc_en}，写进提示词里；\n"
-        "3. 只输出英文提示词本身，不要解释。\n\n"
+        "3. 关键道具必须原样保留并具体化（如手电筒→a glowing modern flashlight）；\n"
+        "4. 若主角穿现代服装身处古代场景，必须强调 modern clothing contrasting with ancient surroundings；\n"
+        "5. 若画面主体不是主角（如他人视角/反派特写镜头），写明主角只在背景中或不出镜；\n"
+        "6. 只输出英文提示词本身，不要解释。\n\n"
         f"中文画面描述：{desc}"
     )
     r = requests.post(f"{BASE_URL}/chat/completions", headers=_api_headers(),
