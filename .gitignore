@@ -38,3 +38,7 @@ reminder-data/
 # AI 视频制作缓存
 data/video_cache/
 AI视频制作/data/
+
+# 剧本制作（短剧流水线）密钥与素材
+AI视频制作/剧本制作/config.py
+AI视频制作/剧本制作/素材/

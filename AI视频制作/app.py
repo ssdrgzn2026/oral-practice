@@ -165,6 +165,115 @@ def gen_kling_video(desc: str, size_wh, image_path: str = None) -> Path:
     raise RuntimeError("可灵生成超时（6 分钟未完成）")
 
 
+# ========== ComfyUI（PuLID 锁脸配图，可选；默认关，隧道连通即用） ==========
+COMFY_BASE = os.environ.get("COMFYUI_BASE", "http://127.0.0.1:6006").rstrip("/")
+COMFY_DIR = CACHE_DIR / "comfy"          # ComfyUI 生成的锁脸图缓存
+CHAR_DIR = CACHE_DIR / "characters"      # 角色库
+COMFY_WF_FILE = MODULE_DIR / "pulid_workflow.json"  # PuLID_simple 导出的 API 格式工作流
+COMFY_DIR.mkdir(parents=True, exist_ok=True)
+CHAR_DIR.mkdir(parents=True, exist_ok=True)
+CHAR_FILE = CHAR_DIR / "characters.json"
+# PuLID 工作流节点编号（来自 pulid_workflow.json）
+_WF_PROMPT, _WF_NEG, _WF_IMG, _WF_SEED, _WF_SIZE = "22", "23", "12", "3", "5"
+
+
+def comfy_online() -> bool:
+    """ComfyUI 是否可达（隧道连通才算在线）"""
+    if not COMFY_WF_FILE.exists():
+        return False
+    try:
+        return requests.get(f"{COMFY_BASE}/system_stats", timeout=2).status_code == 200
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def load_characters() -> dict:
+    """角色库：{名字: {"desc_en": 外貌描述, "face": 参考脸文件路径}}"""
+    try:
+        return json.loads(CHAR_FILE.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def save_character(name: str, desc_en: str, img_bytes: bytes):
+    """新增/覆盖一个角色：存参考脸图片 + 元数据"""
+    face = CHAR_DIR / f"{_sha(name)}.png"
+    face.write_bytes(img_bytes)
+    chars = load_characters()
+    chars[name] = {"desc_en": desc_en, "face": str(face)}
+    CHAR_FILE.write_text(json.dumps(chars, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def gen_prompt_en(desc: str, char_desc_en: str) -> str:
+    """把中文画面描述改写成英文 SDXL 电影感提示词（LLM，sha1 缓存）"""
+    key = _sha(f"en|{CHAT_MODEL}|{desc}|{char_desc_en}")
+    cache = SCRIPT_DIR / f"{key}.txt"
+    if cache.exists():
+        return cache.read_text(encoding="utf-8")
+    prompt = (
+        "把下面的中文画面描述改写成一段英文 AI 绘图提示词（SDXL 用）。要求：\n"
+        "1. 电影感、具体、画面化，保留人物动作/场景/朝代元素；\n"
+        f"2. 画面中的主角外貌固定描述为：{char_desc_en}，写进提示词里；\n"
+        "3. 只输出英文提示词本身，不要解释。\n\n"
+        f"中文画面描述：{desc}"
+    )
+    r = requests.post(f"{BASE_URL}/chat/completions", headers=_api_headers(),
+                      json={"model": CHAT_MODEL, "temperature": 0.3,
+                            "messages": [{"role": "user", "content": prompt}]}, timeout=120)
+    r.raise_for_status()
+    text = r.json()["choices"][0]["message"]["content"].strip()
+    cache.write_text(text, encoding="utf-8")
+    return text
+
+
+def gen_comfy_pulid(desc: str, char: dict, size_wh, seed: int = 0) -> Path:
+    """调 ComfyUI PuLID 工作流出锁脸图：翻译提示词 -> 上传参考脸 -> 提交 -> 取回。sha1 缓存"""
+    prompt_en = gen_prompt_en(desc, char["desc_en"])
+    face_bytes = Path(char["face"]).read_bytes()
+    face_key = _sha_bytes(face_bytes)
+    key = _sha(f"pulid|{prompt_en}|{face_key}|{size_wh[0]}x{size_wh[1]}|{seed}")
+    out = COMFY_DIR / f"{key}.png"
+    if out.exists():
+        return out
+
+    with open(COMFY_WF_FILE, encoding="utf-8") as f:
+        wf = json.load(f)
+    # 上传参考脸（每次上传拿服务器文件名，小图很快）
+    r = requests.post(f"{COMFY_BASE}/upload/image",
+                      files={"image": ("face.png", face_bytes)}, timeout=60)
+    r.raise_for_status()
+    wf[_WF_IMG]["inputs"]["image"] = r.json()["name"]
+    wf[_WF_PROMPT]["inputs"]["text"] = prompt_en
+    wf[_WF_SEED]["inputs"]["seed"] = seed or int(time.time() * 1000) % (2**31)
+    # SDXL 友好分辨率：竖屏 768x1024，横屏 1152x640
+    if size_wh[1] > size_wh[0]:
+        wf[_WF_SIZE]["inputs"].update(width=768, height=1024)
+    else:
+        wf[_WF_SIZE]["inputs"].update(width=1152, height=640)
+
+    r = requests.post(f"{COMFY_BASE}/prompt",
+                      json={"prompt": wf, "client_id": _sha(str(time.time()))}, timeout=60)
+    r.raise_for_status()
+    pid = r.json()["prompt_id"]
+    for _ in range(100):  # 2080Ti 一张约 30~60s，最多等 5 分钟
+        time.sleep(3)
+        h = requests.get(f"{COMFY_BASE}/history/{pid}", timeout=30).json()
+        if pid not in h:
+            continue
+        for node_out in h[pid].get("outputs", {}).values():
+            imgs = node_out.get("images", [])
+            if imgs:
+                img = imgs[0]
+                r = requests.get(f"{COMFY_BASE}/view", params={
+                    "filename": img["filename"],
+                    "subfolder": img.get("subfolder", ""),
+                    "type": img.get("type", "temp")}, timeout=120)
+                r.raise_for_status()
+                out.write_bytes(r.content)
+                return out
+    raise RuntimeError("ComfyUI 出图超时（5 分钟）")
+
+
 def _api_headers():
     return {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 
@@ -813,8 +922,38 @@ with st.container(border=True):
 
 # ========== 第 4 步：文生图 ==========
 with st.container(border=True):
-    st.subheader("④ 分镜配图（Kolors · 中文描述）")
+    st.subheader("④ 分镜配图（Kolors · ComfyUI 锁脸）")
     uploads = st.session_state.setdefault("uploads", {})  # 镜头序号(str) -> 自定义图片路径
+
+    # ---- 角色库 + 锁脸配图（ComfyUI PuLID，可选）----
+    chars = load_characters()
+    is_online = comfy_online()
+    with st.expander("🎭 角色库 · 锁脸配图（ComfyUI PuLID）"
+                     + ("　🟢 ComfyUI 在线" if is_online else "　⚪ ComfyUI 离线（需开 AutoDL 并建立隧道）")):
+        cc1, cc2 = st.columns([2, 1])
+        char_names = ["（不使用）"] + list(chars.keys())
+        cc1.selectbox("当前锁脸角色（配图将保持此角色的脸不变）", char_names,
+                      key="active_char")
+        with cc2.popover("➕ 新建角色"):
+            new_name = st.text_input("角色名", key="char_new_name", placeholder="如：林策")
+            new_desc = st.text_area("外貌描述（英文）", key="char_new_desc",
+                                    placeholder="a 25 years old Chinese young man, short black hair, dark grey outdoor jacket, camo backpack")
+            new_face = st.file_uploader("参考脸照片", type=["png", "jpg", "jpeg"],
+                                        key="char_new_face")
+            if st.button("保存角色", key="char_save"):
+                if new_name.strip() and new_desc.strip() and new_face is not None:
+                    save_character(new_name.strip(), new_desc.strip(), new_face.getvalue())
+                    st.success(f"角色「{new_name}」已入库")
+                    st.rerun()
+                else:
+                    st.error("角色名、外貌描述、参考脸都要填")
+        if chars:
+            preview_cols = st.columns(min(len(chars), 6))
+            for j, (cname, cinfo) in enumerate(chars.items()):
+                preview_cols[j % 6].image(cinfo["face"], caption=cname, use_container_width=True)
+    active_char = st.session_state.get("active_char", "（不使用）")
+    active_char = chars.get(active_char) if active_char != "（不使用）" else None
+
     if images is None:
         # 懒生成：不自动消耗 Kolors 额度，先用参考照片/占位图就位，AI 配图由按钮触发
         images = []
@@ -892,6 +1031,21 @@ with st.container(border=True):
                         st.rerun()
                     except Exception as e:  # noqa: BLE001
                         st.error(f"镜头 {i+1} 可灵生成失败：{e}")
+        if active_char and not is_video:
+            if not is_online:
+                cols[i].button("🔒 锁脸生成（离线）", key=f"pulid_{i}",
+                               use_container_width=True, disabled=True)
+            elif cols[i].button(f"🔒 锁脸生成（{st.session_state.active_char}）",
+                                key=f"pulid_{i}", use_container_width=True):
+                with st.spinner(f"ComfyUI 正在锁脸生成镜头 {i+1}（约1分钟）…"):
+                    try:
+                        images[i] = str(gen_comfy_pulid(shots[i]["desc"], active_char,
+                                                        size_wh, seed=seeds[i]))
+                        st.session_state.images = images
+                        st.session_state.pop("video", None)
+                        st.rerun()
+                    except Exception as e:  # noqa: BLE001
+                        st.error(f"镜头 {i+1} 锁脸生成失败：{e}")
         if cols[i].button("↻ 重生成此图", key=f"redo_img_{i}", use_container_width=True):
             seeds[i] = int(time.time() * 1000) % (2**31)
             with st.spinner(f"重新生成镜头 {i+1} 配图…"):

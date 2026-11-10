@@ -1,0 +1,175 @@
+====================================================
+AutoDL ComfyUI 常用命令（复制整行，粘贴到 JupyterLab 终端，回车）
+终端打开方式：JupyterLab 页面左上角蓝色【＋】→ 滑到下面点【终端】
+====================================================
+
+【1】下载 SD1.5 基础模型（镜像自带下载器已失效，用下面【1B】的魔搭源）
+cd /root/tzwm-scripts && python common/utils/downloader.py ComfyUI/autodl/configs/init_files_sd15.yaml
+
+【1B】魔搭源下载 SD1.5（推荐！先装工具再下载，两条都复制逐条执行）
+pip install -q modelscope
+modelscope download --model AI-ModelScope/stable-diffusion-v1-5 v1-5-pruned-emaonly.safetensors --local_dir /root/autodl-tmp/ComfyUI/models/checkpoints
+
+【2】下载 SDXL 模型（镜像自带下载器已失效，用【2B】）
+cd /root/tzwm-scripts && python common/utils/downloader.py ComfyUI/autodl/configs/init_files_sdxl.yaml
+
+【2B】魔搭源下载 SDXL 底模（约 7GB，挂后台等它下完）
+modelscope download --model AI-ModelScope/stable-diffusion-xl-base-1.0 sd_xl_base_1.0.safetensors --local_dir /root/autodl-tmp/ComfyUI/models/checkpoints
+
+====================================================
+【7】安装 PuLID 锁脸节点（A+B 第二步；逐条粘贴执行）
+
+【7a】装节点本体
+cd /root/autodl-tmp/ComfyUI/custom_nodes && git clone https://github.com/cubiq/PuLID_ComfyUI.git && cd PuLID_ComfyUI && pip install -q -r requirements.txt
+
+【7b】下载 PuLID 模型（约 1.1GB）
+mkdir -p /root/autodl-tmp/ComfyUI/models/pulid && wget -qc https://hf-mirror.com/guozinan/PuLID/resolve/main/pulid_v1.1.safetensors -O /root/autodl-tmp/ComfyUI/models/pulid/pulid_v1.1.safetensors
+
+【7c】下载 EVA-CLIP 视觉模型（约 4.7GB，PuLID 依赖）
+wget -qc https://hf-mirror.com/QuanSun/EVA-CLIP/resolve/main/EVA02_CLIP_L_336_psz14_s6B.pt -O /root/autodl-tmp/ComfyUI/models/clip/EVA02_CLIP_L_336_psz14_s6B.pt
+
+【7d】下载人脸检测模型 antelopev2 并解压
+mkdir -p /root/autodl-tmp/ComfyUI/models/insightface/models/antelopev2 && wget -qc https://hf-mirror.com/MonsterMMORPG/tools/resolve/main/antelopev2.zip -O /tmp/antelopev2.zip && cd /root/autodl-tmp/ComfyUI/models/insightface/models/antelopev2 && unzip -qo /tmp/antelopev2.zip
+
+【7e】全部装完后重启 ComfyUI（一次只贴一次！）
+pkill -f main.py ; cd /root/autodl-tmp/ComfyUI && nohup python main.py --listen 0.0.0.0 --port 6006 > /root/comfyui.log 2>&1 &
+====================================================
+
+【8】检查人脸检测模型目录（应列出 5 个 .onnx 文件）
+ls /root/autodl-tmp/ComfyUI/models/insightface/models/antelopev2/
+
+【8B】若上面显示里层还套着一个 antelopev2 文件夹，执行这条修正
+mv /root/autodl-tmp/ComfyUI/models/insightface/models/antelopev2/antelopev2/* /root/autodl-tmp/ComfyUI/models/insightface/models/antelopev2/
+
+【9】带国内镜像环境变量重启 ComfyUI（解决 huggingface.co 连不通导致的模型下载失败；以后重启都用这条）
+pkill -f main.py ; cd /root/autodl-tmp/ComfyUI && HF_ENDPOINT=https://hf-mirror.com nohup python main.py --listen 0.0.0.0 --port 6006 > /root/comfyui.log 2>&1 &
+
+【10】检查 PuLID 模型文件大小（正常应 1GB 以上）
+ls -lh /root/autodl-tmp/ComfyUI/models/pulid/
+
+【10B】若文件明显偏小（几百MB或几KB），删掉重下（这次带进度条，等下满）
+rm /root/autodl-tmp/ComfyUI/models/pulid/pulid_v1.1.safetensors && wget -c https://hf-mirror.com/guozinan/PuLID/resolve/main/pulid_v1.1.safetensors -O /root/autodl-tmp/ComfyUI/models/pulid/pulid_v1.1.safetensors
+
+【11】检查 PuLID 模型文件内容版本（看输出里有没有 body / mapping 字样）
+python -c "from safetensors import safe_open; f=safe_open('/root/autodl-tmp/ComfyUI/models/pulid/pulid_v1.1.safetensors','pt'); ks=list(f.keys()); print('总键数:',len(ks)); print('含body键:',sum('body' in k for k in ks)); print('含mapping键:',sum('mapping' in k for k in ks))"
+
+【11B】若是 v1.0 内容（body/mapping 都是 0），从魔搭重新下载 v1.1
+rm /root/autodl-tmp/ComfyUI/models/pulid/pulid_v1.1.safetensors && modelscope download --model AI-ModelScope/PuLID pulid_v1.1.safetensors --local_dir /root/autodl-tmp/ComfyUI/models/pulid
+
+【12】下载 PuLID v1.0 权重（cubiq 节点认准这个；v1.1 是新格式节点不认）
+wget -c https://hf-mirror.com/guozinan/PuLID/resolve/main/pulid_v1.bin -O /root/autodl-tmp/ComfyUI/models/pulid/pulid_v1.bin
+
+【13】查看 pulid_v1.bin 顶层结构（排查 KeyError 'image_proj'）
+python -c "import torch; m=torch.load('/root/autodl-tmp/ComfyUI/models/pulid/pulid_v1.bin', map_location='cpu'); print(type(m)); ks=list(m.keys()); print(len(ks)); print(ks[:20])"
+
+【14】把 pulid_v1.bin 转换成节点认的格式（整段复制粘贴执行，输出 saved 即成功）
+python -c "
+import torch
+m=torch.load('/root/autodl-tmp/ComfyUI/models/pulid/pulid_v1.bin',map_location='cpu')
+ip={k[11:]:v for k,v in m.items() if k.startswith('id_adapter.')}
+ip={k:v for k,v in ip.items() if k.split('.')[0]=='body' or k.startswith('mapping_')}
+ia={k[22:]:v for k,v in m.items() if k.startswith('id_adapter_attn_layers.')}
+torch.save({'image_proj':ip,'ip_adapter':ia},'/root/autodl-tmp/ComfyUI/models/pulid/pulid_v1_conv.bin')
+print('saved', len(ip), len(ia))
+"
+
+【15】手动下载人脸解析模型（github 直连太慢，走加速源）
+先执行这句建目录（如果已建过会提示存在，无视即可）：
+mkdir -p /root/miniconda3/lib/python3.12/site-packages/facexlib/weights
+下面两条可开两个终端同时下（先1后2也行；已验证加速源可用）：
+wget -c "https://ghfast.top/https://github.com/xinntao/facexlib/releases/download/v0.1.0/detection_Resnet50_Final.pth" -O /root/miniconda3/lib/python3.12/site-packages/facexlib/weights/detection_Resnet50_Final.pth
+wget -c "https://ghfast.top/https://github.com/xinntao/facexlib/releases/download/v0.2.0/parsing_bisenet.pth" -O /root/miniconda3/lib/python3.12/site-packages/facexlib/weights/parsing_bisenet.pth
+
+【16】人脸检测模型损坏时：删掉重下干净版（整段执行）
+rm -f /root/miniconda3/lib/python3.12/site-packages/facexlib/weights/detection_Resnet50_Final.pth /root/miniconda3/lib/python3.12/site-packages/facexlib/weights/parsing_bisenet.pth
+wget -q --show-progress "https://ghfast.top/https://github.com/xinntao/facexlib/releases/download/v0.1.0/detection_Resnet50_Final.pth" -O /root/miniconda3/lib/python3.12/site-packages/facexlib/weights/detection_Resnet50_Final.pth
+wget -q --show-progress "https://ghfast.top/https://github.com/xinntao/facexlib/releases/download/v0.2.0/parsing_bisenet.pth" -O /root/miniconda3/lib/python3.12/site-packages/facexlib/weights/parsing_bisenet.pth
+ls -lh /root/miniconda3/lib/python3.12/site-packages/facexlib/weights/
+
+【17】清理 weights 目录里的下载残留（.partial 残文件）
+rm -f /root/miniconda3/lib/python3.12/site-packages/facexlib/weights/*.partial
+
+【18】强杀卡死的 ComfyUI 并干净重启（界面卡死、任务无响应时用；中间的 ps 应无输出）
+pkill -9 -f main.py ; sleep 3 ; ps aux | grep main.py | grep -v grep ; cd /root/autodl-tmp/ComfyUI && HF_ENDPOINT=https://hf-mirror.com nohup python main.py --listen 0.0.0.0 --port 6006 > /root/comfyui.log 2>&1 &
+
+【19】补下人脸解析模型 parsenet（Apply PuLID 报 504/下载失败时用）
+wget -q --show-progress "https://ghfast.top/https://github.com/xinntao/facexlib/releases/download/v0.2.2/parsing_parsenet.pth" -O /root/miniconda3/lib/python3.12/site-packages/facexlib/weights/parsing_parsenet.pth
+
+【20】验证 parsenet 文件是否完好（能打印数字就是好的，报错则重下）
+python -c "import torch; m=torch.load('/root/miniconda3/lib/python3.12/site-packages/facexlib/weights/parsing_parsenet.pth', map_location='cpu'); print('OK', len(m))"
+
+【20B】若【20】报错：删掉用官方直连重下一次（不走代理）
+rm -f /root/miniconda3/lib/python3.12/site-packages/facexlib/weights/parsing_parsenet.pth && wget -q --show-progress "https://ghfast.top/https://github.com/xinntao/facexlib/releases/download/v0.2.2/parsing_parsenet.pth" -O /root/miniconda3/lib/python3.12/site-packages/facexlib/weights/parsing_parsenet.pth && python -c "import torch; m=torch.load('/root/miniconda3/lib/python3.12/site-packages/facexlib/weights/parsing_parsenet.pth', map_location='cpu'); print('OK', len(m))"
+
+【21】重新转换 PuLID 权重（修正注意力层键名 id_to_k→to_k_ip；覆盖旧转换文件）
+python -c "
+import torch
+m=torch.load('/root/autodl-tmp/ComfyUI/models/pulid/pulid_v1.bin',map_location='cpu')
+ip={k[11:]:v for k,v in m.items() if k.startswith('id_adapter.')}
+ip={k:v for k,v in ip.items() if k.split('.')[0]=='body' or k.startswith('mapping_')}
+ia={k[22:]:v for k,v in m.items() if k.startswith('id_adapter_attn_layers.')}
+ia={k.replace('id_to_k','to_k_ip').replace('id_to_v','to_v_ip'):v for k,v in ia.items()}
+torch.save({'image_proj':ip,'ip_adapter':ia},'/root/autodl-tmp/ComfyUI/models/pulid/pulid_v1_conv.bin')
+print('saved', len(ip), len(ia))
+"
+
+【22】第三次转换 PuLID 权重（修正键名前缀切片 23 字符 + 打印校验）
+python -c "
+import torch
+m=torch.load('/root/autodl-tmp/ComfyUI/models/pulid/pulid_v1.bin',map_location='cpu')
+ip={k[11:]:v for k,v in m.items() if k.startswith('id_adapter.')}
+ip={k:v for k,v in ip.items() if k.split('.')[0]=='body' or k.startswith('mapping_')}
+ia={k[23:]:v for k,v in m.items() if k.startswith('id_adapter_attn_layers.')}
+ia={k.replace('id_to_k','to_k_ip').replace('id_to_v','to_v_ip'):v for k,v in ia.items()}
+torch.save({'image_proj':ip,'ip_adapter':ia},'/root/autodl-tmp/ComfyUI/models/pulid/pulid_v1_conv.bin')
+ks=sorted(ia.keys())
+print('saved', len(ip), len(ia))
+print('前4个注意力键:', ks[:4])
+"
+
+【3】查看模型是否下载成功
+ls -lh /root/autodl-tmp/ComfyUI/models/checkpoints/
+
+【4】查看显卡占用（出图卡住时排查用）
+nvidia-smi
+
+【5】重启 ComfyUI（界面卡死/节点装完后；一次只贴一次！）
+pkill -f main.py ; cd /root/autodl-tmp/ComfyUI && nohup python main.py --listen 0.0.0.0 --port 6006 > /root/comfyui.log 2>&1 &
+
+【5B】只启动 ComfyUI（确认没在跑时用这条，干净启动）
+cd /root/autodl-tmp/ComfyUI && nohup python main.py --listen 0.0.0.0 --port 6006 > /root/comfyui.log 2>&1 &
+
+【6】查看 ComfyUI 启动日志
+tail -30 /root/comfyui.log
+
+====================================================
+【提示词】林策定妆（粘贴到 ComfyUI 第一个 CLIP文本编码框）
+cinematic photo of a 25 years old Chinese young man, short black hair, determined face, wearing a dark grey modern outdoor jacket, carrying a camo hiking backpack, standing in the middle of a bustling ancient Chinese Song dynasty street market, wooden buildings, lanterns, dusk warm light, movie quality, detailed
+
+【提示词】负面（粘贴到第二个 CLIP文本编码框）
+lowres, bad anatomy, extra fingers, blurry, watermark, modern buildings, cars
+
+【提示词】正脸验证（PuLID 锁脸效果验收用，粘贴到第一个 CLIP 框）
+cinematic close-up portrait of the same young man facing camera, determined expression, in front of an ancient Chinese city gate at dusk, soldiers blurred in background, movie quality
+
+====================================================
+【PuLID 工作流首次设置】（PuLID_simple.json 拖进画布后做）
+
+① Checkpoint加载器：选 sd_xl_base_1.0.safetensors
+② Load PuLID Model：选 pulid_v1.1.safetensors
+③ Load InsightFace：provider 保持 CPU
+④ 加载图像节点：先回 JupyterLab 文件浏览器进
+   autodl-tmp/ComfyUI/output/ 右键 Download 林策的图，
+   再点节点上的【选择文件上传】传这张图作为参考脸
+⑤ 第一个 CLIP 框换成新场景提示词（见下），负面框不动
+
+【提示词】新场景：城门被拦（粘贴到第一个 CLIP 框）
+cinematic photo of the same young man standing in front of a tall ancient Chinese city gate, two Song dynasty soldiers in armor blocking him with spears, dusk backlight, tense atmosphere, movie quality
+====================================================
+
+====================================================
+提示：
+- 粘贴：在终端窗口里 Ctrl+V 或 鼠标右键
+- 命令必须整行贴进去再回车，中间不要自己换行
+- 下载完模型后，回 ComfyUI 网页按 R 键刷新模型列表
+====================================================
