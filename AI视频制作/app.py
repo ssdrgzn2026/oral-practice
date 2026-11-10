@@ -206,7 +206,7 @@ def save_character(name: str, desc_en: str, img_bytes: bytes):
 
 def gen_prompt_en(desc: str, char_desc_en: str) -> str:
     """把中文画面描述改写成英文 SDXL 电影感提示词（LLM，sha1 缓存）"""
-    key = _sha(f"en|{CHAT_MODEL}|{desc}|{char_desc_en}")
+    key = _sha(f"en-v2|{CHAT_MODEL}|{desc}|{char_desc_en}")
     cache = SCRIPT_DIR / f"{key}.txt"
     if cache.exists():
         return cache.read_text(encoding="utf-8")
