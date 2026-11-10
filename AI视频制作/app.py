@@ -206,7 +206,7 @@ def save_character(name: str, desc_en: str, img_bytes: bytes):
 
 def gen_prompt_en(desc: str, char_desc_en: str) -> str:
     """把中文画面描述改写成英文 SDXL 电影感提示词（LLM，sha1 缓存）"""
-    key = _sha(f"en-v3|{CHAT_MODEL}|{desc}|{char_desc_en}")
+    key = _sha(f"en-v4|{CHAT_MODEL}|{desc}|{char_desc_en}")
     cache = SCRIPT_DIR / f"{key}.txt"
     if cache.exists():
         return cache.read_text(encoding="utf-8")
@@ -216,10 +216,11 @@ def gen_prompt_en(desc: str, char_desc_en: str) -> str:
         "中景→medium shot，全景/远景→wide shot / establishing shot，无明确景别→medium shot；\n"
         "2. 电影感、具体、画面化，保留人物动作/场景/朝代元素；\n"
         f"3. 画面中的主角外貌固定描述为：{char_desc_en}，写进提示词里；\n"
-        "4. 关键道具必须原样保留并具体化（如手电筒→a glowing modern flashlight）；\n"
-        "5. 若主角穿现代服装身处古代场景，必须强调 modern clothing contrasting with ancient surroundings；\n"
-        "6. 若画面主体不是主角（如他人视角/反派特写镜头），写明主角只在背景中或不出镜；\n"
-        "7. 只输出英文提示词本身，不要解释。\n\n"
+        "4. 主角的服装必须与角色描述完全一致，逐字保留服装短语，严禁换成古装或任何其他服装；\n"
+        "5. 关键道具必须原样保留并具体化（如手电筒→a glowing modern flashlight）；\n"
+        "6. 若主角穿现代服装身处古代场景，必须强调 modern clothing contrasting with ancient surroundings；\n"
+        "7. 若画面主体不是主角（如他人视角/反派特写镜头），写明主角只在背景中或不出镜；\n"
+        "8. 只输出英文提示词本身，不要解释。\n\n"
         f"中文画面描述：{desc}"
     )
     r = requests.post(f"{BASE_URL}/chat/completions", headers=_api_headers(),
@@ -233,9 +234,10 @@ def gen_prompt_en(desc: str, char_desc_en: str) -> str:
     return text
 
 
-def gen_comfy_pulid(desc: str, char: dict, size_wh, seed: int = 0) -> Path:
+def gen_comfy_pulid(desc: str, char: dict, size_wh, seed: int = 0, prompt_en: str = None) -> Path:
     """调 ComfyUI PuLID 工作流出锁脸图：翻译提示词 -> 上传参考脸 -> 提交 -> 取回。sha1 缓存"""
-    prompt_en = gen_prompt_en(desc, char["desc_en"])
+    if prompt_en is None:
+        prompt_en = gen_prompt_en(desc, char["desc_en"])
     face_bytes = Path(char["face"]).read_bytes()
     face_key = _sha_bytes(face_bytes)
     ckpt = os.environ.get("COMFY_CHECKPOINT", "").strip()
@@ -1043,6 +1045,18 @@ with st.container(border=True):
                     except Exception as e:  # noqa: BLE001
                         st.error(f"镜头 {i+1} 可灵生成失败：{e}")
         if active_char and not is_video:
+            # 英文提示词可见可改：手动改过就用手动的，否则自动翻译（LLM 缓存，不重复消耗）
+            pe = st.session_state.setdefault("prompts_en", {})
+            if str(i) not in pe and shots[i]["desc"].strip():
+                try:
+                    pe[str(i)] = gen_prompt_en(shots[i]["desc"], active_char["desc_en"])
+                except Exception:  # noqa: BLE001
+                    pe[str(i)] = ""
+            if shots[i]["desc"].strip():
+                pe[str(i)] = cols[i].text_area("英文提示词（可改）", value=pe.get(str(i), ""),
+                                               key=f"pen_{i}", height=68,
+                                               label_visibility="collapsed",
+                                               placeholder="英文提示词")
             if not is_online:
                 cols[i].button("🔒 锁脸生成（离线）", key=f"pulid_{i}",
                                use_container_width=True, disabled=True)
@@ -1051,7 +1065,8 @@ with st.container(border=True):
                 with st.spinner(f"ComfyUI 正在锁脸生成镜头 {i+1}（约1分钟）…"):
                     try:
                         images[i] = str(gen_comfy_pulid(shots[i]["desc"], active_char,
-                                                        size_wh, seed=seeds[i]))
+                                                        size_wh, seed=seeds[i],
+                                                        prompt_en=pe.get(str(i)) or None))
                         st.session_state.images = images
                         st.session_state.pop("video", None)
                         st.rerun()
