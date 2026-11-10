@@ -1068,6 +1068,8 @@ with st.container(border=True):
                         images[i] = str(gen_comfy_pulid(shots[i]["desc"], active_char,
                                                         size_wh, seed=seeds[i],
                                                         prompt_en=pe.get(str(i)) or None))
+                        st.session_state.setdefault("pulid_history", {}).setdefault(
+                            str(i), []).append(images[i])
                         st.session_state.images = images
                         st.session_state.pop("video", None)
                         st.rerun()
@@ -1081,6 +1083,19 @@ with st.container(border=True):
             st.session_state.images = images
             st.session_state.pop("video", None)
             st.rerun()
+        # 抽卡历史：该镜头所有锁脸生成版本，点击选用
+        hist = st.session_state.get("pulid_history", {}).get(str(i), [])
+        if hist and not is_video:
+            with cols[i].expander(f"🎰 抽卡历史（{len(hist)} 张，点击选用）"):
+                hcols = st.columns(4)
+                for j, hp in enumerate(hist):
+                    hcols[j % 4].image(hp, use_container_width=True)
+                    if hcols[j % 4].button("选用", key=f"hist_{i}_{j}",
+                                           use_container_width=True):
+                        images[i] = hp
+                        st.session_state.images = images
+                        st.session_state.pop("video", None)
+                        st.rerun()
         up = cols[i].file_uploader("上传自定义图片", type=["png", "jpg", "jpeg"],
                                    key=f"upload_{i}", label_visibility="collapsed")
         if up is not None:

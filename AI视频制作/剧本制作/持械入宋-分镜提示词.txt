@@ -1,0 +1,40 @@
+《持械入宋》样片 · 分镜与提示词
+====================================================
+用法：杂具小栈 ③ 分镜步可直接录入"中文描述|解说词|秒数"行；
+④ 配图步把对应镜头的"英文提示词"粘进镜头下的编辑框，再点【锁脸生成】。
+角色：林策（参考脸见角色库）
+注意：3、4、5 镜开头都有"禁古装"否定句，整条复制时别漏。
+====================================================
+
+【镜头 1】穿越初临
+中文描述：北宋汴京街市黄昏，穿深灰冲锋衣背迷彩包的现代青年站在街道中央茫然环顾，宋代行人对他指指点点
+解说词：公元1125年，林策穿越到了北宋汴京。
+英文提示词：
+medium shot, a 25 years old Chinese young man with short black hair wearing a dark grey modern outdoor jacket and camo hiking backpack, standing confused in the middle of a bustling Song dynasty street market at dusk, ancient Chinese pedestrians pointing at him curiously, modern clothing contrasting with ancient surroundings, photorealistic live-action film still, dramatic volumetric lighting, 8k
+
+【镜头 2】手电示人
+中文描述：特写：现代青年从迷彩背包抽出一支黑色手电筒，按下开关射出雪亮光柱，周围宋代百姓惊愕后退
+解说词：他摸出手电筒——在这时代，光就是力量。
+英文提示词：
+extreme close-up of the hands of a young Chinese man holding a small black modern flashlight switched on, bright white light glowing from the flashlight lens, his determined face softly lit in the background, Song dynasty night market, modern clothing contrasting with ancient surroundings, photorealistic live-action film still, dramatic lighting, 8k
+
+【镜头 3】官兵拦阻
+中文描述：城门口，两名披甲宋代士兵横矛拦住现代装束的青年，青年举手示意无害
+解说词：奇装异服身怀利器，引来了守城官兵。
+构图说明：士兵只露矛尖和背影，全画幅只有林策一张脸
+英文提示词：
+close-up, the young man wears NO armor, NO ancient clothing: a 25 years old Chinese young man with short black hair wearing a dark grey modern outdoor jacket and camo hiking backpack, facing camera with hands raised innocently, only his face visible in the frame, two long spear tips entering the frame from both sides pointing at him, soldiers hidden in shadow, ancient city gate at dusk, tense atmosphere, photorealistic live-action film still, 8k
+
+【镜头 4】光柱退敌
+中文描述：雪亮的光柱扫过，两名士兵惊惧跪倒、长矛脱手，周围百姓伏地
+解说词：光柱扫过，兵士惊叫着跪倒在地。
+构图说明：士兵跪伏低头把脸埋下去，全画幅只有林策一张脸
+英文提示词：
+medium shot at night, the young man wears NO armor, NO ancient clothing: a 25 years old Chinese young man with short black hair wearing a dark grey modern outdoor jacket and camo hiking backpack, holding a small glowing flashlight, its soft white light shining on two armored soldiers kneeling face-down in fear, their faces completely hidden, spears dropped nearby, only the young man's face visible in the frame, ancient city gate, photorealistic live-action film still, cinematic night lighting, 8k
+
+【镜头 5】谋士觊觎（结尾钩子）
+中文描述：前景一位青袍谋士手持折扇的模糊背影，中景现代青年被人群围住，谋士正在暗中观察他
+解说词：人群深处，一双眼睛盯上了他的宝物。
+构图说明：谋士降级为画面边缘的模糊背影，林策清晰面对镜头
+英文提示词：
+medium shot, the young man wears NO robe, NO ancient clothing: a 25 years old Chinese young man with short black hair wearing a dark grey modern outdoor jacket and camo hiking backpack, facing camera in sharp focus in a crowd, at the blurred edge of the frame only the back of a Song dynasty scholar in a teal robe secretly watching him, dusk street market, mysterious atmosphere, photorealistic live-action film still, 8k
