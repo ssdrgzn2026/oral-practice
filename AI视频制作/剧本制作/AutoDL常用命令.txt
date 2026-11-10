@@ -127,6 +127,9 @@ print('saved', len(ip), len(ia))
 print('前4个注意力键:', ks[:4])
 "
 
+【23】下载写实底模 Juggernaut XL（换掉 SDXL 裸模型，画质/真实感大幅提升，约 7GB）
+modelscope download --model AI-ModelScope/Juggernaut-XL Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors --local_dir /root/autodl-tmp/ComfyUI/models/checkpoints
+
 【3】查看模型是否下载成功
 ls -lh /root/autodl-tmp/ComfyUI/models/checkpoints/
 
@@ -158,8 +161,8 @@ cinematic close-up portrait of the same young man facing camera, determined expr
 ◆ 林策（《持械入宋》主角）
 a 25 years old Chinese young man, short black hair, determined face, dark grey modern outdoor jacket, camo hiking backpack
 
-◆ 诸葛亮（含标志物件：羽扇、纶巾）
-a middle-aged ancient Chinese strategist Zhuge Liang, elegant long black beard, flowing white hanfu robe, scholar's guanjin headpiece, holding a white crane-feather fan, Three Kingdoms era
+◆ 诸葛亮（含标志物件：羽扇、纶巾 + 气质词）
+a middle-aged ancient Chinese strategist Zhuge Liang, wise and serene expression, gentle confident smile, elegant long black beard, flowing white hanfu robe, scholar's guanjin headpiece, holding a white crane-feather fan, scholarly elegance, calm demeanor, Three Kingdoms era
 ====================================================
 
 ====================================================

@@ -236,7 +236,8 @@ def gen_comfy_pulid(desc: str, char: dict, size_wh, seed: int = 0) -> Path:
     prompt_en = gen_prompt_en(desc, char["desc_en"])
     face_bytes = Path(char["face"]).read_bytes()
     face_key = _sha_bytes(face_bytes)
-    key = _sha(f"pulid|{prompt_en}|{face_key}|{size_wh[0]}x{size_wh[1]}|{seed}")
+    ckpt = os.environ.get("COMFY_CHECKPOINT", "").strip()
+    key = _sha(f"pulid|{prompt_en}|{face_key}|{size_wh[0]}x{size_wh[1]}|{seed}|{ckpt}")
     out = COMFY_DIR / f"{key}.png"
     if out.exists():
         return out
