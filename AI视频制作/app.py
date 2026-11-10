@@ -250,6 +250,9 @@ def gen_comfy_pulid(desc: str, char: dict, size_wh, seed: int = 0) -> Path:
     wf[_WF_IMG]["inputs"]["image"] = r.json()["name"]
     wf[_WF_PROMPT]["inputs"]["text"] = prompt_en
     wf[_WF_SEED]["inputs"]["seed"] = seed or int(time.time() * 1000) % (2**31)
+    ckpt = os.environ.get("COMFY_CHECKPOINT", "").strip()
+    if ckpt:  # 覆盖默认底模（如换成写实模型 juggernaut）
+        wf["4"]["inputs"]["ckpt_name"] = ckpt
     # SDXL 友好分辨率：竖屏 768x1024，横屏 1152x640
     if size_wh[1] > size_wh[0]:
         wf[_WF_SIZE]["inputs"].update(width=768, height=1024)

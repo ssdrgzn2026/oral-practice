@@ -126,7 +126,7 @@
   },
   "23": {
     "inputs": {
-      "text": "illustration, painting, cartoon, anime, sketch, drawing, cgi, 3d render, blurry, malformed, low quality, worst quality, artifacts, noise, text, watermark, deformed, ugly",
+      "text": "illustration, painting, cartoon, anime, sketch, drawing, cgi, 3d render, blurry, malformed, low quality, worst quality, artifacts, noise, text, watermark, deformed, ugly, collage, split screen, multiple panels, grid, triptych",
       "clip": [
         "4",
         1
