@@ -153,6 +153,16 @@ lowres, bad anatomy, extra fingers, blurry, watermark, modern buildings, cars
 cinematic close-up portrait of the same young man facing camera, determined expression, in front of an ancient Chinese city gate at dusk, soldiers blurred in background, movie quality
 
 ====================================================
+【角色库】角色外貌描述模板（杂具小栈-锁脸配图-新建角色时粘贴）
+
+◆ 林策（《持械入宋》主角）
+a 25 years old Chinese young man, short black hair, determined face, dark grey modern outdoor jacket, camo hiking backpack
+
+◆ 诸葛亮（含标志物件：羽扇、纶巾）
+a middle-aged ancient Chinese strategist Zhuge Liang, elegant long black beard, flowing white hanfu robe, scholar's guanjin headpiece, holding a white crane-feather fan, Three Kingdoms era
+====================================================
+
+====================================================
 【PuLID 工作流首次设置】（PuLID_simple.json 拖进画布后做）
 
 ① Checkpoint加载器：选 sd_xl_base_1.0.safetensors
