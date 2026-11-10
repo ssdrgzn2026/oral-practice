@@ -926,8 +926,21 @@ with st.container(border=True):
                     st.rerun()
                 st.stop()
     for i, s in enumerate(shots):
-        st.markdown(f"**镜头 {i+1}**（{s['seconds']}s）：{s['narration']}")
-        st.caption(f"画面描述：{s['desc']}")
+        st.markdown(f"**镜头 {i+1}**（{s['seconds']}s）")
+        nc1, nc2 = st.columns([2, 1])
+        new_desc = nc1.text_area("画面描述", value=s["desc"], height=68,
+                                 key=f"shot_desc_{i}", label_visibility="collapsed",
+                                 placeholder="画面描述")
+        new_narr = nc2.text_area("解说词", value=s["narration"], height=68,
+                                 key=f"shot_narr_{i}", label_visibility="collapsed",
+                                 placeholder="解说词")
+        if new_desc.strip() != s["desc"] or new_narr.strip() != s["narration"]:
+            narr_changed = new_narr.strip() != s["narration"]
+            s["desc"], s["narration"] = new_desc.strip(), new_narr.strip()
+            st.session_state.shots = shots
+            st.session_state.pop("video", None)      # 内容变了，成片作废
+            if narr_changed:
+                st.session_state.pop("audios", None)  # 解说词变了，配音重生成
     if st.button("↻ 重新生成脚本", key="redo_script"):
         for k in ("shots", "images", "audios", "video", "seeds", "uploads", "audio_uploads"):
             st.session_state.pop(k, None)
@@ -1015,6 +1028,16 @@ with st.container(border=True):
         else:
             source = "AI 生成"
         if is_video:
+            src = st.session_state.get("kling_src", {}).get(str(i))
+            if src and Path(src).exists():
+                with cols[i].expander("🖼 定脸首帧（此视频由此图生成）"):
+                    st.image(src, use_container_width=True)
+                    if st.button("⏪ 回到定脸帧（视频保留在抽片历史）",
+                                 key=f"backstill_{i}", use_container_width=True):
+                        images[i] = src
+                        st.session_state.images = images
+                        st.session_state.pop("video", None)
+                        st.rerun()
             cols[i].video(p)
             cols[i].caption(f"镜头 {i+1} · {source}")
         else:
