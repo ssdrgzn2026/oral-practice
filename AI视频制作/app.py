@@ -681,7 +681,7 @@ def _parse_shots(text: str) -> list:
             photo = 0
         if desc and narration:
             shots.append({"desc": desc, "narration": narration, "seconds": seconds,
-                          "photo": photo})
+                          "photo": photo, "speaker": str(item.get("speaker") or "旁白")})
     return shots
 
 
@@ -725,11 +725,13 @@ def _parse_manual_shots(text: str) -> list:
             sec_str = parts[2] if len(parts) > 2 else ""
         if not narration:
             continue
+        speaker = parts[3] if len(parts) > 3 and parts[3] else "旁白"
         try:
             seconds = max(2.0, min(15.0, float(sec_str))) if sec_str else 5.0
         except ValueError:
             seconds = 5.0
-        shots.append({"desc": desc, "narration": narration, "seconds": seconds})
+        shots.append({"desc": desc, "narration": narration, "seconds": seconds,
+                      "speaker": speaker})
     return shots
 
 
@@ -768,9 +770,19 @@ def gen_image(desc: str, size: str, seed: int = 0) -> Path:
     raise RuntimeError(f"配图失败（已重试3次）：{last_err}")
 
 
-# ========== 第 5 步：TTS 配音 ==========
-def gen_audio(narration: str) -> Path:
-    key = _sha(f"tts|{TTS_VOICE}|{narration}")
+# ========== 第 5 步：TTS 配音（支持分角色音色） ==========
+# 预置音色（CosyVoice2 系统音色；配音步可为每个"说话人"指定）
+VOICE_PRESETS = ["alex", "anna", "bella", "benjamin", "charles", "claire", "david", "emily"]
+
+
+def _voice_full(short: str) -> str:
+    """alex -> FunAudioLLM/CosyVoice2-0.5B:alex；已是全名则原样返回"""
+    return short if ":" in short else f"{TTS_MODEL}:{short}"
+
+
+def gen_audio(narration: str, voice: str = None) -> Path:
+    voice = _voice_full(voice) if voice else TTS_VOICE
+    key = _sha(f"tts|{voice}|{narration}")
     out = AUD_DIR / f"{key}.mp3"
     if out.exists():
         return out
@@ -779,7 +791,7 @@ def gen_audio(narration: str) -> Path:
         try:
             r = requests.post(f"{BASE_URL}/audio/speech", headers=_api_headers(),
                               json={"model": TTS_MODEL, "input": narration,
-                                    "voice": TTS_VOICE, "response_format": "mp3"}, timeout=300)
+                                    "voice": voice, "response_format": "mp3"}, timeout=300)
             if r.status_code == 429:
                 raise RuntimeError("限流")
             r.raise_for_status()
@@ -849,6 +861,13 @@ def render_subtitle(img_path: Path, narration: str, size_wh, bar_h_ratio=0.12) -
     return out
 
 
+def _sub_text(shot: dict) -> str:
+    """字幕文本：非旁白镜头加说话人前缀，如「士兵：站住！」"""
+    n = (shot.get("narration") or "").strip()
+    sp = (shot.get("speaker") or "旁白").strip()
+    return f"{sp}：{n}" if n and sp not in ("", "旁白") else n
+
+
 def audio_duration(audio: Path) -> float:
     r = subprocess.run(
         ["ffprobe", "-v", "quiet", "-show_entries", "format=duration",
@@ -901,7 +920,7 @@ def compose_video(shots: list, images: list, audios: list, size_wh, work: Path,
         if str(img).lower().endswith(".mp4"):
             # 可灵动态片段：循环/截断到配音时长，字幕用 drawtext 烧制
             vf = f"scale={w}:{h},fps={fps}"
-            narration = (shots[i].get("narration") or "").strip()
+            narration = _sub_text(shots[i])
             if narration:
                 txt = work / f"sub{i}.txt"
                 txt.write_text(narration, encoding="utf-8")
@@ -1387,11 +1406,11 @@ with st.container(border=True):
     st.subheader("③ 分镜脚本")
     with st.expander("✍️ 直接录入分镜（跳过 AI 生成脚本）"):
         manual = st.text_area(
-            "每行一个镜头：画面描述 | 解说词 | 秒数（秒数可省，默认5）；"
+            "每行一个镜头：画面描述 | 解说词/台词 | 秒数 | 说话人（秒数、说话人可省，默认5秒+旁白）；"
             "行内没有 | 时整行作为解说词（画面描述自动取解说词）；也可直接粘贴分镜 JSON。"
             "「镜1：」「1.」等序号前缀会自动去掉",
             height=140, key="manual_shots_text",
-            placeholder="谢安站在淝水岸边，东晋铠甲，远眺远方 | 公元383年，淝水之战一触即发 | 5")
+            placeholder="谢安站在淝水岸边，东晋铠甲，远眺远方 | 公元383年，淝水之战一触即发 | 5 | 旁白")
         if st.button("✅ 使用这份分镜", key="use_manual_shots"):
             parsed = _parse_manual_shots(manual)
             if not parsed:
@@ -1426,8 +1445,9 @@ with st.container(border=True):
                     st.rerun()
                 st.stop()
     for i, s in enumerate(shots):
+        s.setdefault("speaker", "旁白")
         st.markdown(f"**镜头 {i+1}**（{s['seconds']}s）")
-        nc1, nc2 = st.columns([2, 1])
+        nc1, nc2, nc3 = st.columns([2, 1, 0.7])
         new_desc = nc1.text_area("画面描述", value=s["desc"], height=68,
                                  key=f"shot_desc_{i}", label_visibility="collapsed",
                                  placeholder="画面描述")
@@ -1444,12 +1464,15 @@ with st.container(border=True):
         nc1.selectbox("套提示词", ["套提示词…"] + list(load_templates().keys()),
                       key=f"desc_tpl_sel_{i}", on_change=_fill_desc,
                       label_visibility="collapsed")
-        new_narr = nc2.text_area("解说词", value=s["narration"], height=68,
+        new_narr = nc2.text_area("解说词/台词", value=s["narration"], height=68,
                                  key=f"shot_narr_{i}", label_visibility="collapsed",
-                                 placeholder="解说词")
-        if new_desc.strip() != s["desc"] or new_narr.strip() != s["narration"]:
-            narr_changed = new_narr.strip() != s["narration"]
+                                 placeholder="解说词或角色台词")
+        new_spk = nc3.text_input("说话人", value=s["speaker"], key=f"shot_spk_{i}",
+                                 placeholder="旁白")
+        if new_desc.strip() != s["desc"] or new_narr.strip() != s["narration"] or new_spk.strip() != s["speaker"]:
+            narr_changed = new_narr.strip() != s["narration"] or new_spk.strip() != s["speaker"]
             s["desc"], s["narration"] = new_desc.strip(), new_narr.strip()
+            s["speaker"] = new_spk.strip() or "旁白"
             st.session_state.shots = shots
             st.session_state.pop("video", None)      # 内容变了，成片作废
             if narr_changed:
@@ -1691,6 +1714,16 @@ with st.container(border=True):
 with st.container(border=True):
     st.subheader("⑤ 分镜配音（CosyVoice2 / 自定义音频）")
     audio_uploads = st.session_state.setdefault("audio_uploads", {})  # 镜头序号(str) -> 自定义音频路径
+    # 对话模式：给每个说话人分配音色
+    speakers = sorted({s.get("speaker", "旁白") for s in shots})
+    vmap = st.session_state.setdefault("voice_map", {})
+    if speakers != ["旁白"]:
+        with st.expander("🗣 角色音色分配（对话模式）", expanded=True):
+            vcols = st.columns(min(len(speakers), 4))
+            for j, sp in enumerate(speakers):
+                idx = 0 if sp == "旁白" else (j % len(VOICE_PRESETS))
+                vmap[sp] = vcols[j % 4].selectbox(sp, VOICE_PRESETS, index=idx,
+                                                  key=f"voice_{sp}")
     if audios is None:
         audios = []
         prog = st.progress(0.0, text="生成配音中…")
@@ -1702,7 +1735,8 @@ with st.container(border=True):
                 elif not s["narration"].strip():  # 占位镜头：用静音音频
                     audios.append(str(silent_audio(s["seconds"])))
                 else:
-                    audios.append(str(gen_audio(s["narration"])))
+                    audios.append(str(gen_audio(s["narration"],
+                                                voice=vmap.get(s.get("speaker")))))
             except Exception as e:  # noqa: BLE001
                 failed = f"镜头 {i+1} 配音失败：{e}"
                 break
@@ -1792,7 +1826,7 @@ with st.container(border=True):
         with st.spinner("正在渲染字幕并合成视频，请稍候…"):
             try:
                 sub_imgs = [Path(images[i]) if str(images[i]).lower().endswith(".mp4")
-                            else render_subtitle(Path(images[i]), shots[i]["narration"], size_wh)
+                            else render_subtitle(Path(images[i]), _sub_text(shots[i]), size_wh)
                             for i in range(n)]
                 work = OUT_DIR / ("work_" + _sha(st.session_state.get("topic", "") + str(time.time())))
                 st.session_state.video = str(
