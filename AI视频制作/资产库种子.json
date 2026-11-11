@@ -1,22 +1,57 @@
 {
   "templates": {
-    "【运镜】缓慢推近": {"cat": "motion", "text": "镜头缓慢推近（push in），主体逐渐清晰，背景虚化加深"},
-    "【运镜】拉远揭示": {"cat": "motion", "text": "镜头缓缓拉远（pull out），从主体揭示到完整场景全貌"},
-    "【运镜】环绕运镜": {"cat": "motion", "text": "镜头环绕主体半圈（arc shot），展现人物与环境关系"},
-    "【运镜】跟拍": {"cat": "motion", "text": "镜头跟随人物移动（tracking shot），保持主体在画面中央"},
-    "【运镜】升降运镜": {"cat": "motion", "text": "镜头从低角度缓缓升起（crane up），越过主体俯瞰场景"},
-    "【运镜】POV主观视角": {"cat": "motion", "text": "第一人称主观视角（POV），模拟人物眼睛所见"},
-    "【运镜】遮罩转场": {"cat": "motion", "text": "主体经过前景遮挡物时完成场景切换（wipe transition）"},
-    "【运镜】逆光剪影": {"cat": "motion", "text": "强逆光下人物呈剪影，轮廓光勾边，氛围感强"},
-    "【运镜】手持微晃": {"cat": "motion", "text": "轻微手持晃动的纪实感（handheld），紧张真实"},
-    "【动作】拔刀出鞘": {"cat": "action", "text": "手腕发力拔刀，刀身半出鞘，寒光一闪，气势凌厉"},
-    "【动作】挥拳直击": {"cat": "action", "text": "直拳快速挥出，拳风凌厉，对手后仰闪避"},
-    "【动作】转身回旋踢": {"cat": "action", "text": "身体旋转一周，回旋踢划出弧线，衣袂飞扬"},
-    "【动作】踉跄后退": {"cat": "action", "text": "人物踉跄后退数步，扶墙稳住，惊魂未定"},
-    "【动作】跪地俯伏": {"cat": "action", "text": "双膝跪地，上身俯伏，表示臣服或惊恐"},
-    "【动作】拔腿疾奔": {"cat": "action", "text": "人物拔腿飞奔，穿越街巷，行人纷纷避让"},
-    "【画面】古代街市全景": {"cat": "image", "text": "wide shot, bustling ancient Chinese Song dynasty street market at dusk, wooden buildings, red lanterns, crowd in hanfu, warm volumetric light, photorealistic live-action film still, 8k"},
-    "【画面】城门对峙": {"cat": "image", "text": "medium shot, at a tall ancient Chinese city gate at dusk, tense standoff, torchlight on stone walls, dramatic backlight, photorealistic live-action film still, 8k"},
-    "【画面】夜景灯火": {"cat": "image", "text": "wide shot, ancient Chinese city at night, thousands of lanterns glowing, mist, cinematic night lighting, photorealistic live-action film still, 8k"}
+    "【运镜】缓慢推近": {"cat": "motion", "text_en": "slow push-in shot, subject gradually becomes clear, shallow depth of field", "text_zh": "镜头缓慢推近，主体逐渐清晰，背景虚化加深"},
+    "【运镜】拉远揭示": {"cat": "motion", "text_en": "slow pull-out shot, revealing the full scene from the subject", "text_zh": "镜头缓缓拉远，从主体揭示到完整场景全貌"},
+    "【运镜】环绕运镜": {"cat": "motion", "text_en": "arc shot circling around the subject, showing character and environment", "text_zh": "镜头环绕主体半圈，展现人物与环境关系"},
+    "【运镜】跟拍": {"cat": "motion", "text_en": "tracking shot following the character, subject stays centered", "text_zh": "镜头跟随人物移动，保持主体在画面中央"},
+    "【运镜】升降运镜": {"cat": "motion", "text_en": "crane shot rising from low angle, overlooking the scene above the subject", "text_zh": "镜头从低角度缓缓升起，越过主体俯瞰场景"},
+    "【运镜】POV主观视角": {"cat": "motion", "text_en": "first-person POV shot, seeing through the character's eyes", "text_zh": "第一人称主观视角，模拟人物眼睛所见"},
+    "【运镜】遮罩转场": {"cat": "motion", "text_en": "wipe transition as the subject passes a foreground obstruction", "text_zh": "主体经过前景遮挡物时完成场景切换"},
+    "【运镜】逆光剪影": {"cat": "motion", "text_en": "strong backlight, character in silhouette with rim light", "text_zh": "强逆光下人物呈剪影，轮廓光勾边，氛围感强"},
+    "【运镜】手持微晃": {"cat": "motion", "text_en": "slight handheld shake, documentary realism, tense atmosphere", "text_zh": "轻微手持晃动的纪实感，紧张真实"},
+    "【运镜】俯冲下降": {"cat": "motion", "text_en": "camera swoops down from high above toward the subject", "text_zh": "镜头从高空俯冲下降逼近主体"},
+    "【运镜】低角度仰拍": {"cat": "motion", "text_en": "low angle shot looking up at the character, heroic presence", "text_zh": "低角度仰拍人物，气场强大"},
+    "【运镜】快速甩镜": {"cat": "motion", "text_en": "fast whip pan between two subjects, energetic transition", "text_zh": "快速甩镜切换两个主体，节奏感强"},
+    "【动作】拔刀出鞘": {"cat": "action", "text_en": "hand drawing a sword, blade half unsheathed, cold gleam", "text_zh": "手腕发力拔刀，刀身半出鞘，寒光一闪"},
+    "【动作】直拳直击": {"cat": "action", "text_en": "fast straight punch, opponent leaning back to dodge", "text_zh": "直拳快速挥出，对手后仰闪避"},
+    "【动作】摆拳横扫": {"cat": "action", "text_en": "wide hook punch sweeping across, full body rotation", "text_zh": "摆拳横扫，全身发力旋转"},
+    "【动作】勾拳上挑": {"cat": "action", "text_en": "uppercut rising from below, chin-level strike", "text_zh": "勾拳自下而上挑击"},
+    "【动作】肘击近身": {"cat": "action", "text_en": "close-range elbow strike, brutal and compact", "text_zh": "近身肘击，短促狠辣"},
+    "【动作】膝击顶撞": {"cat": "action", "text_en": "knee strike driving upward into the opponent", "text_zh": "提膝向上顶撞对手"},
+    "【动作】正蹬踢": {"cat": "action", "text_en": "front kick pushing the opponent backward", "text_zh": "正蹬一脚将对手踹退"},
+    "【动作】回旋踢": {"cat": "action", "text_en": "spinning roundhouse kick, robe flying in an arc", "text_zh": "身体旋转一周，回旋踢划出弧线，衣袂飞扬"},
+    "【动作】格挡防守": {"cat": "action", "text_en": "forearms raised blocking an incoming strike, dust shaking off", "text_zh": "双臂交叉格挡来拳，震得尘土飞扬"},
+    "【动作】侧闪回避": {"cat": "action", "text_en": "sidestep dodge, attack missing by inches", "text_zh": "侧身闪避，攻击擦身而过"},
+    "【动作】踉跄后退": {"cat": "action", "text_en": "staggering backward, catching balance against a wall", "text_zh": "踉跄后退数步，扶墙稳住，惊魂未定"},
+    "【动作】倒地翻滚": {"cat": "action", "text_en": "falling to the ground and rolling away to recover", "text_zh": "倒地顺势翻滚卸力，迅速起身"},
+    "【动作】跪地俯伏": {"cat": "action", "text_en": "kneeling down, upper body prostrating in fear or submission", "text_zh": "双膝跪地，上身俯伏，表示臣服或惊恐"},
+    "【动作】拔腿疾奔": {"cat": "action", "text_en": "sprinting through the street, pedestrians dodging", "text_zh": "拔腿飞奔穿越街巷，行人纷纷避让"},
+    "【动作】突进冲刺": {"cat": "action", "text_en": "explosive forward dash, closing distance instantly", "text_zh": "突然爆发前冲，瞬间拉近与对手距离"},
+    "【画面】古代街市全景": {"cat": "image", "text_en": "wide shot, bustling ancient Chinese Song dynasty street market at dusk, wooden buildings, red lanterns, crowd in hanfu, warm volumetric light, photorealistic live-action film still, 8k", "text_zh": "古代街市全景，黄昏，木质楼阁，红灯笼，汉服人群，暖光"},
+    "【画面】城门对峙": {"cat": "image", "text_en": "medium shot, at a tall ancient Chinese city gate at dusk, tense standoff, torchlight on stone walls, dramatic backlight, photorealistic live-action film still, 8k", "text_zh": "城门下紧张对峙，火把照亮城墙，黄昏逆光"},
+    "【画面】夜景灯火": {"cat": "image", "text_en": "wide shot, ancient Chinese city at night, thousands of lanterns glowing, mist, cinematic night lighting, photorealistic live-action film still, 8k", "text_zh": "古城夜景，万家灯火，薄雾，电影感"},
+    "【画面】单脸对峙构图": {"cat": "image", "text_en": "close-up, the protagonist facing camera, only his face visible in the frame, opponents entering the frame from the sides but faces hidden in shadow, tense standoff, photorealistic live-action film still, 8k", "text_zh": "主角近景面对镜头，对手只从画面两侧入镜不露脸，防止换脸错误"}
+  },
+  "assets": {
+    "scenes": {
+      "汴京街市": {"desc_en": "bustling Song dynasty street market, wooden buildings, red lanterns, crowd in hanfu, dusk warm light"},
+      "汴京夜市": {"desc_en": "Song dynasty night market, thousands of glowing lanterns hanging above the street, crowd, warm light"},
+      "城门楼": {"desc_en": "tall ancient Chinese city gate, stone walls, torches, soldiers on guard, dusk"},
+      "城墙之上": {"desc_en": "on top of the ancient city wall at night, overlooking thousands of lanterns below"},
+      "客栈内景": {"desc_en": "ancient Chinese inn interior, wooden tables, oil lamps, travelers dining"}
+    },
+    "extras": {
+      "市井老者": {"desc_en": "an elderly Song dynasty townsman, weathered face, grey beard, plain hanfu"},
+      "商贩妇人": {"desc_en": "a middle-aged market vendor woman, Song dynasty commoner dress, headscarf"},
+      "年轻书生": {"desc_en": "a young Song dynasty scholar, plain robe, holding a book scroll"},
+      "挑担脚夫": {"desc_en": "a laborer carrying a shoulder pole with baskets, coarse linen clothes"},
+      "孩童": {"desc_en": "a Song dynasty street kid, curious eyes, patched clothes"}
+    },
+    "props": {
+      "战术手电筒": {"desc_en": "a black modern tactical flashlight, rugged metal body, glowing white lens"},
+      "迷彩登山背包": {"desc_en": "a camo hiking backpack, modern outdoor gear, multiple straps and buckles"},
+      "折扇": {"desc_en": "a Chinese folding fan, white paper surface with ink painting, bamboo ribs"},
+      "宋代长矛": {"desc_en": "a Song dynasty long spear, wooden shaft, iron tip"}
+    }
   }
 }

@@ -113,6 +113,13 @@ if USER_PHONE:
         _legacy_tpl = CACHE_DIR / "prompt_templates.json"
         if _legacy_tpl.exists() and not TPL_FILE.exists():
             TPL_FILE.write_text(_legacy_tpl.read_text(encoding="utf-8"), encoding="utf-8")
+        # 旧全局项目（如持械入宋）迁入个人项目空间
+        import shutil as _shutil
+        _legacy_proj = CACHE_DIR / "projects"
+        if _legacy_proj.exists():
+            for _pd in _legacy_proj.iterdir():
+                if _pd.is_dir() and not (PROJ_DIR / _pd.name).exists():
+                    _shutil.copytree(_pd, PROJ_DIR / _pd.name)
     except Exception:  # noqa: BLE001
         pass
     st.caption(f"👤 {USER_PHONE}　·　[退出登录](/logout)")
@@ -280,12 +287,13 @@ def save_character(name: str, desc_en: str, images: list, public: bool = False):
     target_file.write_text(json.dumps(chars, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def delete_character(name: str):
-    """删除个人库角色（公共角色不可删）"""
+def delete_character(name: str, public: bool = False):
+    """删除角色：public=True 删公共库（仅管理员调用），否则删个人库"""
+    f = (SHARED_DIR / "characters.json") if public else CHAR_FILE
     try:
-        chars = json.loads(CHAR_FILE.read_text(encoding="utf-8"))
+        chars = json.loads(f.read_text(encoding="utf-8"))
         chars.pop(name, None)
-        CHAR_FILE.write_text(json.dumps(chars, ensure_ascii=False, indent=2), encoding="utf-8")
+        f.write_text(json.dumps(chars, ensure_ascii=False, indent=2), encoding="utf-8")
     except Exception:  # noqa: BLE001
         pass
 
@@ -328,39 +336,59 @@ TPL_CATS = {"image": "画面", "motion": "运镜", "action": "动作"}
 SEED_TPL_FILE = MODULE_DIR / "资产库种子.json"
 
 
+def _norm_tpl(v) -> dict:
+    """统一模板格式：{text_en, text_zh, cat}，兼容旧版 text 字段/纯文本"""
+    if isinstance(v, str):
+        return {"text_en": v, "text_zh": "", "cat": "image"}
+    return {"text_en": v.get("text_en") or v.get("text", ""),
+            "text_zh": v.get("text_zh", ""),
+            "cat": v.get("cat", "image")}
+
+
 def load_templates() -> dict:
-    """{名字: {"text": 内容, "cat": image/motion/action}}，兼容旧版纯文本格式"""
-    raw = {}
+    """合并三级提示词：公共种子 < 公共库(管理员) < 个人库；{name: {text_en,text_zh,cat,public,seed}}"""
+    tpls = {}
     try:
-        raw = json.loads(TPL_FILE.read_text(encoding="utf-8"))
+        for n, v in json.loads(SEED_TPL_FILE.read_text(encoding="utf-8")).get("templates", {}).items():
+            t = _norm_tpl(v)
+            t["seed"] = True
+            tpls[n] = t
     except Exception:  # noqa: BLE001
         pass
-    tpls = {}
-    for name, v in raw.items():
-        if isinstance(v, str):
-            tpls[name] = {"text": v, "cat": "image"}
-        else:
-            tpls[name] = v
-    # 合并公共种子（用户已有的同名条目优先）
     try:
-        seeds = json.loads(SEED_TPL_FILE.read_text(encoding="utf-8"))
-        for name, v in seeds.get("templates", {}).items():
-            tpls.setdefault(name, v)
+        for n, v in json.loads((SHARED_DIR / "prompt_templates.json").read_text(encoding="utf-8")).items():
+            t = _norm_tpl(v)
+            t["public"] = True
+            tpls[n] = t
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        for n, v in json.loads(TPL_FILE.read_text(encoding="utf-8")).items():
+            tpls[n] = _norm_tpl(v)  # 个人库覆盖同名
     except Exception:  # noqa: BLE001
         pass
     return tpls
 
 
-def save_template(name: str, text: str, cat: str = "image"):
-    tpls = load_templates()
-    tpls[name.strip()] = {"text": text.strip(), "cat": cat}
-    TPL_FILE.write_text(json.dumps(tpls, ensure_ascii=False, indent=2), encoding="utf-8")
+def save_template(name: str, text_en: str, text_zh: str = "", cat: str = "image",
+                  public: bool = False):
+    f = (SHARED_DIR / "prompt_templates.json") if public else TPL_FILE
+    try:
+        raw = json.loads(f.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        raw = {}
+    raw[name.strip()] = {"text_en": text_en.strip(), "text_zh": text_zh.strip(), "cat": cat}
+    f.write_text(json.dumps(raw, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def delete_template(name: str):
-    tpls = load_templates()
-    tpls.pop(name, None)
-    TPL_FILE.write_text(json.dumps(tpls, ensure_ascii=False, indent=2), encoding="utf-8")
+def delete_template(name: str, public: bool = False):
+    f = (SHARED_DIR / "prompt_templates.json") if public else TPL_FILE
+    try:
+        raw = json.loads(f.read_text(encoding="utf-8"))
+        raw.pop(name, None)
+        f.write_text(json.dumps(raw, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:  # noqa: BLE001
+        pass
 
 
 
@@ -933,11 +961,14 @@ def _asset_store(kind: str) -> dict:
         return {}
 
 
-def _asset_save(kind: str, name: str, desc_en: str, img_bytes: bytes):
-    face = CHAR_DIR / f"{kind}_{_sha(name)}.png"
-    face.write_bytes(img_bytes)
+def _asset_save(kind: str, name: str, desc_en: str, img_bytes: bytes = None):
+    face = ""
+    if img_bytes:
+        face_path = CHAR_DIR / f"{kind}_{_sha(name)}.png"
+        face_path.write_bytes(img_bytes)
+        face = str(face_path)
     items = _asset_store(kind)
-    items[name] = {"desc_en": desc_en, "face": str(face)}
+    items[name] = {"desc_en": desc_en, "face": face}
     _asset_file(kind).write_text(json.dumps(items, ensure_ascii=False, indent=2),
                                  encoding="utf-8")
 
@@ -949,30 +980,56 @@ def _asset_delete(kind: str, name: str):
                                  encoding="utf-8")
 
 
+def _seed_assets(kind: str) -> dict:
+    """种子资产（公共只读）：来自 资产库种子.json 的 assets 区"""
+    try:
+        seeds = json.loads(SEED_TPL_FILE.read_text(encoding="utf-8")).get("assets", {})
+        out = {}
+        for n, v in seeds.get(kind, {}).items():
+            if isinstance(v, str):
+                v = {"desc_en": v}
+            v["seed"] = True
+            out[n] = v
+        return out
+    except Exception:  # noqa: BLE001
+        return {}
+
+
 def _asset_tab(kind: str, title: str, desc_ph: str):
-    items = _asset_store(kind)
+    items = _seed_assets(kind) | _asset_store(kind)  # 用户同名覆盖种子
     with st.popover(f"➕ 新建{title}"):
         n = st.text_input(f"{title}名", key=f"{kind}_new_name")
         d = st.text_area("英文描述", key=f"{kind}_new_desc", placeholder=desc_ph, height=90)
-        f = st.file_uploader("定妆图/参考图", type=["png", "jpg", "jpeg"],
+        f = st.file_uploader("定妆图/参考图（可选，可后补）", type=["png", "jpg", "jpeg"],
                              key=f"{kind}_new_face")
         if st.button("保存入库", key=f"{kind}_save", use_container_width=True):
-            if n.strip() and d.strip() and f is not None:
-                _asset_save(kind, n.strip(), d.strip(), f.getvalue())
+            if n.strip() and d.strip():
+                _asset_save(kind, n.strip(), d.strip(),
+                            f.getvalue() if f is not None else None)
                 st.success(f"「{n}」已入库")
                 st.rerun()
             else:
-                st.error("名称、描述、图片都要填")
+                st.error("名称和描述要填")
     if not items:
         st.info(f"暂无{title}，点上方按钮新建")
         return
-    cols = st.columns(min(len(items), 6))
+    cols = st.columns(8)  # 小图平铺
     for j, (name, info) in enumerate(items.items()):
-        cols[j % 6].image(info["face"], caption=name, use_container_width=True)
-        cols[j % 6].caption(info["desc_en"][:40] + ("…" if len(info["desc_en"]) > 40 else ""))
-        if cols[j % 6].button("🗑 删除", key=f"{kind}_del_{j}", use_container_width=True):
-            _asset_delete(kind, name)
-            st.rerun()
+        c = cols[j % 8]
+        face = info.get("face") or ""
+        if face and Path(face).exists():
+            c.image(face, use_container_width=True)
+        else:
+            c.markdown("🖼️")
+        c.caption(name)
+        with c.popover("🔍"):
+            if face and Path(face).exists():
+                st.image(face, caption=name)
+            st.caption(info.get("desc_en", ""))
+        if not info.get("seed"):
+            if c.button("🗑", key=f"{kind}_del_{j}", use_container_width=True):
+                _asset_delete(kind, name)
+                st.rerun()
 
 
 def render_assets():
@@ -1006,16 +1063,26 @@ def render_assets():
         if not chars:
             st.info("暂无角色，点上方按钮新建")
         else:
-            cols = st.columns(min(len(chars), 6))
+            cols = st.columns(8)
+            is_admin = USER_PHONE and USER_PHONE in ADMIN_PHONES
             for j, (name, info) in enumerate(chars.items()):
-                badge = "🏛公共" if info.get("public") else "👤我的"
-                n_faces = len(info.get("faces") or [info.get("face")])
-                cols[j % 6].image(info.get("face"), caption=f"{name} · {badge} · {n_faces}图",
-                                  use_container_width=True)
-                cols[j % 6].caption(info["desc_en"][:40] + ("…" if len(info["desc_en"]) > 40 else ""))
-                if not info.get("public") and cols[j % 6].button("🗑 删除", key=f"char_del_{j}",
-                                                                  use_container_width=True):
-                    delete_character(name)
+                c = cols[j % 8]
+                badge = "🏛" if info.get("public") else "👤"
+                n_faces = len(info.get("faces") or ([info.get("face")] if info.get("face") else []))
+                face = info.get("face") or ""
+                if face and Path(face).exists():
+                    c.image(face, use_container_width=True)
+                else:
+                    c.markdown("🖼️")
+                c.caption(f"{name}{badge}·{n_faces}图")
+                with c.popover("🔍"):
+                    for fp in (info.get("faces") or [face]):
+                        if fp and Path(fp).exists():
+                            st.image(fp, use_container_width=True)
+                    st.caption(info.get("desc_en", ""))
+                can_del = not info.get("public") or is_admin
+                if can_del and c.button("🗑", key=f"char_del_{j}", use_container_width=True):
+                    delete_character(name, public=info.get("public", False))
                     st.rerun()
     with t2:
         _asset_tab("scenes", "场景", "ancient Chinese city gate at dusk, stone walls, torches")
@@ -1026,36 +1093,41 @@ def render_assets():
 
 
 def render_prompts():
-    """📝 提示词库页：画面/运镜/动作三类"""
+    """📝 提示词库页：画面/运镜/动作三类，中英双文，公共/个人"""
     st.subheader("📝 提示词库")
-    st.caption("好句式存下来，制作页一键套用。画面类用于锁脸/配图，运镜/动作类用于可灵动态片段")
+    st.caption("英文用于锁脸/配图，中文用于可灵动态片段。🏛公共=全站共享（管理员维护），👤我的=个人库")
     tpls = load_templates()
-    seed_names = set()
-    try:
-        seed_names = set(json.loads(SEED_TPL_FILE.read_text(encoding="utf-8"))["templates"].keys())
-    except Exception:  # noqa: BLE001
-        pass
+    is_admin = USER_PHONE and USER_PHONE in ADMIN_PHONES
     tabs = st.tabs([f"{label}（{sum(1 for v in tpls.values() if v['cat'] == k)}）"
                     for k, label in TPL_CATS.items()])
     for tab, (k, label) in zip(tabs, TPL_CATS.items()):
         with tab:
-            items = [(n, v["text"]) for n, v in tpls.items() if v["cat"] == k]
-            for n, t in items:
+            items = [(n, v) for n, v in tpls.items() if v["cat"] == k]
+            for n, v in items:
+                badge = "🌱种子" if v.get("seed") else ("🏛公共" if v.get("public") else "👤我的")
                 c1, c2 = st.columns([6, 1])
-                c1.markdown(f"**{n}**")
-                c1.caption(t)
-                if n not in seed_names and c2.button("🗑 删除", key=f"tpld_{k}_{n}"):
-                    delete_template(n)
+                c1.markdown(f"**{n}**　`{badge}`")
+                if v["text_en"]:
+                    c1.caption(f"EN：{v['text_en']}")
+                if v["text_zh"]:
+                    c1.caption(f"中：{v['text_zh']}")
+                can_del = (not v.get("seed")) and (not v.get("public") or is_admin)
+                if can_del and c2.button("🗑 删除", key=f"tpld_{k}_{n}"):
+                    delete_template(n, public=v.get("public", False))
                     st.rerun()
             if not items:
                 st.info("暂无内容")
             st.divider()
             n1 = st.text_input("名称", key=f"tpln_{k}", placeholder="如：逆光剪影")
-            t1 = st.text_area("内容", key=f"tplt_{k}", height=80)
+            t_en = st.text_area("英文提示词（锁脸/配图用）", key=f"tplen_{k}", height=68)
+            t_zh = st.text_area("中文提示词（可灵动态用，可空）", key=f"tplzh_{k}", height=68)
+            to_public = False
+            if is_admin:
+                to_public = st.checkbox("存为公共库（所有人可用）", key=f"tplpub_{k}")
             if st.button(f"💾 存入{label}库", key=f"tpls_{k}", use_container_width=True):
-                if n1.strip() and t1.strip():
-                    save_template(n1, t1, k)
-                    st.success("已保存")
+                if n1.strip() and (t_en.strip() or t_zh.strip()):
+                    save_template(n1, t_en, t_zh, k, public=to_public)
+                    st.success("已保存" + ("（公共库）" if to_public else ""))
                     st.rerun()
 
 
@@ -1452,8 +1524,8 @@ with st.container(border=True):
                                                key=f"pen_{i}", height=68,
                                                label_visibility="collapsed",
                                                placeholder="英文提示词")
-                img_tpls = {n: v["text"] for n, v in load_templates().items()
-                            if v["cat"] == "image"}
+                img_tpls = {n: v["text_en"] for n, v in load_templates().items()
+                            if v["cat"] == "image" and v["text_en"]}
                 if img_tpls:
                     with cols[i].popover("📋 套模板", use_container_width=True):
                         for tname, ttext in img_tpls.items():
