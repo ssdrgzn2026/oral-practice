@@ -781,7 +781,13 @@ def gen_image(desc: str, size: str, seed: int = 0) -> Path:
 
 # ========== 第 5 步：TTS 配音（支持分角色音色） ==========
 # 预置音色（CosyVoice2 系统音色；配音步可为每个"说话人"指定）
-VOICE_PRESETS = ["alex", "anna", "bella", "benjamin", "charles", "claire", "david", "emily"]
+VOICE_PRESETS = ["alex(男)", "benjamin(男)", "charles(男)", "david(男)",
+                 "anna(女)", "bella(女)", "claire(女)", "emily(女)"]
+
+
+def _voice_short(label: str) -> str:
+    """"alex(男)" -> "alex"；已是短名则原样返回"""
+    return label.split("(")[0] if "(" in label else label
 
 
 def _voice_full(short: str) -> str:
@@ -1748,7 +1754,7 @@ with st.container(border=True):
                     audios.append(str(silent_audio(s["seconds"])))
                 else:
                     audios.append(str(gen_audio(s["narration"],
-                                                voice=vmap.get(s.get("speaker")))))
+                                                voice=_voice_short(vmap.get(s.get("speaker"), "")) or None)))
             except Exception as e:  # noqa: BLE001
                 failed = f"镜头 {i+1} 配音失败：{e}"
                 break
