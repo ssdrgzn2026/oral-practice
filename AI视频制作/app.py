@@ -65,6 +65,35 @@ st.title("🎬 AI 视频制作 · 图文视频合成器")
 st.caption("主题 → 口播文案 → 分镜脚本 → AI 配图 → AI 配音 → 自动合成视频。所有中间产物已缓存，重跑不重复消耗额度。")
 st.markdown("<img src='/api/pv?p=video' style='display:none' alt=''>", unsafe_allow_html=True)
 
+# ========== 登录与用户空间（nginx 传入 X-User-Phone；未开启时一切照旧） ==========
+LOGIN_REQUIRED = os.environ.get("VIDEO_LOGIN_REQUIRED", "0") == "1"
+ADMIN_PHONES = {p.strip() for p in os.environ.get("ADMIN_PHONES", "").split(",") if p.strip()}
+
+
+def _user_phone() -> str:
+    try:
+        return st.context.headers.get("X-User-Phone", "").strip()
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+USER_PHONE = _user_phone()
+if LOGIN_REQUIRED and not USER_PHONE:
+    st.warning("🔒 生成功能需要登录。请先到门户登录后再回来。")
+    st.markdown("[→ 去登录](/login?next=/video/)")
+    st.stop()
+
+# 用户空间：登录后角色库/提示词库/项目按手机号隔离；未登录走 _anon 公共目录
+USER_DIR = CACHE_DIR / "users" / (USER_PHONE or "_anon")
+CHAR_DIR = USER_DIR / "characters"
+CHAR_DIR.mkdir(parents=True, exist_ok=True)
+CHAR_FILE = CHAR_DIR / "characters.json"
+TPL_FILE = USER_DIR / "prompt_templates.json"
+PROJ_DIR = USER_DIR / "projects"
+PROJ_DIR.mkdir(parents=True, exist_ok=True)
+if USER_PHONE:
+    st.caption(f"👤 {USER_PHONE}　·　[退出登录](/logout)")
+
 
 def _sha(text: str) -> str:
     return hashlib.sha1(text.encode("utf-8")).hexdigest()[:16]
@@ -93,6 +122,8 @@ def _client_ip() -> str:
 
 
 def is_kling_admin() -> bool:
+    if USER_PHONE and USER_PHONE in ADMIN_PHONES:
+        return True
     return _client_ip() in KLING_ADMIN_IPS
 
 
@@ -168,13 +199,14 @@ def gen_kling_video(desc: str, size_wh, image_path: str = None, salt: str = "") 
 # ========== ComfyUI（PuLID 锁脸配图，可选；默认关，隧道连通即用） ==========
 COMFY_BASE = os.environ.get("COMFYUI_BASE", "http://127.0.0.1:6006").rstrip("/")
 COMFY_DIR = CACHE_DIR / "comfy"          # ComfyUI 生成的锁脸图缓存
-CHAR_DIR = CACHE_DIR / "characters"      # 角色库
 COMFY_WF_FILE = MODULE_DIR / "pulid_workflow.json"  # PuLID_simple 导出的 API 格式工作流
 COMFY_DIR.mkdir(parents=True, exist_ok=True)
+# 角色库/提示词库/项目目录：登录后指向用户空间（见上方登录区块），未登录走共享目录
+CHAR_DIR = globals().get("CHAR_DIR", CACHE_DIR / "characters")
 CHAR_DIR.mkdir(parents=True, exist_ok=True)
 CHAR_FILE = CHAR_DIR / "characters.json"
-TPL_FILE = CACHE_DIR / "prompt_templates.json"   # 提示词模板库
-PROJ_DIR = CACHE_DIR / "projects"                # 项目存档（一集一个）
+TPL_FILE = globals().get("TPL_FILE", CACHE_DIR / "prompt_templates.json")
+PROJ_DIR = globals().get("PROJ_DIR", CACHE_DIR / "projects")
 PROJ_DIR.mkdir(parents=True, exist_ok=True)
 # PuLID 工作流节点编号（来自 pulid_workflow.json）
 _WF_PROMPT, _WF_NEG, _WF_IMG, _WF_SEED, _WF_SIZE = "22", "23", "12", "3", "5"
@@ -240,17 +272,43 @@ def autosave():
         save_project(name)
 
 
-# ========== 提示词模板库 ==========
+# ========== 提示词模板库（分三类：画面/运镜/动作；公共种子+个人新增） ==========
+TPL_CATS = {"image": "画面", "motion": "运镜", "action": "动作"}
+SEED_TPL_FILE = MODULE_DIR / "资产库种子.json"
+
+
 def load_templates() -> dict:
+    """{名字: {"text": 内容, "cat": image/motion/action}}，兼容旧版纯文本格式"""
+    raw = {}
     try:
-        return json.loads(TPL_FILE.read_text(encoding="utf-8"))
+        raw = json.loads(TPL_FILE.read_text(encoding="utf-8"))
     except Exception:  # noqa: BLE001
-        return {}
+        pass
+    tpls = {}
+    for name, v in raw.items():
+        if isinstance(v, str):
+            tpls[name] = {"text": v, "cat": "image"}
+        else:
+            tpls[name] = v
+    # 合并公共种子（用户已有的同名条目优先）
+    try:
+        seeds = json.loads(SEED_TPL_FILE.read_text(encoding="utf-8"))
+        for name, v in seeds.get("templates", {}).items():
+            tpls.setdefault(name, v)
+    except Exception:  # noqa: BLE001
+        pass
+    return tpls
 
 
-def save_template(name: str, text: str):
+def save_template(name: str, text: str, cat: str = "image"):
     tpls = load_templates()
-    tpls[name.strip()] = text.strip()
+    tpls[name.strip()] = {"text": text.strip(), "cat": cat}
+    TPL_FILE.write_text(json.dumps(tpls, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def delete_template(name: str):
+    tpls = load_templates()
+    tpls.pop(name, None)
     TPL_FILE.write_text(json.dumps(tpls, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
@@ -807,19 +865,129 @@ def render_works():
                 st.rerun()
 
 
-# ========== 页面导航：制作 / 我的作品 ==========
-nav1, nav2, _ = st.columns([1, 1, 4])
+# ========== 通用资产存取（角色/场景/群演/道具共用一套结构） ==========
+def _asset_file(kind: str) -> Path:
+    return CHAR_DIR / f"{kind}.json"
+
+
+def _asset_store(kind: str) -> dict:
+    try:
+        return json.loads(_asset_file(kind).read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def _asset_save(kind: str, name: str, desc_en: str, img_bytes: bytes):
+    face = CHAR_DIR / f"{kind}_{_sha(name)}.png"
+    face.write_bytes(img_bytes)
+    items = _asset_store(kind)
+    items[name] = {"desc_en": desc_en, "face": str(face)}
+    _asset_file(kind).write_text(json.dumps(items, ensure_ascii=False, indent=2),
+                                 encoding="utf-8")
+
+
+def _asset_delete(kind: str, name: str):
+    items = _asset_store(kind)
+    items.pop(name, None)
+    _asset_file(kind).write_text(json.dumps(items, ensure_ascii=False, indent=2),
+                                 encoding="utf-8")
+
+
+def _asset_tab(kind: str, title: str, desc_ph: str):
+    items = _asset_store(kind)
+    with st.popover(f"➕ 新建{title}"):
+        n = st.text_input(f"{title}名", key=f"{kind}_new_name")
+        d = st.text_area("英文描述", key=f"{kind}_new_desc", placeholder=desc_ph, height=90)
+        f = st.file_uploader("定妆图/参考图", type=["png", "jpg", "jpeg"],
+                             key=f"{kind}_new_face")
+        if st.button("保存入库", key=f"{kind}_save", use_container_width=True):
+            if n.strip() and d.strip() and f is not None:
+                _asset_save(kind, n.strip(), d.strip(), f.getvalue())
+                st.success(f"「{n}」已入库")
+                st.rerun()
+            else:
+                st.error("名称、描述、图片都要填")
+    if not items:
+        st.info(f"暂无{title}，点上方按钮新建")
+        return
+    cols = st.columns(min(len(items), 6))
+    for j, (name, info) in enumerate(items.items()):
+        cols[j % 6].image(info["face"], caption=name, use_container_width=True)
+        cols[j % 6].caption(info["desc_en"][:40] + ("…" if len(info["desc_en"]) > 40 else ""))
+        if cols[j % 6].button("🗑 删除", key=f"{kind}_del_{j}", use_container_width=True):
+            _asset_delete(kind, name)
+            st.rerun()
+
+
+def render_assets():
+    """🎭 资产库页：角色卡/场景库/群演库/道具库"""
+    st.subheader("🎭 资产库")
+    st.caption("角色、场景、群演、道具——建在这里，制作页直接调用")
+    t1, t2, t3, t4 = st.tabs(["👤 角色卡", "🏯 场景库", "👥 群演库", "🗡 道具库"])
+    with t1:
+        st.caption("🟢 ComfyUI 在线" if comfy_online() else "⚪ ComfyUI 离线（锁脸生成不可用）")
+        _asset_tab("characters", "角色",
+                   "a 25 years old Chinese young man, short black hair, dark grey outdoor jacket, camo backpack")
+    with t2:
+        _asset_tab("scenes", "场景", "ancient Chinese city gate at dusk, stone walls, torches")
+    with t3:
+        _asset_tab("extras", "群演面孔", "an ordinary Song dynasty townsfolk face, weathered, hanfu")
+    with t4:
+        _asset_tab("props", "道具", "a black modern tactical flashlight, rugged, metal body")
+
+
+def render_prompts():
+    """📝 提示词库页：画面/运镜/动作三类"""
+    st.subheader("📝 提示词库")
+    st.caption("好句式存下来，制作页一键套用。画面类用于锁脸/配图，运镜/动作类用于可灵动态片段")
+    tpls = load_templates()
+    seed_names = set()
+    try:
+        seed_names = set(json.loads(SEED_TPL_FILE.read_text(encoding="utf-8"))["templates"].keys())
+    except Exception:  # noqa: BLE001
+        pass
+    tabs = st.tabs([f"{label}（{sum(1 for v in tpls.values() if v['cat'] == k)}）"
+                    for k, label in TPL_CATS.items()])
+    for tab, (k, label) in zip(tabs, TPL_CATS.items()):
+        with tab:
+            items = [(n, v["text"]) for n, v in tpls.items() if v["cat"] == k]
+            for n, t in items:
+                c1, c2 = st.columns([6, 1])
+                c1.markdown(f"**{n}**")
+                c1.caption(t)
+                if n not in seed_names and c2.button("🗑 删除", key=f"tpld_{k}_{n}"):
+                    delete_template(n)
+                    st.rerun()
+            if not items:
+                st.info("暂无内容")
+            st.divider()
+            n1 = st.text_input("名称", key=f"tpln_{k}", placeholder="如：逆光剪影")
+            t1 = st.text_area("内容", key=f"tplt_{k}", height=80)
+            if st.button(f"💾 存入{label}库", key=f"tpls_{k}", use_container_width=True):
+                if n1.strip() and t1.strip():
+                    save_template(n1, t1, k)
+                    st.success("已保存")
+                    st.rerun()
+
+
+# ========== 页面导航：制作 / 资产库 / 提示词库 / 我的作品 ==========
+NAV = [("make", "🎬 视频制作"), ("assets", "🎭 资产库"),
+       ("prompts", "📝 提示词库"), ("works", "📁 我的作品")]
+nav_cols = st.columns(len(NAV))
 page = st.session_state.get("page", "make")
-if nav1.button("🎬 视频制作", use_container_width=True,
-               type="primary" if page == "make" else "secondary"):
-    st.session_state.page = "make"
-    st.rerun()
-if nav2.button("📁 我的作品", use_container_width=True,
-               type="primary" if page == "works" else "secondary"):
-    st.session_state.page = "works"
-    st.rerun()
+for col, (pid, label) in zip(nav_cols, NAV):
+    if col.button(label, use_container_width=True,
+                  type="primary" if page == pid else "secondary"):
+        st.session_state.page = pid
+        st.rerun()
 if page == "works":
     render_works()
+    st.stop()
+if page == "assets":
+    render_assets()
+    st.stop()
+if page == "prompts":
+    render_prompts()
     st.stop()
 
 # ========== 第 1 步：输入主题 ==========
@@ -1024,56 +1192,16 @@ with st.container(border=True):
     st.subheader("④ 分镜配图（Kolors · ComfyUI 锁脸）")
     uploads = st.session_state.setdefault("uploads", {})  # 镜头序号(str) -> 自定义图片路径
 
-    # ---- 角色库 + 锁脸配图（ComfyUI PuLID，可选）----
+    # ---- 锁脸角色选择（角色卡在「资产库」页管理）----
     chars = load_characters()
     is_online = comfy_online()
-    with st.expander("🎭 角色库 · 锁脸配图（ComfyUI PuLID）"
-                     + ("　🟢 ComfyUI 在线" if is_online else "　⚪ ComfyUI 离线（需开 AutoDL 并建立隧道）")):
-        cc1, cc2 = st.columns([2, 1])
-        char_names = ["（不使用）"] + list(chars.keys())
-        cc1.selectbox("当前锁脸角色（配图将保持此角色的脸不变）", char_names,
-                      key="active_char")
-        with cc2.popover("➕ 新建角色"):
-            new_name = st.text_input("角色名", key="char_new_name", placeholder="如：林策")
-            new_desc = st.text_area("外貌描述（英文）", key="char_new_desc",
-                                    placeholder="a 25 years old Chinese young man, short black hair, dark grey outdoor jacket, camo backpack")
-            new_face = st.file_uploader("参考脸照片", type=["png", "jpg", "jpeg"],
-                                        key="char_new_face")
-            if st.button("保存角色", key="char_save"):
-                if new_name.strip() and new_desc.strip() and new_face is not None:
-                    save_character(new_name.strip(), new_desc.strip(), new_face.getvalue())
-                    st.success(f"角色「{new_name}」已入库")
-                    st.rerun()
-                else:
-                    st.error("角色名、外貌描述、参考脸都要填")
-        if chars:
-            preview_cols = st.columns(min(len(chars), 6))
-            for j, (cname, cinfo) in enumerate(chars.items()):
-                preview_cols[j % 6].image(cinfo["face"], caption=cname, use_container_width=True)
+    sel1, sel2 = st.columns([2, 1])
+    sel1.selectbox("🎭 当前锁脸角色（到「资产库」页新建/管理角色卡）",
+                   ["（不使用）"] + list(chars.keys()), key="active_char")
+    sel2.caption("")
+    sel2.caption("🟢 ComfyUI 在线" if is_online else "⚪ ComfyUI 离线")
     active_char = st.session_state.get("active_char", "（不使用）")
     active_char = chars.get(active_char) if active_char != "（不使用）" else None
-
-    # ---- 提示词模板库 ----
-    tpls = load_templates()
-    with st.expander(f"📝 提示词模板库（{len(tpls)} 条，把好用的提示词存下来复用）"):
-        if tpls:
-            for tname, ttext in tpls.items():
-                tc1, tc2 = st.columns([5, 1])
-                tc1.markdown(f"**{tname}**")
-                tc1.caption(ttext[:100] + ("…" if len(ttext) > 100 else ""))
-                if tc2.button("🗑 删除", key=f"tpl_del_{tname}"):
-                    tpls.pop(tname)
-                    TPL_FILE.write_text(json.dumps(tpls, ensure_ascii=False, indent=2),
-                                        encoding="utf-8")
-                    st.rerun()
-        tn1, tn2 = st.columns([1, 3])
-        tpl_name = tn1.text_input("模板名", key="tpl_name", placeholder="如：单脸对峙构图")
-        tpl_text = tn2.text_area("模板内容（英文提示词）", key="tpl_text", height=68)
-        if st.button("💾 存为模板", key="tpl_save"):
-            if tpl_name.strip() and tpl_text.strip():
-                save_template(tpl_name, tpl_text)
-                st.success(f"模板「{tpl_name}」已保存")
-                st.rerun()
 
     if images is None:
         # 懒生成：不自动消耗 Kolors 额度，先用参考照片/占位图就位，AI 配图由按钮触发
@@ -1207,9 +1335,11 @@ with st.container(border=True):
                                                key=f"pen_{i}", height=68,
                                                label_visibility="collapsed",
                                                placeholder="英文提示词")
-                if tpls:
+                img_tpls = {n: v["text"] for n, v in load_templates().items()
+                            if v["cat"] == "image"}
+                if img_tpls:
                     with cols[i].popover("📋 套模板", use_container_width=True):
-                        for tname, ttext in load_templates().items():
+                        for tname, ttext in img_tpls.items():
                             if st.button(tname, key=f"tpl_apply_{i}_{tname}",
                                          use_container_width=True):
                                 st.session_state.prompts_en[str(i)] = ttext

@@ -16,7 +16,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
-from flask import Flask, jsonify, redirect, render_template, request, send_from_directory
+from flask import Flask, jsonify, redirect, render_template, request, send_from_directory, session
 from flask_cors import CORS
 
 import stats_logger
@@ -25,6 +25,98 @@ BASE_DIR = Path(__file__).parent
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 CORS(app)
+
+# ========== 登录（手机号白名单 + 图形验证码） ==========
+# .env 配置：ALLOWED_PHONES=138xxxx,139xxxx；SECRET_KEY=随机长串（不配置则自动生成并落地保存）
+ALLOWED_PHONES = {p.strip() for p in os.environ.get("ALLOWED_PHONES", "").split(",") if p.strip()}
+_SECRET_FILE = BASE_DIR / "stats" / ".secret_key"
+
+
+def _load_secret() -> str:
+    env_key = os.environ.get("SECRET_KEY", "").strip()
+    if env_key:
+        return env_key
+    try:
+        return _SECRET_FILE.read_text().strip()
+    except OSError:
+        _SECRET_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _SECRET_FILE.write_text(uuid.uuid4().hex + uuid.uuid4().hex)
+        return _SECRET_FILE.read_text().strip()
+
+
+app.secret_key = _load_secret()
+
+
+@app.route("/captcha.png")
+def captcha_png():
+    """图形验证码：4 位字符 + 干扰线，答案存 session"""
+    import io
+    import random
+    from PIL import Image, ImageDraw, ImageFont
+
+    code = "".join(random.choices("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", k=4))
+    session["captcha"] = code
+    w, h = 140, 44
+    img = Image.new("RGB", (w, h), (245, 246, 250))
+    d = ImageDraw.Draw(img)
+    for _ in range(6):  # 干扰线
+        d.line([(random.randint(0, w), random.randint(0, h)),
+                (random.randint(0, w), random.randint(0, h))],
+               fill=(random.randint(150, 220),) * 3, width=1)
+    try:
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 28)
+    except OSError:
+        font = ImageFont.load_default()
+    for i, ch in enumerate(code):
+        d.text((12 + i * 32 + random.randint(-3, 3), 6 + random.randint(-3, 5)), ch,
+               font=font, fill=(random.randint(20, 90), random.randint(20, 90), random.randint(90, 160)))
+    for _ in range(40):  # 噪点
+        d.point([(random.randint(0, w), random.randint(0, h))], fill=(120, 120, 120))
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    from flask import send_file
+    return send_file(buf, mimetype="image/png")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    """手机号 + 图形验证码登录（白名单制）"""
+    error = ""
+    if request.method == "POST":
+        phone = request.form.get("phone", "").strip()
+        code = request.form.get("code", "").strip().upper()
+        if not ALLOWED_PHONES:
+            error = "系统未配置登录白名单（ALLOWED_PHONES）"
+        elif code != (session.get("captcha") or "").upper():
+            error = "验证码错误，请刷新后重试"
+        elif phone not in ALLOWED_PHONES:
+            error = "该手机号未获授权，请联系管理员"
+        else:
+            session["user"] = phone
+            session.pop("captcha", None)
+            nxt = request.args.get("next") or "/video/"
+            if not nxt.startswith("/"):
+                nxt = "/video/"
+            return redirect(nxt)
+    return render_template("login.html", error=error,
+                           next=request.args.get("next", "/video/"))
+
+
+@app.route("/logout")
+def logout():
+    session.pop("user", None)
+    return redirect("/")
+
+
+@app.route("/api/auth/check")
+def auth_check():
+    """nginx auth_request 用：已登录返回 200 + X-User-Phone，否则 401"""
+    u = session.get("user")
+    if u:
+        return ("", 200, {"X-User-Phone": u})
+    return ("", 401)
+
 
 # 口语AI伴侣已拆分为独立容器（口语AI伴侣/app.py，127.0.0.1:8504），见下方 /oral 路由
 

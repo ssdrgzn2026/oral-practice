@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 - 杂具小栈</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+           min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .card { background: #fff; border-radius: 12px; padding: 40px 36px; width: 360px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+    h1 { font-size: 22px; margin-bottom: 6px; }
+    .sub { color: #888; font-size: 13px; margin-bottom: 24px; }
+    label { display: block; font-size: 13px; color: #555; margin: 14px 0 6px; }
+    input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px;
+            font-size: 15px; outline: none; }
+    input:focus { border-color: #667eea; }
+    .captcha-row { display: flex; gap: 10px; align-items: center; }
+    .captcha-row img { height: 40px; border-radius: 6px; cursor: pointer; border: 1px solid #eee; }
+    .refresh { font-size: 12px; color: #667eea; cursor: pointer; white-space: nowrap; }
+    .error { background: #fff1f0; color: #cf1322; font-size: 13px; padding: 8px 12px;
+             border-radius: 6px; margin-top: 14px; }
+    button { width: 100%; margin-top: 22px; padding: 11px; border: none; border-radius: 8px;
+             background: #4f7cff; color: #fff; font-size: 16px; cursor: pointer; }
+    button:hover { background: #3d6bef; }
+    .back { display: block; text-align: center; margin-top: 16px; font-size: 13px; color: #999; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>杂具小栈 · 登录</h1>
+    <div class="sub">授权手机号 + 图形验证码即可登录</div>
+    <form method="post" action="/login?next={{ next }}">
+      <label>手机号</label>
+      <input name="phone" placeholder="请输入手机号" maxlength="11" required autofocus>
+      <label>图形验证码</label>
+      <div class="captcha-row">
+        <img id="cap" src="/captcha.png" onclick="reloadCap()" title="点击刷新">
+        <span class="refresh" onclick="reloadCap()">刷新验证码</span>
+      </div>
+      <input name="code" placeholder="请输入验证码" maxlength="4" required style="margin-top:10px">
+      {% if error %}<div class="error">{{ error }}</div>{% endif %}
+      <button type="submit">登 录</button>
+    </form>
+    <a class="back" href="/">← 返回首页</a>
+  </div>
+  <script>
+    function reloadCap() {
+      document.getElementById('cap').src = '/captcha.png?t=' + Date.now();
+    }
+  </script>
+</body>
+</html>
