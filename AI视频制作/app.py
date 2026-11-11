@@ -717,6 +717,12 @@ def _parse_manual_shots(text: str) -> list:
         line = re.sub(r"^\s*(?:第\s*)?(?:镜\s*头?\s*)?\d+\s*[：:.、．]\s*", "", line.strip())
         if not line:
             continue
+        # 跳过表头行（如"画面描述|解说词|秒数|说话人"）
+        cells = [c.strip() for c in re.split(r"[|｜]", line)]
+        if cells[0] in ("画面描述", "描述", "镜头描述", "画面") and len(cells) >= 2:
+            continue
+        if "说话人" in cells and any(k in cells for k in ("解说词", "台词", "秒数")):
+            continue
         parts = [p.strip() for p in re.split(r"[|｜]", line)]
         if len(parts) < 2:
             desc, narration, sec_str = parts[0], parts[0], ""
