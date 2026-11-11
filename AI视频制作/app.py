@@ -923,7 +923,9 @@ def compose_video(shots: list, images: list, audios: list, size_wh, work: Path,
     w, h = size_wh
     key = _sha("video|" + "|".join(f"{p.name}{a.name}" for p, a in zip(images, audios))
                + f"{w}x{h}|motion={int(motion)}")
-    final = OUT_DIR / f"{key}.mp4"
+    tmp_dir = OUT_DIR / "_tmp"          # 合成先落临时区，用户确认后才存入作品
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    final = tmp_dir / f"{key}.mp4"
     if final.exists():
         return final
     work.mkdir(parents=True, exist_ok=True)
@@ -1860,9 +1862,16 @@ with st.container(border=True):
         st.rerun()
     if video:
         st.video(video)
+        vc1, vc2 = st.columns(2)
         with open(video, "rb") as f:
-            st.download_button("⬇️ 下载视频 (mp4)", f, file_name="AI视频.mp4",
-                               mime="video/mp4", use_container_width=True)
+            vc1.download_button("⬇️ 下载视频 (mp4)", f, file_name="AI视频.mp4",
+                                mime="video/mp4", use_container_width=True)
+        if vc2.button("💾 存入我的作品", key="save_to_works",
+                      use_container_width=True, type="primary"):
+            import shutil
+            dst = OUT_DIR / f"{st.session_state.get('proj_name') or '未命名'}_{int(time.time())}.mp4"
+            shutil.copy2(video, dst)
+            st.success(f"已存入我的作品：{dst.name}")
         if st.button("↻ 清除结果，重新合成", key="redo_compose"):
             st.session_state.pop("video", None)
             st.rerun()
