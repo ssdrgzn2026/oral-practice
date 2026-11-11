@@ -1,33 +1,23 @@
-《持械入宋》第2集 · 对话片段分镜提示词
+《持械入宋》第2集 · 分镜与提示词
 ====================================================
-分镜（4段式：画面描述 | 台词 | 秒数 | 说话人）：
-城门口两名士兵横矛拦住青年 | 站住！来者何人！ | 4 | 士兵甲
-青年拱手示意 | 在下迷了路，借道而过。 | 5 | 林策
-士兵面面相觑 | 奇装异服，拿下！ | 3 | 士兵乙
+【分镜录入区】——直接整段复制，贴到杂具小栈 ③"直接录入分镜"里
+（格式：画面描述 | 台词/解说词 | 秒数 | 说话人）
 
-说明：
-- 镜头1、2是"林策单脸构图"，可用锁脸生成，提示词如下；
-- 镜头3是两名士兵的对话反应镜头（画面里不是林策），
-  【不要锁脸】，直接点【可灵动态片段】走文生视频，或用 Kolors 出图。
+城门口两名披甲士兵横矛拦住现代装束的青年，青年举手示意无害 | 站住！来者何人！ | 4 | 士兵甲
+青年拱手示意，神态镇定从容 | 在下迷了路，借道而过。 | 5 | 林策
+两名披甲士兵对视一眼，神色警惕，同时握紧了长矛 | 奇装异服，拿下！ | 3 | 士兵乙
+
+====================================================
+【提示词区】——锁脸生成时贴到对应镜头的英文提示词框
 角色：林策（深灰冲锋衣、迷彩背包）
-====================================================
 
-【镜头 1】士兵拦阻（锁脸生成用）
-中文描述：城门口，两名披甲宋代士兵横矛拦住现代装束的青年，青年举手示意无害
-台词（士兵甲）：站住！来者何人！
-英文提示词：
+【镜头 1】士兵拦阻（🔒 锁脸）
 close-up, the young man wears NO armor, NO ancient clothing: a 25 years old Chinese young man with short black hair wearing a dark grey modern outdoor jacket and camo hiking backpack, facing camera with hands raised innocently, only his face visible in the frame, two long spear tips entering the frame from both sides pointing at him, soldiers hidden in shadow, ancient city gate at dusk, tense atmosphere, photorealistic live-action film still, 8k
 
-【镜头 2】林策拱手（锁脸生成用）
-中文描述：青年拱手示意，神态镇定从容
-台词（林策）：在下迷了路，借道而过。
-英文提示词：
+【镜头 2】林策拱手（🔒 锁脸）
 close-up, the young man wears NO robe, NO ancient clothing: a 25 years old Chinese young man with short black hair wearing a dark grey modern outdoor jacket and camo hiking backpack, calmly cupping one fist in the other hand in a traditional greeting gesture, composed confident expression, ancient city gate blurred in the background, dusk light, photorealistic live-action film still, 8k
 
-【镜头 3】士兵面面相觑（不锁脸！）
-中文描述：两名披甲宋代士兵对视一眼，神色警惕
-台词（士兵乙）：奇装异服，拿下！
-做法：直接点【可灵动态片段】（文生视频，可灵中文理解即可），
-或在分镜的画面描述里用这句：
-两名披甲宋代士兵在城门口对视一眼，神色警惕，同时握紧了长矛，火把照亮铠甲
-（此镜画面无林策，不需要锁脸；若误锁脸会把士兵换成林策的脸）
+【镜头 3】士兵面面相觑（⚠️ 不锁脸！画面无林策）
+直接点【可灵动态片段】走文生视频，可灵中文理解即可。
+此镜是两个士兵的反应镜头，锁脸会把士兵换成林策的脸。
+====================================================
