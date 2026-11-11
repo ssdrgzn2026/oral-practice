@@ -1431,14 +1431,19 @@ with st.container(border=True):
         new_desc = nc1.text_area("画面描述", value=s["desc"], height=68,
                                  key=f"shot_desc_{i}", label_visibility="collapsed",
                                  placeholder="画面描述")
-        with nc1.popover("📋 套提示词", use_container_width=True):
-            for tn, tv in load_templates().items():
+        def _fill_desc(i=i):
+            pick = st.session_state.get(f"desc_tpl_sel_{i}", "")
+            if pick and pick != "套提示词…":
+                tv = load_templates()[pick]
                 fill = tv["text_zh"] or tv["text_en"]
-                if fill and st.button(f"{tn}", key=f"desc_tpl_{i}_{tn}",
-                                      use_container_width=True):
+                if fill:
                     st.session_state.shots[i]["desc"] = fill
-                    st.session_state.pop(f"shot_desc_{i}", None)
-                    st.rerun()
+                    st.session_state[f"shot_desc_{i}"] = fill
+                st.session_state[f"desc_tpl_sel_{i}"] = "套提示词…"
+
+        nc1.selectbox("套提示词", ["套提示词…"] + list(load_templates().keys()),
+                      key=f"desc_tpl_sel_{i}", on_change=_fill_desc,
+                      label_visibility="collapsed")
         new_narr = nc2.text_area("解说词", value=s["narration"], height=68,
                                  key=f"shot_narr_{i}", label_visibility="collapsed",
                                  placeholder="解说词")
