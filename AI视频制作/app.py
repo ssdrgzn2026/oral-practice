@@ -476,6 +476,49 @@ def gen_comfy_pulid(desc: str, char: dict, size_wh, seed: int = 0, prompt_en: st
     raise RuntimeError("ComfyUI 出图超时（5 分钟）")
 
 
+def _comfy_run(wf: dict) -> bytes:
+    """提交工作流并取回图片字节（供 PuLID/纯文生图共用）"""
+    r = requests.post(f"{COMFY_BASE}/prompt",
+                      json={"prompt": wf, "client_id": _sha(str(time.time()))}, timeout=60)
+    r.raise_for_status()
+    pid = r.json()["prompt_id"]
+    for _ in range(100):
+        time.sleep(3)
+        h = requests.get(f"{COMFY_BASE}/history/{pid}", timeout=30).json()
+        if pid not in h:
+            continue
+        for node_out in h[pid].get("outputs", {}).values():
+            imgs = node_out.get("images", [])
+            if imgs:
+                img = imgs[0]
+                r = requests.get(f"{COMFY_BASE}/view", params={
+                    "filename": img["filename"],
+                    "subfolder": img.get("subfolder", ""),
+                    "type": img.get("type", "temp")}, timeout=120)
+                r.raise_for_status()
+                return r.content
+    raise RuntimeError("ComfyUI 出图超时（5 分钟）")
+
+
+def gen_comfy_txt2img(prompt_en: str, seed: int = 0, width: int = 768, height: int = 1024) -> Path:
+    """纯文生图（绕过 PuLID）：群演面孔/场景定妆等批量出图"""
+    key = _sha(f"t2i|{prompt_en}|{width}x{height}|{seed}|{os.environ.get('COMFY_CHECKPOINT', '')}")
+    out = COMFY_DIR / f"{key}.png"
+    if out.exists():
+        return out
+    with open(COMFY_WF_FILE, encoding="utf-8") as f:
+        wf = json.load(f)
+    wf["3"]["inputs"]["model"] = ["4", 0]  # 模型直连采样器，绕过 PuLID
+    wf["22"]["inputs"]["text"] = prompt_en
+    wf["3"]["inputs"]["seed"] = seed or int(time.time() * 1000) % (2**31)
+    wf["5"]["inputs"].update(width=width, height=height)
+    ckpt = os.environ.get("COMFY_CHECKPOINT", "").strip()
+    if ckpt:
+        wf["4"]["inputs"]["ckpt_name"] = ckpt
+    out.write_bytes(_comfy_run(wf))
+    return out
+
+
 def _api_headers():
     return {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 
@@ -911,6 +954,13 @@ if not API_KEY:
 def render_works():
     """📁 我的作品：列出 output 目录下所有已合成视频（按手机号隔离）"""
     st.subheader("📁 我的作品")
+    ups = st.file_uploader("⬆️ 上传已有作品（mp4，可多选，如《林策入宋》原版和修复版）",
+                           type=["mp4"], accept_multiple_files=True, key="works_upload")
+    if ups:
+        for f in ups:
+            (OUT_DIR / f.name).write_bytes(f.getvalue())
+        st.success(f"已上传 {len(ups)} 个作品")
+        st.rerun()
     videos = sorted(OUT_DIR.glob("*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True)
     if videos and st.button("🧹 清空我的全部作品", key="works_clear"):
         for v in videos:
@@ -1088,6 +1138,26 @@ def render_assets():
         _asset_tab("scenes", "场景", "ancient Chinese city gate at dusk, stone walls, torches")
     with t3:
         _asset_tab("extras", "群演面孔", "an ordinary Song dynasty townsfolk face, weathered, hanfu")
+        if comfy_online():
+            if st.button("🎲 批量生成 5 张群演面孔（ComfyUI，约3分钟）",
+                         key="extras_batch", use_container_width=True):
+                batch = [
+                    ("市井老者2", "portrait photo of an elderly Song dynasty Chinese townsman, weathered wrinkled face, grey beard, plain hanfu, neutral expression, film still, 8k"),
+                    ("商贩妇人2", "portrait photo of a middle-aged Song dynasty Chinese market vendor woman, commoner dress, headscarf, neutral expression, film still, 8k"),
+                    ("账房先生", "portrait photo of a thin Song dynasty Chinese clerk, small mustache, plain robe, shrewd eyes, film still, 8k"),
+                    ("年轻脚夫", "portrait photo of a young Song dynasty Chinese laborer, suntanned skin, coarse linen clothes, honest face, film still, 8k"),
+                    ("茶肆老板娘", "portrait photo of a Song dynasty Chinese teahouse owner woman, warm smile, simple elegant dress, film still, 8k"),
+                ]
+                prog = st.progress(0.0, text="批量生成群演面孔中…")
+                for j, (nm, prompt) in enumerate(batch):
+                    try:
+                        img = gen_comfy_txt2img(prompt, seed=int(time.time()) + j)
+                        _asset_save("extras", nm, prompt, img.read_bytes())
+                    except Exception as e:  # noqa: BLE001
+                        st.error(f"{nm} 生成失败：{e}")
+                    prog.progress((j + 1) / len(batch), text=f"已生成 {j+1}/{len(batch)} 张")
+                prog.empty()
+                st.rerun()
     with t4:
         _asset_tab("props", "道具", "a black modern tactical flashlight, rugged, metal body")
 
