@@ -91,7 +91,30 @@ CHAR_FILE = CHAR_DIR / "characters.json"
 TPL_FILE = USER_DIR / "prompt_templates.json"
 PROJ_DIR = USER_DIR / "projects"
 PROJ_DIR.mkdir(parents=True, exist_ok=True)
+OUT_DIR = USER_DIR / "output"          # 作品按用户隔离
+OUT_DIR.mkdir(parents=True, exist_ok=True)
+SHARED_DIR = CACHE_DIR / "shared"      # 公共资产库（全站共享，只管理员可写）
+SHARED_DIR.mkdir(parents=True, exist_ok=True)
+
+# 首次登录：把旧全局目录里的角色/模板自动迁移到个人空间（一次性）
 if USER_PHONE:
+    try:
+        _legacy_chars = CACHE_DIR / "characters" / "characters.json"
+        if _legacy_chars.exists() and not CHAR_FILE.exists():
+            _data = json.loads(_legacy_chars.read_text(encoding="utf-8"))
+            for _n, _info in _data.items():
+                _src = Path(_info["face"])
+                if _src.exists():
+                    _dst = CHAR_DIR / _src.name
+                    _dst.write_bytes(_src.read_bytes())
+                    _data[_n]["face"] = str(_dst)
+            CHAR_FILE.write_text(json.dumps(_data, ensure_ascii=False, indent=2),
+                                 encoding="utf-8")
+        _legacy_tpl = CACHE_DIR / "prompt_templates.json"
+        if _legacy_tpl.exists() and not TPL_FILE.exists():
+            TPL_FILE.write_text(_legacy_tpl.read_text(encoding="utf-8"), encoding="utf-8")
+    except Exception:  # noqa: BLE001
+        pass
     st.caption(f"👤 {USER_PHONE}　·　[退出登录](/logout)")
 
 
@@ -223,20 +246,48 @@ def comfy_online() -> bool:
 
 
 def load_characters() -> dict:
-    """角色库：{名字: {"desc_en": 外貌描述, "face": 参考脸文件路径}}"""
+    """角色库：个人库覆盖公共库。{名字: {"desc_en":..., "face": 主图, "faces": [全部定妆图], "public": bool}}"""
+    chars = {}
+    shared_file = SHARED_DIR / "characters.json"
     try:
-        return json.loads(CHAR_FILE.read_text(encoding="utf-8"))
+        for n, v in json.loads(shared_file.read_text(encoding="utf-8")).items():
+            v["public"] = True
+            chars[n] = v
     except Exception:  # noqa: BLE001
-        return {}
+        pass
+    try:
+        for n, v in json.loads(CHAR_FILE.read_text(encoding="utf-8")).items():
+            v.setdefault("faces", [v["face"]] if v.get("face") else [])
+            chars[n] = v
+    except Exception:  # noqa: BLE001
+        pass
+    return chars
 
 
-def save_character(name: str, desc_en: str, img_bytes: bytes):
-    """新增/覆盖一个角色：存参考脸图片 + 元数据"""
-    face = CHAR_DIR / f"{_sha(name)}.png"
-    face.write_bytes(img_bytes)
-    chars = load_characters()
-    chars[name] = {"desc_en": desc_en, "face": str(face)}
-    CHAR_FILE.write_text(json.dumps(chars, ensure_ascii=False, indent=2), encoding="utf-8")
+def save_character(name: str, desc_en: str, images: list, public: bool = False):
+    """新增/覆盖一个角色：多张定妆图（正面/侧面/全身）+ 元数据。public=存公共库（仅管理员）"""
+    target_file = (SHARED_DIR / "characters.json") if public else CHAR_FILE
+    faces = []
+    for j, b in enumerate(images):
+        p = CHAR_DIR / f"{_sha(name)}_{j}.png"
+        p.write_bytes(b)
+        faces.append(str(p))
+    try:
+        chars = json.loads(target_file.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        chars = {}
+    chars[name] = {"desc_en": desc_en, "face": faces[0], "faces": faces}
+    target_file.write_text(json.dumps(chars, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def delete_character(name: str):
+    """删除个人库角色（公共角色不可删）"""
+    try:
+        chars = json.loads(CHAR_FILE.read_text(encoding="utf-8"))
+        chars.pop(name, None)
+        CHAR_FILE.write_text(json.dumps(chars, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:  # noqa: BLE001
+        pass
 
 
 # ========== 项目存档（刷新不丢状态） ==========
@@ -347,7 +398,8 @@ def gen_comfy_pulid(desc: str, char: dict, size_wh, seed: int = 0, prompt_en: st
     """调 ComfyUI PuLID 工作流出锁脸图：翻译提示词 -> 上传参考脸 -> 提交 -> 取回。sha1 缓存"""
     if prompt_en is None:
         prompt_en = gen_prompt_en(desc, char["desc_en"])
-    face_bytes = Path(char["face"]).read_bytes()
+    face_path = char.get("face") or (char.get("faces") or [None])[0]
+    face_bytes = Path(face_path).read_bytes()
     face_key = _sha_bytes(face_bytes)
     ckpt = os.environ.get("COMFY_CHECKPOINT", "").strip()
     key = _sha(f"pulid|{prompt_en}|{face_key}|{size_wh[0]}x{size_wh[1]}|{seed}|{ckpt}")
@@ -829,9 +881,13 @@ if not API_KEY:
 
 
 def render_works():
-    """📁 我的作品：列出 output 目录下所有已合成视频"""
+    """📁 我的作品：列出 output 目录下所有已合成视频（按手机号隔离）"""
     st.subheader("📁 我的作品")
     videos = sorted(OUT_DIR.glob("*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True)
+    if videos and st.button("🧹 清空我的全部作品", key="works_clear"):
+        for v in videos:
+            v.unlink()
+        st.rerun()
     if not videos:
         st.info("暂无作品，合成完成的视频会自动出现在这里。")
         return
@@ -926,8 +982,41 @@ def render_assets():
     t1, t2, t3, t4 = st.tabs(["👤 角色卡", "🏯 场景库", "👥 群演库", "🗡 道具库"])
     with t1:
         st.caption("🟢 ComfyUI 在线" if comfy_online() else "⚪ ComfyUI 离线（锁脸生成不可用）")
-        _asset_tab("characters", "角色",
-                   "a 25 years old Chinese young man, short black hair, dark grey outdoor jacket, camo backpack")
+        # 角色卡：支持一人多面（正面/侧面/全身多张定妆图）
+        with st.popover("➕ 新建角色"):
+            n = st.text_input("角色名", key="char_new_name", placeholder="如：林策")
+            d = st.text_area("外貌描述（英文）", key="char_new_desc",
+                             placeholder="a 25 years old Chinese young man, short black hair, dark grey outdoor jacket, camo backpack",
+                             height=90)
+            fs = st.file_uploader("定妆图（可传多张：正面/侧面/全身）",
+                                  type=["png", "jpg", "jpeg"],
+                                  accept_multiple_files=True, key="char_new_faces")
+            is_public = False
+            if USER_PHONE and USER_PHONE in ADMIN_PHONES:
+                is_public = st.checkbox("存为公共资产（所有人可用）", key="char_public")
+            if st.button("保存入库", key="char_save", use_container_width=True):
+                if n.strip() and d.strip() and fs:
+                    save_character(n.strip(), d.strip(),
+                                   [f.getvalue() for f in fs], public=is_public)
+                    st.success(f"「{n}」已入库")
+                    st.rerun()
+                else:
+                    st.error("角色名、外貌描述、定妆图都要填")
+        chars = load_characters()
+        if not chars:
+            st.info("暂无角色，点上方按钮新建")
+        else:
+            cols = st.columns(min(len(chars), 6))
+            for j, (name, info) in enumerate(chars.items()):
+                badge = "🏛公共" if info.get("public") else "👤我的"
+                n_faces = len(info.get("faces") or [info.get("face")])
+                cols[j % 6].image(info.get("face"), caption=f"{name} · {badge} · {n_faces}图",
+                                  use_container_width=True)
+                cols[j % 6].caption(info["desc_en"][:40] + ("…" if len(info["desc_en"]) > 40 else ""))
+                if not info.get("public") and cols[j % 6].button("🗑 删除", key=f"char_del_{j}",
+                                                                  use_container_width=True):
+                    delete_character(name)
+                    st.rerun()
     with t2:
         _asset_tab("scenes", "场景", "ancient Chinese city gate at dusk, stone walls, torches")
     with t3:
@@ -970,8 +1059,33 @@ def render_prompts():
                     st.rerun()
 
 
-# ========== 页面导航：制作 / 资产库 / 提示词库 / 我的作品 ==========
-NAV = [("make", "🎬 视频制作"), ("assets", "🎭 资产库"),
+def render_projects():
+    """🗂 我的项目：制作过程存档（分镜/配图/抽卡历史），区别于最终作品"""
+    st.subheader("🗂 我的项目")
+    st.caption("项目 = 制作过程的全部进度；最终成片在「我的作品」里")
+    projs = sorted((p for p in PROJ_DIR.iterdir() if p.is_dir()),
+                   key=lambda p: p.stat().st_mtime, reverse=True)
+    if not projs:
+        st.info("暂无项目。在「视频制作」页填写项目名后，进度会自动保存到这里。")
+        return
+    for p in projs:
+        with st.container(border=True):
+            c1, c2, c3 = st.columns([3, 1, 1])
+            c1.markdown(f"**{p.name}**")
+            from datetime import datetime
+            c1.caption(f"更新于 {datetime.fromtimestamp(p.stat().st_mtime):%Y-%m-%d %H:%M}")
+            if c2.button("📂 打开", key=f"proj_open_{p.name}", use_container_width=True):
+                load_project(p.name)
+                st.session_state.page = "make"
+                st.rerun()
+            if c3.button("🗑 删除", key=f"proj_del_{p.name}", use_container_width=True):
+                import shutil
+                shutil.rmtree(p, ignore_errors=True)
+                st.rerun()
+
+
+# ========== 页面导航：制作 / 我的项目 / 资产库 / 提示词库 / 我的作品 ==========
+NAV = [("make", "🎬 视频制作"), ("projects", "🗂 我的项目"), ("assets", "🎭 资产库"),
        ("prompts", "📝 提示词库"), ("works", "📁 我的作品")]
 nav_cols = st.columns(len(NAV))
 page = st.session_state.get("page", "make")
@@ -982,6 +1096,9 @@ for col, (pid, label) in zip(nav_cols, NAV):
         st.rerun()
 if page == "works":
     render_works()
+    st.stop()
+if page == "projects":
+    render_projects()
     st.stop()
 if page == "assets":
     render_assets()
