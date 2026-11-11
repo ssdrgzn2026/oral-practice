@@ -325,10 +325,13 @@ def load_project(name: str):
 
 
 def autosave():
-    """每次页面重跑后自动落盘（有项目名才生效）"""
+    """每次页面重跑后自动落盘（有项目名才生效）；容错，绝不让保存失败拖垮页面"""
     name = st.session_state.get("proj_name", "")
     if name.strip() and st.session_state.get("shots"):
-        save_project(name)
+        try:
+            save_project(name)
+        except Exception:  # noqa: BLE001
+            pass
 
 
 # ========== 提示词模板库（分三类：画面/运镜/动作；公共种子+个人新增） ==========
@@ -1591,6 +1594,7 @@ with st.container(border=True):
                             str(i), []).append(images[i])
                         st.session_state.images = images
                         st.session_state.pop("video", None)
+                        autosave()
                         st.rerun()
                     except Exception as e:  # noqa: BLE001
                         st.error(f"镜头 {i+1} 可灵生成失败：{e}")
@@ -1611,6 +1615,7 @@ with st.container(border=True):
                         khist.append(images[i])
                         st.session_state.images = images
                         st.session_state.pop("video", None)
+                        autosave()
                         st.rerun()
                     except Exception as e:  # noqa: BLE001
                         st.error(f"镜头 {i+1} 重抽失败：{e}")
@@ -1661,6 +1666,7 @@ with st.container(border=True):
                             str(i), []).append(images[i])
                         st.session_state.images = images
                         st.session_state.pop("video", None)
+                        autosave()
                         st.rerun()
                     except Exception as e:  # noqa: BLE001
                         st.error(f"镜头 {i+1} 锁脸生成失败：{e}")
