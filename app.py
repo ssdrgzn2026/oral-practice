@@ -64,7 +64,7 @@ def captcha_png():
                 (random.randint(0, w), random.randint(0, h))],
                fill=(random.randint(150, 220),) * 3, width=1)
     try:
-        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 28)
+        font = ImageFont.truetype(str(BASE_DIR / "static" / "fonts" / "DejaVuSans-Bold.ttf"), 28)
     except OSError:
         font = ImageFont.load_default()
     for i, ch in enumerate(code):
