@@ -226,6 +226,81 @@ def gen_kling_video(desc: str, size_wh, image_path: str = None, salt: str = "") 
     raise RuntimeError("可灵生成超时（6 分钟未完成）")
 
 
+# ========== Wan2.2 本地图生视频（主力动态片段通道，走 ComfyUI/AutoDL） ==========
+WAN_DIR = CACHE_DIR / "wan"
+WAN_DIR.mkdir(parents=True, exist_ok=True)
+WAN_WF_FILE = MODULE_DIR / "wan_i2v_workflow.json"  # ComfyUI「导出(API)」的 WanVideoWrapper I2V 工作流
+# 工作流关键节点编号（从 875机 ComfyUI 实际跑通的 wanvideo2_2_I2V_A14B 提取）
+WAN_NODE = {
+    "prompt": "16",          # WanVideoTextEncode（字段 positive_prompt / negative_prompt）
+    "image": "67",           # LoadImage 首帧
+    "seed": ["27", "90"],    # 高噪 + 低噪两个 WanVideoSampler
+    "size": "68",            # ImageResizeKJv2（首帧缩放到模型分辨率）
+}
+
+
+def wan_available() -> bool:
+    """Wan 本地视频通道是否可用：ComfyUI 在线 + 工作流文件已部署"""
+    return WAN_WF_FILE.exists() and comfy_online()
+
+
+def _comfy_run_video(wf: dict, timeout_min: int = 25) -> bytes:
+    """提交工作流并取回视频字节（VHS_VideoCombine 等节点的 gifs/videos 输出）"""
+    r = requests.post(f"{COMFY_BASE}/prompt",
+                      json={"prompt": wf, "client_id": _sha(str(time.time()))}, timeout=60)
+    r.raise_for_status()
+    pid = r.json()["prompt_id"]
+    for _ in range(timeout_min * 20):
+        time.sleep(3)
+        h = requests.get(f"{COMFY_BASE}/history/{pid}", timeout=30).json()
+        if pid not in h:
+            continue
+        status = h[pid].get("status", {})
+        for node_out in h[pid].get("outputs", {}).values():
+            vids = node_out.get("gifs") or node_out.get("videos") or []
+            if vids:
+                v = vids[0]
+                r = requests.get(f"{COMFY_BASE}/view", params={
+                    "filename": v["filename"],
+                    "subfolder": v.get("subfolder", ""),
+                    "type": v.get("type", "temp")}, timeout=300)
+                r.raise_for_status()
+                return r.content
+        if status.get("status_str") == "error":
+            raise RuntimeError(f"ComfyUI 执行出错: {status.get('messages')}")
+        if status.get("completed"):
+            raise RuntimeError("工作流跑完了但没有视频输出，请检查导出节点")
+    raise RuntimeError(f"Wan 视频生成超时（{timeout_min} 分钟）")
+
+
+def gen_wan_i2v(desc: str, image_path: str, size_wh, salt: str = "") -> Path:
+    """Wan2.2 图生视频：以配图为首帧生成约 5 秒动态片段。Wan 原生支持中文提示词。
+    salt 用于重抽时绕过缓存"""
+    img_bytes = Path(image_path).read_bytes()
+    key = _sha(f"wan|{desc}|{_sha_bytes(img_bytes)}|{size_wh[0]}x{size_wh[1]}|{salt}")
+    out = WAN_DIR / f"{key}.mp4"
+    if out.exists():
+        return out
+    with open(WAN_WF_FILE, encoding="utf-8") as f:
+        wf = json.load(f)
+    # 上传首帧图
+    r = requests.post(f"{COMFY_BASE}/upload/image",
+                      files={"image": ("wan_start.png", img_bytes)}, timeout=60)
+    r.raise_for_status()
+    wf[WAN_NODE["image"]]["inputs"]["image"] = r.json()["name"]
+    wf[WAN_NODE["prompt"]]["inputs"]["positive_prompt"] = desc
+    seed = int(time.time() * 1000) % (2**31)
+    for nid in ([WAN_NODE["seed"]] if isinstance(WAN_NODE["seed"], str)
+                else WAN_NODE["seed"]):
+        if nid:
+            wf[nid]["inputs"]["seed"] = seed
+    if WAN_NODE.get("size"):
+        w, h = (480, 832) if size_wh[1] > size_wh[0] else (832, 480)
+        wf[WAN_NODE["size"]]["inputs"].update(width=w, height=h)
+    out.write_bytes(_comfy_run_video(wf))
+    return out
+
+
 # ========== ComfyUI（PuLID 锁脸配图，可选；默认关，隧道连通即用） ==========
 COMFY_BASE = os.environ.get("COMFYUI_BASE", "http://127.0.0.1:6006").rstrip("/")
 COMFY_DIR = CACHE_DIR / "comfy"          # ComfyUI 生成的锁脸图缓存
@@ -1567,7 +1642,7 @@ with st.container(border=True):
         ph = shots[i].get("photo", 0) if i < len(shots) else 0
         is_video = str(p).lower().endswith(".mp4")
         if is_video:
-            source = "🎬 可灵视频"
+            source = "🎬 动态片段"
         elif str(i) in uploads:
             source = "自定义上传"
         elif ph >= 1 and ph <= len(photo_paths) and p == photo_paths[ph - 1]:
@@ -1602,11 +1677,27 @@ with st.container(border=True):
                     except Exception as e:  # noqa: BLE001
                         st.error(f"镜头 {i+1} 配图失败：{e}")
                 st.rerun()
+        if not is_video and wan_available():
+            if cols[i].button("🎞 本地动态片段（Wan·主力）", key=f"wan_{i}",
+                              use_container_width=True):
+                with st.spinner(f"Wan 正在生成镜头 {i+1} 动态片段（4090 约5~15分钟）…"):
+                    try:
+                        st.session_state.setdefault("kling_src", {})[str(i)] = p  # 记住首帧
+                        images[i] = str(gen_wan_i2v(shots[i]["desc"], p, size_wh,
+                                                    salt=str(time.time())))
+                        st.session_state.setdefault("kling_history", {}).setdefault(
+                            str(i), []).append(images[i])
+                        st.session_state.images = images
+                        st.session_state.pop("video", None)
+                        autosave()
+                        st.rerun()
+                    except Exception as e:  # noqa: BLE001
+                        st.error(f"镜头 {i+1} Wan 生成失败：{e}")
         if KLING_KEY and not is_video:
             left = kling_quota_left()
             admin = is_kling_admin()
             quota_note = "站长不限量" if admin else f"今日余 {left}"
-            if cols[i].button(f"✨ 可灵动态片段（{quota_note}）", key=f"kling_{i}",
+            if cols[i].button(f"✨ 可灵片段（备选·{quota_note}）", key=f"kling_{i}",
                               use_container_width=True, disabled=(not admin and left <= 0)):
                 with st.spinner(f"可灵正在生成镜头 {i+1} 动态片段（约1~5分钟）…"):
                     try:
@@ -1620,13 +1711,28 @@ with st.container(border=True):
                         st.rerun()
                     except Exception as e:  # noqa: BLE001
                         st.error(f"镜头 {i+1} 可灵生成失败：{e}")
-        # 可灵片段的重抽 + 抽片历史
+        # 视频片段的重抽 + 抽片历史（Wan 主力 / 可灵备选共用历史与首帧记录）
         khist = st.session_state.get("kling_history", {}).get(str(i), [])
+        if is_video and khist and wan_available():
+            if cols[i].button("↻ 重抽本地片段（Wan）", key=f"wan_re_{i}",
+                              use_container_width=True):
+                with st.spinner(f"Wan 正在重抽镜头 {i+1}（约5~15分钟）…"):
+                    try:
+                        src = st.session_state.get("kling_src", {}).get(str(i))
+                        images[i] = str(gen_wan_i2v(shots[i]["desc"], src, size_wh,
+                                                    salt=str(time.time())))
+                        khist.append(images[i])
+                        st.session_state.images = images
+                        st.session_state.pop("video", None)
+                        autosave()
+                        st.rerun()
+                    except Exception as e:  # noqa: BLE001
+                        st.error(f"镜头 {i+1} 重抽失败：{e}")
         if KLING_KEY and is_video and khist:
             left = kling_quota_left()
             admin = is_kling_admin()
             quota_note = "站长不限量" if admin else f"今日余 {left}"
-            if cols[i].button(f"↻ 重抽可灵片段（{quota_note}）", key=f"kling_re_{i}",
+            if cols[i].button(f"↻ 重抽可灵片段（备选·{quota_note}）", key=f"kling_re_{i}",
                               use_container_width=True, disabled=(not admin and left <= 0)):
                 with st.spinner(f"可灵正在重抽镜头 {i+1}（约1~5分钟）…"):
                     try:
