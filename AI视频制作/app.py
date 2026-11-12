@@ -230,6 +230,7 @@ def gen_kling_video(desc: str, size_wh, image_path: str = None, salt: str = "") 
 COMFY_BASE = os.environ.get("COMFYUI_BASE", "http://127.0.0.1:6006").rstrip("/")
 COMFY_DIR = CACHE_DIR / "comfy"          # ComfyUI 生成的锁脸图缓存
 COMFY_WF_FILE = MODULE_DIR / "pulid_workflow.json"  # PuLID_simple 导出的 API 格式工作流
+LORA_WF_FILE = MODULE_DIR / "lora_workflow.json"    # LoRA 工作流（有 LoRA 的角色走这条）
 COMFY_DIR.mkdir(parents=True, exist_ok=True)
 # 角色库/提示词库/项目目录：登录后指向用户空间（见上方登录区块），未登录走共享目录
 CHAR_DIR = globals().get("CHAR_DIR", CACHE_DIR / "characters")
@@ -271,8 +272,10 @@ def load_characters() -> dict:
     return chars
 
 
-def save_character(name: str, desc_en: str, images: list, public: bool = False):
-    """新增/覆盖一个角色：多张定妆图（正面/侧面/全身）+ 元数据。public=存公共库（仅管理员）"""
+def save_character(name: str, desc_en: str, images: list, public: bool = False,
+                   lora: str = "", trigger: str = ""):
+    """新增/覆盖一个角色：多张定妆图（正面/侧面/全身）+ 元数据。public=存公共库（仅管理员）
+    lora=LoRA 文件名（填了就走 LoRA 通道，无需参考脸）；trigger=LoRA 触发词"""
     target_file = (SHARED_DIR / "characters.json") if public else CHAR_FILE
     faces = []
     for j, b in enumerate(images):
@@ -283,7 +286,12 @@ def save_character(name: str, desc_en: str, images: list, public: bool = False):
         chars = json.loads(target_file.read_text(encoding="utf-8"))
     except Exception:  # noqa: BLE001
         chars = {}
-    chars[name] = {"desc_en": desc_en, "face": faces[0], "faces": faces}
+    entry = {"desc_en": desc_en, "face": faces[0] if faces else "",
+             "faces": faces}
+    if lora.strip():
+        entry["lora"] = lora.strip()
+        entry["trigger"] = trigger.strip() or "lince"
+    chars[name] = entry
     target_file.write_text(json.dumps(chars, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
@@ -426,16 +434,37 @@ def gen_prompt_en(desc: str, char_desc_en: str) -> str:
 
 
 def gen_comfy_pulid(desc: str, char: dict, size_wh, seed: int = 0, prompt_en: str = None) -> Path:
-    """调 ComfyUI PuLID 工作流出锁脸图：翻译提示词 -> 上传参考脸 -> 提交 -> 取回。sha1 缓存"""
+    """调 ComfyUI 出定妆图：角色有 LoRA 走 LoRA 通道（定脸定装），否则走 PuLID 锁脸。sha1 缓存"""
     if prompt_en is None:
         prompt_en = gen_prompt_en(desc, char["desc_en"])
-    face_path = char.get("face") or (char.get("faces") or [None])[0]
-    face_bytes = Path(face_path).read_bytes()
-    face_key = _sha_bytes(face_bytes)
+    lora_name = (char.get("lora") or "").strip()
     ckpt = os.environ.get("COMFY_CHECKPOINT", "").strip()
-    key = _sha(f"pulid|{prompt_en}|{face_key}|{size_wh[0]}x{size_wh[1]}|{seed}|{ckpt}")
+    face_key = ""
+    face_bytes = b""
+    if not lora_name:
+        face_path = char.get("face") or (char.get("faces") or [None])[0]
+        face_bytes = Path(face_path).read_bytes()
+        face_key = _sha_bytes(face_bytes)
+    key = _sha(f"pulid|{prompt_en}|{face_key}|{lora_name}|{size_wh[0]}x{size_wh[1]}|{seed}|{ckpt}")
     out = COMFY_DIR / f"{key}.png"
     if out.exists():
+        return out
+
+    if lora_name:
+        # LoRA 通道：无需参考脸，触发词 + 场景描述
+        with open(LORA_WF_FILE, encoding="utf-8") as f:
+            wf = json.load(f)
+        trigger = (char.get("trigger") or "lince").strip()
+        wf["22"]["inputs"]["text"] = f"{trigger}, {prompt_en}"
+        wf["40"]["inputs"]["lora_name"] = lora_name
+        wf["3"]["inputs"]["seed"] = seed or int(time.time() * 1000) % (2**31)
+        if ckpt:
+            wf["4"]["inputs"]["ckpt_name"] = ckpt
+        if size_wh[1] > size_wh[0]:
+            wf["5"]["inputs"].update(width=768, height=1024)
+        else:
+            wf["5"]["inputs"].update(width=1152, height=640)
+        out.write_bytes(_comfy_run(wf))
         return out
 
     with open(COMFY_WF_FILE, encoding="utf-8") as f:
@@ -447,7 +476,6 @@ def gen_comfy_pulid(desc: str, char: dict, size_wh, seed: int = 0, prompt_en: st
     wf[_WF_IMG]["inputs"]["image"] = r.json()["name"]
     wf[_WF_PROMPT]["inputs"]["text"] = prompt_en
     wf[_WF_SEED]["inputs"]["seed"] = seed or int(time.time() * 1000) % (2**31)
-    ckpt = os.environ.get("COMFY_CHECKPOINT", "").strip()
     if ckpt:  # 覆盖默认底模（如换成写实模型 juggernaut）
         wf["4"]["inputs"]["ckpt_name"] = ckpt
     # SDXL 友好分辨率：竖屏 768x1024，横屏 1152x640
@@ -456,27 +484,8 @@ def gen_comfy_pulid(desc: str, char: dict, size_wh, seed: int = 0, prompt_en: st
     else:
         wf[_WF_SIZE]["inputs"].update(width=1152, height=640)
 
-    r = requests.post(f"{COMFY_BASE}/prompt",
-                      json={"prompt": wf, "client_id": _sha(str(time.time()))}, timeout=60)
-    r.raise_for_status()
-    pid = r.json()["prompt_id"]
-    for _ in range(100):  # 2080Ti 一张约 30~60s，最多等 5 分钟
-        time.sleep(3)
-        h = requests.get(f"{COMFY_BASE}/history/{pid}", timeout=30).json()
-        if pid not in h:
-            continue
-        for node_out in h[pid].get("outputs", {}).values():
-            imgs = node_out.get("images", [])
-            if imgs:
-                img = imgs[0]
-                r = requests.get(f"{COMFY_BASE}/view", params={
-                    "filename": img["filename"],
-                    "subfolder": img.get("subfolder", ""),
-                    "type": img.get("type", "temp")}, timeout=120)
-                r.raise_for_status()
-                out.write_bytes(r.content)
-                return out
-    raise RuntimeError("ComfyUI 出图超时（5 分钟）")
+    out.write_bytes(_comfy_run(wf))
+    return out
 
 
 def _comfy_run(wf: dict) -> bytes:
@@ -1131,20 +1140,25 @@ def render_assets():
             d = st.text_area("外貌描述（英文）", key="char_new_desc",
                              placeholder="a 25 years old Chinese young man, short black hair, dark grey outdoor jacket, camo backpack",
                              height=90)
-            fs = st.file_uploader("定妆图（可传多张：正面/侧面/全身）",
+            fs = st.file_uploader("定妆图（可传多张：正面/侧面/全身；有 LoRA 的角色可空）",
                                   type=["png", "jpg", "jpeg"],
                                   accept_multiple_files=True, key="char_new_faces")
+            ln = st.text_input("LoRA 文件名（可选，有 LoRA 就走 LoRA 通道）",
+                               key="char_new_lora", placeholder="如：lince_v1.safetensors")
+            tg = st.text_input("触发词（可选，默认 lince）", key="char_new_trigger",
+                               placeholder="lince")
             is_public = False
             if USER_PHONE and USER_PHONE in ADMIN_PHONES:
                 is_public = st.checkbox("存为公共资产（所有人可用）", key="char_public")
             if st.button("保存入库", key="char_save", use_container_width=True):
-                if n.strip() and d.strip() and fs:
+                if n.strip() and d.strip() and (fs or ln.strip()):
                     save_character(n.strip(), d.strip(),
-                                   [f.getvalue() for f in fs], public=is_public)
+                                   [f.getvalue() for f in (fs or [])], public=is_public,
+                                   lora=ln, trigger=tg)
                     st.success(f"「{n}」已入库")
                     st.rerun()
                 else:
-                    st.error("角色名、外貌描述、定妆图都要填")
+                    st.error("角色名、外貌描述要填，定妆图或 LoRA 至少给一样")
         chars = load_characters()
         if not chars:
             st.info("暂无角色，点上方按钮新建")

@@ -1,0 +1,59 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 51,
+      "steps": 30,
+      "cfg": 6,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "sgm_uniform",
+      "denoise": 1,
+      "model": ["40", 0],
+      "positive": ["22", 0],
+      "negative": ["23", 0],
+      "latent_image": ["5", 0]
+    },
+    "class_type": "KSampler",
+    "_meta": {"title": "K采样器"}
+  },
+  "4": {
+    "inputs": {"ckpt_name": "sd_xl_base_1.0.safetensors"},
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {"title": "Checkpoint加载器（简易）"}
+  },
+  "5": {
+    "inputs": {"width": 768, "height": 1024, "batch_size": 1},
+    "class_type": "EmptyLatentImage",
+    "_meta": {"title": "空Latent图像"}
+  },
+  "8": {
+    "inputs": {"samples": ["3", 0], "vae": ["4", 2]},
+    "class_type": "VAEDecode",
+    "_meta": {"title": "VAE解码"}
+  },
+  "10": {
+    "inputs": {"images": ["8", 0]},
+    "class_type": "PreviewImage",
+    "_meta": {"title": "预览图像"}
+  },
+  "22": {
+    "inputs": {"text": "", "clip": ["40", 1]},
+    "class_type": "CLIPTextEncode",
+    "_meta": {"title": "CLIP文本编码（正面）"}
+  },
+  "23": {
+    "inputs": {"text": "illustration, painting, cartoon, anime, sketch, drawing, cgi, 3d render, blurry, malformed, low quality, worst quality, artifacts, noise, text, watermark, deformed, ugly, modern buildings, cars, electric lights, collage, split screen, multiple panels", "clip": ["40", 1]},
+    "class_type": "CLIPTextEncode",
+    "_meta": {"title": "CLIP文本编码（负面）"}
+  },
+  "40": {
+    "inputs": {
+      "lora_name": "lince_v1.safetensors",
+      "strength_model": 1.0,
+      "strength_clip": 1.0,
+      "model": ["4", 0],
+      "clip": ["4", 1]
+    },
+    "class_type": "LoraLoader",
+    "_meta": {"title": "加载LoRA"}
+  }
+}
