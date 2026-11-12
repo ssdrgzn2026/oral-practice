@@ -792,8 +792,12 @@ def _parse_shots(text: str) -> list:
         except (TypeError, ValueError):
             photo = 0
         if desc and narration:
-            shots.append({"desc": desc, "narration": narration, "seconds": seconds,
-                          "photo": photo, "speaker": str(item.get("speaker") or "旁白")})
+            shot = {"desc": desc, "narration": narration, "seconds": seconds,
+                    "photo": photo, "speaker": str(item.get("speaker") or "旁白")}
+            for opt in ("motion_en", "prompt_en"):
+                if str(item.get(opt) or "").strip():
+                    shot[opt] = str(item[opt]).strip()
+            shots.append(shot)
     return shots
 
 
@@ -848,8 +852,13 @@ def _parse_manual_shots(text: str) -> list:
             seconds = max(2.0, min(15.0, float(sec_str))) if sec_str else 5.0
         except ValueError:
             seconds = 5.0
-        shots.append({"desc": desc, "narration": narration, "seconds": seconds,
-                      "speaker": speaker})
+        shot = {"desc": desc, "narration": narration, "seconds": seconds,
+                "speaker": speaker}
+        if len(parts) > 4 and parts[4]:
+            shot["motion_en"] = parts[4]   # Wan 动态提示词（英文）
+        if len(parts) > 5 and parts[5]:
+            shot["prompt_en"] = parts[5]   # 锁脸提示词（英文）
+        shots.append(shot)
     return shots
 
 
@@ -1537,11 +1546,11 @@ with st.container(border=True):
     st.subheader("③ 分镜脚本")
     with st.expander("✍️ 直接录入分镜（跳过 AI 生成脚本）"):
         manual = st.text_area(
-            "每行一个镜头：画面描述 | 解说词/台词 | 秒数 | 说话人（秒数、说话人可省，默认5秒+旁白）；"
-            "行内没有 | 时整行作为解说词（画面描述自动取解说词）；也可直接粘贴分镜 JSON。"
-            "「镜1：」「1.」等序号前缀会自动去掉",
+            "每行一个镜头：画面描述 | 解说词/台词 | 秒数 | 说话人 | Wan动态提示词(EN) | 锁脸提示词(EN)"
+            "（秒数、说话人、两个英文提示词均可省，默认5秒+旁白+自动生成）；行内没有 | 时整行作为解说词；"
+            "也可直接粘贴分镜 JSON。「镜1：」「1.」等序号前缀会自动去掉",
             height=140, key="manual_shots_text",
-            placeholder="谢安站在淝水岸边，东晋铠甲，远眺远方 | 公元383年，淝水之战一触即发 | 5 | 旁白")
+            placeholder="谢安站在淝水岸边，东晋铠甲，远眺远方 | 公元383年，淝水之战一触即发 | 5 | 旁白 | slow push in on Xie An's face | wide shot, Xie An in Eastern Jin armor...")
         if st.button("✅ 使用这份分镜", key="use_manual_shots"):
             parsed = _parse_manual_shots(manual)
             if not parsed:
@@ -1549,8 +1558,12 @@ with st.container(border=True):
                 st.stop()
             st.session_state.shots = parsed
             st.session_state.making = True
-            for k in ("images", "audios", "video", "seeds", "uploads", "audio_uploads"):
+            for k in ("images", "audios", "video", "seeds", "uploads", "audio_uploads",
+                      "prompts_motion", "prompts_en"):
                 st.session_state.pop(k, None)
+            for _i in range(12):  # 清掉旧的提示词框组件状态，让分镜自带的提示词接管
+                st.session_state.pop(f"mot_{_i}", None)
+                st.session_state.pop(f"pen_{_i}", None)
             st.rerun()
     if shots is None:
         if not st.session_state.get("making"):
@@ -1610,6 +1623,21 @@ with st.container(border=True):
             st.session_state.pop(f"mot_{i}", None)
             if narr_changed:
                 st.session_state.pop("audios", None)  # 解说词变了，配音重生成
+        # 每镜可带的两条英文提示词：录入分镜时自动带出，也可在此手改（留空=后面自动生成）
+        rc1, rc2 = st.columns(2)
+        new_mot = rc1.text_input("Wan动态提示词（EN，可空=自动生成）",
+                                 value=s.get("motion_en", ""), key=f"shot_mot_{i}",
+                                 placeholder="slow push in on the young man's face...")
+        new_pen = rc2.text_input("锁脸提示词（EN，可空=自动生成）",
+                                 value=s.get("prompt_en", ""), key=f"shot_pen_{i}",
+                                 placeholder="medium shot, lince wearing a dark grey...")
+        if new_mot.strip() != s.get("motion_en", "") or new_pen.strip() != s.get("prompt_en", ""):
+            s["motion_en"], s["prompt_en"] = new_mot.strip(), new_pen.strip()
+            st.session_state.shots = shots
+            st.session_state.get("prompts_motion", {}).pop(str(i), None)
+            st.session_state.get("prompts_en", {}).pop(str(i), None)
+            st.session_state.pop(f"mot_{i}", None)
+            st.session_state.pop(f"pen_{i}", None)
     if st.button("↻ 重新生成脚本", key="redo_script"):
         for k in ("shots", "images", "audios", "video", "seeds", "uploads", "audio_uploads"):
             st.session_state.pop(k, None)
@@ -1708,10 +1736,13 @@ with st.container(border=True):
             # 动态提示词：LLM 由「画面描述+台词」合成，可见可改，Wan 只按它动
             mp = st.session_state.setdefault("prompts_motion", {})
             if str(i) not in mp and shots[i]["desc"].strip():
-                try:
-                    mp[str(i)] = gen_motion_prompt(shots[i]["desc"], shots[i].get("narration", ""))
-                except Exception:  # noqa: BLE001
-                    mp[str(i)] = shots[i]["desc"]
+                if shots[i].get("motion_en"):
+                    mp[str(i)] = shots[i]["motion_en"]  # 分镜录入时自带的优先
+                else:
+                    try:
+                        mp[str(i)] = gen_motion_prompt(shots[i]["desc"], shots[i].get("narration", ""))
+                    except Exception:  # noqa: BLE001
+                        mp[str(i)] = shots[i]["desc"]
             if shots[i]["desc"].strip():
                 mp[str(i)] = cols[i].text_area("动态提示词（Wan 用，可改）",
                                                value=mp.get(str(i), ""), key=f"mot_{i}",
@@ -1800,10 +1831,13 @@ with st.container(border=True):
             # 英文提示词可见可改：手动改过就用手动的，否则自动翻译（LLM 缓存，不重复消耗）
             pe = st.session_state.setdefault("prompts_en", {})
             if str(i) not in pe and shots[i]["desc"].strip():
-                try:
-                    pe[str(i)] = gen_prompt_en(shots[i]["desc"], active_char["desc_en"])
-                except Exception:  # noqa: BLE001
-                    pe[str(i)] = ""
+                if shots[i].get("prompt_en"):
+                    pe[str(i)] = shots[i]["prompt_en"]  # 分镜录入时自带的优先
+                else:
+                    try:
+                        pe[str(i)] = gen_prompt_en(shots[i]["desc"], active_char["desc_en"])
+                    except Exception:  # noqa: BLE001
+                        pe[str(i)] = ""
             if shots[i]["desc"].strip():
                 pe[str(i)] = cols[i].text_area("英文提示词（可改）", value=pe.get(str(i), ""),
                                                key=f"pen_{i}", height=68,

@@ -3,14 +3,14 @@
 剧情：士兵要拿下林策 → 青袍谋士出场喝止 → 谋士试探"宝物" → 林策展示手电 → 谋士邀他入府 → 结尾钩子：谋士密报
 
 【分镜录入区】——直接整段复制，贴到杂具小栈 ③"直接录入分镜"里
-（格式：画面描述 | 台词/解说词 | 秒数 | 说话人）
+（格式：画面描述 | 台词 | 秒数 | 说话人 | Wan动态提示词(EN) | 锁脸提示词(EN)，后两项可空=自动生成）
 
-两名士兵挺矛上前要抓人，青年退后半步 | 站住！拿下！ | 4 | 士兵甲
-人群后传来一声清喝，士兵动作一顿 | 住手。此人的器物，某家要了。 | 4 | 谋士
-青袍谋士手持折扇走近，上下打量青年，目光落在他手中的手电上 | 此物何来？何方神兵？ | 5 | 谋士
-青年按下开关，雪亮光柱照亮谋士惊愕的脸 | 这是……千里眼？ | 5 | 谋士
-谋士合拢折扇，侧身做出"请"的手势 | 公子若不嫌弃，请府上一叙。 | 5 | 谋士
-谋士转身离去，特写他摇着折扇低声自语，眼神深沉 | 此子……必须留在汴京。 | 5 | 谋士
+两名士兵挺矛上前要抓人，青年退后半步 | 站住！拿下！ | 4 | 士兵甲 | The two Song dynasty soldiers thrust their spears forward one step; the young man in the modern jacket steps back half a pace; camera slowly pushes in on the young man's face. | medium shot, lince wearing a dark grey modern outdoor jacket and camo hiking backpack, stepping back half a step, facing camera, two Song dynasty Chinese soldiers in lamellar armor pointing long wooden spears at him from both sides of the frame, soldiers' faces hidden in shadow, ancient Chinese city gate with wooden gatehouse at dusk, tense, photorealistic live-action film still, 8k
+人群后传来一声清喝，士兵动作一顿 | 住手。此人的器物，某家要了。 | 4 | 谋士 | The scholar in the teal robe steps out from behind the crowd and raises his folding fan high; the soldiers freeze mid-motion; camera slowly pushes in on the scholar. |
+青袍谋士手持折扇走近，上下打量青年，目光落在他手中的手电上 | 此物何来？何方神兵？ | 5 | 谋士 | The scholar slowly takes half a step around the young man, tapping the folded fan in his palm, looking him up and down; camera pans slightly to follow the scholar. | medium shot, lince wearing a dark grey modern outdoor jacket and camo hiking backpack, facing camera, at the blurred edge of the frame a Song dynasty scholar-official in a teal hanfu robe with goatee studying him closely, holding a folding fan, dusk street market with wooden shops and lanterns, photorealistic live-action film still, 8k
+青年按下开关，雪亮光柱照亮谋士惊愕的脸 | 这是……千里眼？ | 5 | 谋士 | A bright white beam suddenly lights up the scholar's shocked face; his pupils contract and he flinches back slightly; static close-up. |
+谋士合拢折扇，侧身做出"请"的手势 | 公子若不嫌弃，请府上一叙。 | 5 | 谋士 | The scholar closes his folding fan, turns sideways and gestures a polite invitation with his free hand; camera slowly pulls back to reveal both figures. | medium shot, lince wearing a dark grey modern outdoor jacket and camo hiking backpack, facing camera, at the blurred edge a Song dynasty scholar in a teal hanfu robe closing his folding fan and gesturing an invitation, dusk street market, lanterns, photorealistic live-action film still, 8k
+谋士转身离去，特写他摇着折扇低声自语，眼神深沉 | 此子……必须留在汴京。 | 5 | 谋士 | The scholar turns and walks away slowly, twirling the folding fan between his fingers, whispering to himself; camera slowly pushes in on his profile. |
 
 ====================================================
 【提示词区】——锁脸生成时贴到对应镜头的英文提示词框
