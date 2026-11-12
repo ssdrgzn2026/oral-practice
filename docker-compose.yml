@@ -107,12 +107,14 @@ services:
       - OPENAI_MODEL=${OPENAI_MODEL:-Qwen/Qwen3-14B}
       - KLING_API_KEY=${KLING_API_KEY:-}
       - COMFYUI_BASE=${COMFYUI_BASE:-http://host.docker.internal:6006}
+      - AUTODL_SSH_TARGET=${AUTODL_SSH_TARGET:-}
       - VIDEO_LOGIN_REQUIRED=${VIDEO_LOGIN_REQUIRED:-0}
       - ADMIN_PHONES=${ADMIN_PHONES:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./AI视频制作/data:/app/AI视频制作/data
+      - /root/.ssh:/root/.ssh:ro
     command: >
       streamlit run AI视频制作/app.py
       --server.port=8503

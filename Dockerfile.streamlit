@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
     ffmpeg \
     fonts-noto-cjk \
+    openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 # 安装各 Streamlit 系统的依赖（阿里云镜像加速）

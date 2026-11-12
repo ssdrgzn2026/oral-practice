@@ -56,6 +56,13 @@ IMAGE_MODEL = "Kwai-Kolors/Kolors"
 VLM_MODEL = os.environ.get("OPENAI_VLM_MODEL", "Qwen/Qwen3-VL-8B-Instruct")
 # 文生图统一风格后缀，保证多镜画面一致性
 IMG_STYLE_SUFFIX = "，中国风写实插画，电影感光影，细节丰富，高质量"
+# 可选配图风格（Kolors/可灵通道用；ComfyUI 锁脸通道固定写实底模 Juggernaut）
+IMG_STYLES = {
+    "写实电影照片": "，写实电影照片质感，真人实拍风格，电影感光影，细节丰富，高质量",
+    "中国风写实插画": "，中国风写实插画，电影感光影，细节丰富，高质量",
+    "国风水墨": "，中国水墨画风格，留白意境，笔触细腻，高质量",
+    "3D动画电影": "，3D动画电影渲染风格，皮克斯质感，柔和光影，高质量",
+}
 
 SIZES = {"竖屏 576×1024": (576, 1024), "横屏 1024×576": (1024, 576)}
 
@@ -151,6 +158,14 @@ def _client_ip() -> str:
         return ""
 
 
+# 可灵通道仅对站长手机号开放（其他用户一律用 Wan 本地通道）
+KLING_ALLOW_PHONES = {"18601371055"}
+
+
+def kling_allowed() -> bool:
+    return USER_PHONE in KLING_ALLOW_PHONES
+
+
 def is_kling_admin() -> bool:
     if USER_PHONE and USER_PHONE in ADMIN_PHONES:
         return True
@@ -182,9 +197,10 @@ def _kling_quota_inc():
     KLING_QUOTA_FILE.write_text(json.dumps(q), encoding="utf-8")
 
 
-def gen_kling_video(desc: str, size_wh, image_path: str = None, salt: str = "") -> Path:
+def gen_kling_video(desc: str, size_wh, image_path: str = None, salt: str = "",
+                    style_suffix: str = None) -> Path:
     """可灵生成 5 秒动态片段；有配图时用图生视频（以配图为首帧）。salt 用于重抽时绕过缓存"""
-    prompt = desc.rstrip("，。") + IMG_STYLE_SUFFIX
+    prompt = desc.rstrip("，。") + (style_suffix or IMG_STYLE_SUFFIX)
     img_b64 = ""
     if image_path:
         img_b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
@@ -326,6 +342,137 @@ def gen_wan_i2v(desc: str, image_path: str, size_wh, salt: str = "") -> Path:
     return out
 
 
+# ========== LoRA 训练中心（走 AutoDL SSH，4090 约1小时一个角色） ==========
+AUTODL_SSH = os.environ.get("AUTODL_SSH_TARGET", "")  # 如 "-p 38495 root@connect.bjb2.seetacloud.com"
+LORA_JOB_DIR = CACHE_DIR / "lora_jobs"
+LORA_JOB_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _ssh_autodl(cmd: str, timeout: int = 120):
+    """在 AutoDL 实例上执行命令（依赖阿里云上的免密密钥，与 comfy-tunnel 同一把）"""
+    import shlex
+    if not AUTODL_SSH:
+        raise RuntimeError("服务器未配置 AUTODL_SSH_TARGET")
+    full = f"ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 {AUTODL_SSH} {shlex.quote(cmd)}"
+    r = subprocess.run(full, shell=True, capture_output=True, text=True, timeout=timeout)
+    return r.returncode, r.stdout, r.stderr
+
+
+def _lora_job(trigger: str) -> dict:
+    f = LORA_JOB_DIR / f"{trigger}.json"
+    try:
+        return json.loads(f.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def _lora_job_save(trigger: str, job: dict):
+    (LORA_JOB_DIR / f"{trigger}.json").write_text(
+        json.dumps(job, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def lora_train_start(trigger: str, desc_en: str, images: list,
+                     repeats: int = 10, epochs: int = 8):
+    """启动一个角色的 LoRA 训练：传图 → 建数据集 → nohup 后台训练"""
+    import shlex
+    names = []
+    for j, b in enumerate(images):
+        n = f"lora_{trigger}_{j:02d}.png"
+        r = requests.post(f"{COMFY_BASE}/upload/image",
+                          files={"image": (n, b)}, timeout=60)
+        r.raise_for_status()
+        names.append(n)
+    data_dir = f"/root/autodl-tmp/lora_train/img_{trigger}"
+    cap = f"{trigger}, {desc_en}, cinematic photo"
+    cmds = [f"mkdir -p {data_dir}/{repeats}_{trigger} /root/autodl-tmp/lora_train/model /root/autodl-tmp/lora_train/log"]
+    for n in names:
+        cmds.append(f"cp /root/autodl-tmp/ComfyUI/input/{n} {data_dir}/{repeats}_{trigger}/{n}")
+        cmds.append(f"printf '%s' {shlex.quote(cap)} > {data_dir}/{repeats}_{trigger}/{n[:-4]}.txt")
+    rc, out, err = _ssh_autodl(" && ".join(cmds))
+    if rc != 0:
+        raise RuntimeError(f"建数据集失败：{err[-300:]}")
+    train = (
+        f"cd /root/autodl-tmp/kohya && HF_ENDPOINT=https://hf-mirror.com "
+        f"nohup /root/miniconda3/bin/accelerate launch --num_cpu_threads_per_process=2 sdxl_train_network.py "
+        f"--pretrained_model_name_or_path=/root/autodl-tmp/ComfyUI/models/checkpoints/Juggernaut-XL_v9.safetensors "
+        f"--train_data_dir={data_dir} --output_dir=/root/autodl-tmp/lora_train/model "
+        f"--logging_dir=/root/autodl-tmp/lora_train/log "
+        f"--output_name={trigger} --save_model_as=safetensors "
+        f"--network_module=networks.lora --network_dim=64 --network_alpha=32 "
+        f"--resolution=1024,1024 --enable_bucket --min_bucket_reso=512 --max_bucket_reso=1536 --bucket_no_upscale "
+        f"--learning_rate=1e-4 --optimizer_type=AdamW8bit "
+        f"--max_train_epochs={epochs} --save_every_n_epochs=2 "
+        f"--mixed_precision=bf16 --cache_latents --cache_latents_to_disk --gradient_checkpointing "
+        f"--max_data_loader_n_workers=2 --persistent_data_loader_workers "
+        f"--caption_extension=.txt --shuffle_caption --keep_tokens=1 "
+        f"> /root/autodl-tmp/lora_train/log/{trigger}.log 2>&1 & echo $!"
+    )
+    rc, out, err = _ssh_autodl(train)
+    if rc != 0 or not out.strip().isdigit():
+        raise RuntimeError(f"启动训练失败：{out[-200:]} {err[-200:]}")
+    _lora_job_save(trigger, {"pid": int(out.strip()), "started": time.time(),
+                             "epochs": epochs, "n_images": len(images), "stage": "training"})
+
+
+def lora_train_status(trigger: str) -> tuple:
+    """返回 (stage, 说明文字)。stage: training / done / failed / deployed"""
+    job = _lora_job(trigger)
+    if not job:
+        return ("none", "无训练记录")
+    if job.get("stage") == "deployed":
+        return ("deployed", "已部署并入库")
+    rc, out, _ = _ssh_autodl(
+        f"ls /root/autodl-tmp/lora_train/model/{trigger}.safetensors 2>/dev/null; "
+        f"tail -3 /root/autodl-tmp/lora_train/log/{trigger}.log 2>/dev/null")
+    lines = out.strip().splitlines()
+    if lines and lines[0].endswith(f"{trigger}.safetensors"):
+        return ("done", "训练完成，待部署验收")
+    if rc == 0 and out.strip():
+        last = lines[-1][:150] if lines else ""
+        rc2, out2, _ = _ssh_autodl(f"ps -p {job.get('pid', 0)} -o etime= 2>/dev/null")
+        if out2.strip():
+            return ("training", f"训练中（已运行 {out2.strip()}）：{last}")
+        return ("failed", f"训练进程已退出但未产出模型：{last}")
+    return ("training", "日志暂不可读，训练中…")
+
+
+def lora_deploy(trigger: str):
+    """把训好的 LoRA 部署到 ComfyUI 模型目录"""
+    rc, out, err = _ssh_autodl(
+        f"cp /root/autodl-tmp/lora_train/model/{trigger}.safetensors "
+        f"/root/autodl-tmp/ComfyUI/models/loras/{trigger}.safetensors && ls -lh /root/autodl-tmp/ComfyUI/models/loras/{trigger}.safetensors")
+    if rc != 0:
+        raise RuntimeError(f"部署失败：{err[-300:]}")
+    job = _lora_job(trigger)
+    job["stage"] = "deployed"
+    _lora_job_save(trigger, job)
+
+
+def lora_validate(trigger: str, desc_en: str) -> tuple:
+    """LoRA 验收：同一底模跑两张对照（写服装 / 不写服装），返回两张图路径"""
+    with open(LORA_WF_FILE, encoding="utf-8") as f:
+        wf = json.load(f)
+    wf["40"]["inputs"]["lora_name"] = f"{trigger}.safetensors"
+    ckpt = os.environ.get("COMFY_CHECKPOINT", "").strip()
+    if ckpt:
+        wf["4"]["inputs"]["ckpt_name"] = ckpt
+    outs = []
+    for tag, prompt in (
+        ("A", f"cinematic photo of {trigger}, a young man wearing {desc_en}, "
+              f"standing in a Song dynasty street market at dusk, lanterns, movie quality"),
+        ("B", f"cinematic photo of {trigger}, a young man standing in a bustling "
+              f"Song dynasty street market at dusk, lanterns, movie quality"),
+    ):
+        wf["22"]["inputs"]["text"] = prompt
+        wf["3"]["inputs"]["seed"] = int(time.time() * 1000) % (2**31)
+        key = _sha(f"loraval|{trigger}|{tag}|{prompt}")
+        out = COMFY_DIR / f"{key}.png"
+        if not out.exists():
+            out.write_bytes(_comfy_run(wf))
+        outs.append(out)
+    return tuple(outs)
+
+
 # ========== ComfyUI（PuLID 锁脸配图，可选；默认关，隧道连通即用） ==========
 COMFY_BASE = os.environ.get("COMFYUI_BASE", "http://127.0.0.1:6006").rstrip("/")
 COMFY_DIR = CACHE_DIR / "comfy"          # ComfyUI 生成的锁脸图缓存
@@ -409,7 +556,7 @@ def delete_character(name: str, public: bool = False):
 # ========== 项目存档（刷新不丢状态） ==========
 PROJ_KEYS = ("topic", "script", "shots", "images", "audios", "video",
              "prompts_en", "prompts_motion", "pulid_history", "kling_history", "kling_src",
-             "active_char", "n_shots", "aspect_idx", "making")
+             "active_char", "n_shots", "aspect_idx", "making", "make_mode", "img_style")
 
 
 def save_project(name: str):
@@ -433,8 +580,12 @@ def load_project(name: str):
 
 
 def autosave():
-    """每次页面重跑后自动落盘（有项目名才生效）；容错，绝不让保存失败拖垮页面"""
+    """每次页面重跑后自动落盘；无项目名时自动生成一个，全程无需手动保存；容错，绝不让保存失败拖垮页面"""
     name = st.session_state.get("proj_name", "")
+    if not name.strip() and st.session_state.get("shots"):
+        topic = re.sub(r"\s+", "", st.session_state.get("topic", ""))[:8] or "未命名"
+        name = f"{topic}_{time.strftime('%m%d_%H%M')}"
+        st.session_state.proj_name = name
     if name.strip() and st.session_state.get("shots"):
         try:
             save_project(name)
@@ -863,9 +1014,9 @@ def _parse_manual_shots(text: str) -> list:
 
 
 # ========== 第 4 步：文生图 ==========
-def gen_image(desc: str, size: str, seed: int = 0) -> Path:
+def gen_image(desc: str, size: str, seed: int = 0, style_suffix: str = None) -> Path:
     """Kolors 中文原生模型，直接用中文描述；seed 用于单镜重跑时绕过缓存/换随机性"""
-    prompt = desc.rstrip("，。") + IMG_STYLE_SUFFIX
+    prompt = desc.rstrip("，。") + (style_suffix or IMG_STYLE_SUFFIX)
     key = _sha(f"img|{IMAGE_MODEL}|{prompt}|{size}|{seed}")
     out = IMG_DIR / f"{key}.png"
     if out.exists():
@@ -1240,7 +1391,7 @@ def render_assets():
     """🎭 资产库页：角色卡/场景库/群演库/道具库"""
     st.subheader("🎭 资产库")
     st.caption("角色、场景、群演、道具——建在这里，制作页直接调用")
-    t1, t2, t3, t4 = st.tabs(["👤 角色卡", "🏯 场景库", "👥 群演库", "🗡 道具库"])
+    t1, t2, t3, t4, t5 = st.tabs(["👤 角色卡", "🏯 场景库", "👥 群演库", "🗡 道具库", "🏋 LoRA 训练"])
     with t1:
         st.caption("🟢 ComfyUI 在线" if comfy_online() else "⚪ ComfyUI 离线（锁脸生成不可用）")
         # 角色卡：支持一人多面（正面/侧面/全身多张定妆图）
@@ -1319,6 +1470,69 @@ def render_assets():
                 st.rerun()
     with t4:
         _asset_tab("props", "道具", "a black modern tactical flashlight, rugged, metal body")
+    with t5:
+        st.caption("短剧角色定妆流水线：上传 15~30 张角色图 → AutoDL 4090 训练约 1 小时 → 部署 → 出两张对照图验收 → 入角色库。主要角色一人一档，开拍前一并训好。")
+        if not AUTODL_SSH:
+            st.warning("服务器未配置 AUTODL_SSH_TARGET，训练功能不可用（需在阿里云 .env 配置后重启）")
+        elif not comfy_online():
+            st.warning("⚪ ComfyUI 离线，训练不可用（需 AutoDL 开机 + 隧道连通）")
+        else:
+            lc1, lc2 = st.columns(2)
+            l_name = lc1.text_input("角色名（入库用）", key="lora_name", placeholder="如：谋士-沈砚")
+            l_trig = lc2.text_input("触发词（英文小写，唯一）", key="lora_trig", placeholder="如：shenyan")
+            l_desc = st.text_area("角色外貌/服装描述（英文，训练 caption 用）", key="lora_desc",
+                                  placeholder="a middle-aged Song dynasty scholar, goatee, teal hanfu robe, holding a folding fan",
+                                  height=90)
+            l_files = st.file_uploader("训练图（15~30 张，正脸/半身/全身混合）",
+                                       type=["png", "jpg", "jpeg"],
+                                       accept_multiple_files=True, key="lora_files")
+            trig = l_trig.strip()
+            stage, stage_txt = lora_train_status(trig) if trig else ("none", "")
+            if stage == "training":
+                st.info(f"⏳ {stage_txt}（训练约 1 小时，可离开此页，回来点下方刷新）")
+                if st.button("↻ 刷新训练进度", key="lora_refresh"):
+                    st.rerun()
+            elif stage == "done":
+                st.success("✅ 训练完成")
+                if st.button("📦 部署到 ComfyUI 并生成验收图（约2分钟）", key="lora_deploy"):
+                    with st.spinner("部署中 + 跑验收对照图…"):
+                        try:
+                            lora_deploy(trig)
+                            va, vb = lora_validate(trig, l_desc or "dark grey modern outdoor jacket")
+                            st.session_state.lora_val = {"trigger": trig, "name": l_name,
+                                                         "desc": l_desc, "a": str(va), "b": str(vb)}
+                            st.rerun()
+                        except Exception as e:  # noqa: BLE001
+                            st.error(f"部署/验收失败：{e}")
+            elif stage == "failed":
+                st.error(f"❌ {stage_txt}")
+            elif st.button("🚀 开始训练（约1小时）", key="lora_go", type="primary",
+                           disabled=not (l_name.strip() and trig and l_desc.strip()
+                                         and l_files and len(l_files) >= 10)):
+                with st.spinner("上传训练图并启动训练…"):
+                    try:
+                        lora_train_start(trig, l_desc.strip(),
+                                         [f.getvalue() for f in l_files])
+                        st.success(f"已启动：{len(l_files)} 张图，触发词 {trig}")
+                        st.rerun()
+                    except Exception as e:  # noqa: BLE001
+                        st.error(f"启动失败：{e}")
+            if trig and stage in ("none",) and not (l_files and len(l_files) >= 10):
+                st.caption("至少 10 张训练图才能开始（建议 15~30 张）")
+            # 验收区：两张对照图，人眼判断后一键入库
+            val = st.session_state.get("lora_val")
+            if val and val.get("trigger") == trig:
+                st.markdown("**验收对照**（左：写服装｜右：不写服装）")
+                vc1, vc2 = st.columns(2)
+                vc1.image(val["a"], use_container_width=True)
+                vc2.image(val["b"], use_container_width=True)
+                st.caption("判断标准：两张脸都是同一人=锁脸合格；右图服装漂移属正常（提示词需带服装短语）")
+                if st.button("✅ 验收通过，存入角色库", key="lora_accept", type="primary"):
+                    save_character(val["name"].strip() or trig, val["desc"].strip(), [],
+                                   lora=f"{trig}.safetensors", trigger=trig)
+                    st.session_state.pop("lora_val", None)
+                    st.success(f"「{val['name'] or trig}」已入库，制作页可选")
+                    st.rerun()
 
 
 def render_prompts():
@@ -1417,7 +1631,8 @@ with st.container(border=True):
     pj1.text_input("📁 项目名（启用后所有进度自动保存，刷新/换电脑不丢）",
                    value=st.session_state.get("proj_name", ""), key="proj_name_input",
                    placeholder="如：持械入宋-01")
-    st.session_state.proj_name = st.session_state.proj_name_input  # 输入即绑定项目
+    if st.session_state.get("proj_name_input", "").strip() or not st.session_state.get("proj_name"):
+        st.session_state.proj_name = st.session_state.proj_name_input  # 输入即绑定项目；空输入不覆盖自动命名
     if pj2.button("💾 保存项目", use_container_width=True):
         st.session_state.proj_name = st.session_state.proj_name_input
         save_project(st.session_state.proj_name)
@@ -1441,6 +1656,16 @@ with st.container(border=True):
                          placeholder="两种用法：\n· 写主题（如：三分钟讲清淝水之战）→ 点「生成文案」\n· 直接粘贴完整口播文案 → 点「直接手写/粘贴文案」")
     n_shots = c2.slider("分镜数", 3, 8, st.session_state.get("n_shots", 5))
     aspect_label = c3.radio("画幅", list(SIZES.keys()), index=st.session_state.get("aspect_idx", 0))
+    make_mode = st.radio("制作类型", ["普通视频", "短剧（角色锁脸）"], horizontal=True,
+                         key="make_mode",
+                         help="短剧=主要角色需先锁定形象：先到「资产库 → LoRA训练」给每个主角训练并验收，再回到这里分镜、逐镜指定锁脸角色；普通视频跳过此步")
+    if make_mode.startswith("短剧"):
+        _chars = load_characters()
+        _loras = [n for n, v in _chars.items() if (v.get("lora") or "").strip()]
+        if _loras:
+            st.success(f"已就绪 LoRA 角色：{'、'.join(_loras)}。分镜里可逐镜指定锁脸角色；新角色到「资产库 → 🏋 LoRA训练」")
+        else:
+            st.warning("短剧模式：请先到「资产库 → 🏋 LoRA训练」给主要角色训练定妆（一人一档，可多个角色同时备），完成验收后再回来分镜。")
     bc1, bc2 = st.columns(2)
     gen_clicked = bc1.button("✍️ 生成文案", use_container_width=True)
     if gen_clicked:
@@ -1638,6 +1863,18 @@ with st.container(border=True):
             st.session_state.get("prompts_en", {}).pop(str(i), None)
             st.session_state.pop(f"mot_{i}", None)
             st.session_state.pop(f"pen_{i}", None)
+        # 短剧模式：逐镜指定锁脸角色（无林策的镜头选「不锁脸」）
+        if st.session_state.get("make_mode", "").startswith("短剧"):
+            _chars3 = load_characters()
+            if _chars3:
+                _opts = ["（不锁脸）"] + list(_chars3.keys())
+                _cur = s.get("char") or "（不锁脸）"
+                _sel = st.selectbox(f"镜头 {i+1} 锁脸角色", _opts,
+                                    index=_opts.index(_cur) if _cur in _opts else 0,
+                                    key=f"shot_char_{i}")
+                if _sel != _cur:
+                    s["char"] = _sel
+                    st.session_state.shots = shots
     if st.button("↻ 重新生成脚本", key="redo_script"):
         for k in ("shots", "images", "audios", "video", "seeds", "uploads", "audio_uploads"):
             st.session_state.pop(k, None)
@@ -1646,6 +1883,10 @@ with st.container(border=True):
 # ========== 第 4 步：文生图 ==========
 with st.container(border=True):
     st.subheader("④ 分镜配图（Kolors · ComfyUI 锁脸）")
+    style_col, _ = st.columns([1, 2])
+    img_style = style_col.selectbox("配图风格（Kolors/可灵通道；锁脸通道固定写实）",
+                                    list(IMG_STYLES.keys()), key="img_style")
+    STYLE_SUFFIX = IMG_STYLES[img_style]
     uploads = st.session_state.setdefault("uploads", {})  # 镜头序号(str) -> 自定义图片路径
 
     # ---- 锁脸角色选择（角色卡在「资产库」页管理）----
@@ -1681,7 +1922,8 @@ with st.container(border=True):
                     if Path(p).name.startswith("ph_") and shots[i]["desc"].strip()]
             for j, i in enumerate(todo):
                 try:
-                    images[i] = str(gen_image(shots[i]["desc"], size_str))
+                    images[i] = str(gen_image(shots[i]["desc"], size_str,
+                                              style_suffix=STYLE_SUFFIX))
                     uploads.pop(str(i), None)
                 except Exception as e:  # noqa: BLE001
                     st.error(f"镜头 {i+1} 配图失败：{e}")
@@ -1725,7 +1967,8 @@ with st.container(border=True):
             if cols[i].button("✨ 生成此图（AI）", key=f"gen_img_{i}", use_container_width=True):
                 with st.spinner(f"生成镜头 {i+1} AI 配图…"):
                     try:
-                        images[i] = str(gen_image(shots[i]["desc"], size_str))
+                        images[i] = str(gen_image(shots[i]["desc"], size_str,
+                                                  style_suffix=STYLE_SUFFIX))
                         uploads.pop(str(i), None)
                         st.session_state.images = images
                         st.session_state.pop("video", None)
@@ -1763,7 +2006,7 @@ with st.container(border=True):
                         st.rerun()
                     except Exception as e:  # noqa: BLE001
                         st.error(f"镜头 {i+1} Wan 生成失败：{e}")
-        if KLING_KEY and not is_video:
+        if KLING_KEY and kling_allowed() and not is_video:
             left = kling_quota_left()
             admin = is_kling_admin()
             quota_note = "站长不限量" if admin else f"今日余 {left}"
@@ -1772,7 +2015,8 @@ with st.container(border=True):
                 with st.spinner(f"可灵正在生成镜头 {i+1} 动态片段（约1~5分钟）…"):
                     try:
                         st.session_state.setdefault("kling_src", {})[str(i)] = p  # 记住首帧，供重抽用
-                        images[i] = str(gen_kling_video(shots[i]["desc"], size_wh, image_path=p))
+                        images[i] = str(gen_kling_video(shots[i]["desc"], size_wh, image_path=p,
+                                                        style_suffix=STYLE_SUFFIX))
                         st.session_state.setdefault("kling_history", {}).setdefault(
                             str(i), []).append(images[i])
                         st.session_state.images = images
@@ -1799,7 +2043,7 @@ with st.container(border=True):
                         st.rerun()
                     except Exception as e:  # noqa: BLE001
                         st.error(f"镜头 {i+1} 重抽失败：{e}")
-        if KLING_KEY and is_video and khist:
+        if KLING_KEY and kling_allowed() and is_video and khist:
             left = kling_quota_left()
             admin = is_kling_admin()
             quota_note = "站长不限量" if admin else f"今日余 {left}"
@@ -1810,7 +2054,7 @@ with st.container(border=True):
                         src = st.session_state.get("kling_src", {}).get(str(i))
                         images[i] = str(gen_kling_video(
                             shots[i]["desc"], size_wh, image_path=src,
-                            salt=str(time.time())))
+                            salt=str(time.time()), style_suffix=STYLE_SUFFIX))
                         khist.append(images[i])
                         st.session_state.images = images
                         st.session_state.pop("video", None)
@@ -1827,7 +2071,14 @@ with st.container(border=True):
                         st.session_state.images = images
                         st.session_state.pop("video", None)
                         st.rerun()
-        if active_char and not is_video:
+        # 本镜锁脸角色：分镜里逐镜指定的优先，否则用全局选择
+        char_i = None
+        _sc = shots[i].get("char", "")
+        if _sc and _sc != "（不锁脸）":
+            char_i = chars.get(_sc)
+        if char_i is None and active_char is not None and _sc != "（不锁脸）":
+            char_i = active_char
+        if char_i and not is_video:
             # 英文提示词可见可改：手动改过就用手动的，否则自动翻译（LLM 缓存，不重复消耗）
             pe = st.session_state.setdefault("prompts_en", {})
             if str(i) not in pe and shots[i]["desc"].strip():
@@ -1835,7 +2086,7 @@ with st.container(border=True):
                     pe[str(i)] = shots[i]["prompt_en"]  # 分镜录入时自带的优先
                 else:
                     try:
-                        pe[str(i)] = gen_prompt_en(shots[i]["desc"], active_char["desc_en"])
+                        pe[str(i)] = gen_prompt_en(shots[i]["desc"], char_i["desc_en"])
                     except Exception:  # noqa: BLE001
                         pe[str(i)] = ""
             if shots[i]["desc"].strip():
@@ -1853,15 +2104,16 @@ with st.container(border=True):
                                 st.session_state.prompts_en[str(i)] = ttext
                                 st.session_state.pop(f"pen_{i}", None)
                                 st.rerun()
+            _char_label = _sc if (_sc and _sc != "（不锁脸）") else st.session_state.active_char
             if not is_online:
                 cols[i].button("🔒 锁脸生成（离线）", key=f"pulid_{i}",
                                use_container_width=True, disabled=True)
-            elif cols[i].button(f"🔒 锁脸生成（{st.session_state.active_char}）",
+            elif cols[i].button(f"🔒 锁脸生成（{_char_label}）",
                                 key=f"pulid_{i}", use_container_width=True):
                 with st.spinner(f"ComfyUI 正在锁脸生成镜头 {i+1}（约1分钟）…"):
                     try:
                         seeds[i] = int(time.time() * 1000) % (2**31)  # 每次点击换新种子（抽卡）
-                        images[i] = str(gen_comfy_pulid(shots[i]["desc"], active_char,
+                        images[i] = str(gen_comfy_pulid(shots[i]["desc"], char_i,
                                                         size_wh, seed=seeds[i],
                                                         prompt_en=pe.get(str(i)) or None))
                         st.session_state.setdefault("pulid_history", {}).setdefault(
@@ -1875,7 +2127,8 @@ with st.container(border=True):
         if cols[i].button("↻ 重生成此图", key=f"redo_img_{i}", use_container_width=True):
             seeds[i] = int(time.time() * 1000) % (2**31)
             with st.spinner(f"重新生成镜头 {i+1} 配图…"):
-                images[i] = str(gen_image(shots[i]["desc"], size_str, seed=seeds[i]))
+                images[i] = str(gen_image(shots[i]["desc"], size_str, seed=seeds[i],
+                                          style_suffix=STYLE_SUFFIX))
             uploads.pop(str(i), None)  # AI 重生成后恢复为 AI 来源
             st.session_state.images = images
             st.session_state.pop("video", None)
