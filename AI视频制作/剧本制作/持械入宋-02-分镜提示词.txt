@@ -10,12 +10,14 @@
 ====================================================
 【提示词区】——锁脸生成时贴到对应镜头的英文提示词框
 角色：林策（深灰冲锋衣、迷彩背包）
+⚠️ 提醒：凡出现士兵/路人/配角，必须写明朝代+服饰（如 Song dynasty Chinese soldiers in lamellar armor），
+     否则写实底模默认画成现代人。
 
 【镜头 1】士兵拦阻（🔒 锁脸）
-close-up, the young man wears NO armor, NO ancient clothing: a 25 years old Chinese young man with short black hair wearing a dark grey modern outdoor jacket and camo hiking backpack, facing camera with hands raised innocently, only his face visible in the frame, two long spear tips entering the frame from both sides pointing at him, soldiers hidden in shadow, ancient city gate at dusk, tense atmosphere, photorealistic live-action film still, 8k
+close-up, the young man wears NO armor, NO ancient clothing: a 25 years old Chinese young man with short black hair wearing a dark grey modern outdoor jacket and camo hiking backpack, facing camera with hands raised innocently, only his face visible in the frame, two Song dynasty soldiers in lamellar armor pointing long wooden spears, spear tips entering the frame from both sides pointing at him, soldiers hidden in shadow, ancient Chinese city gate with wooden gatehouse at dusk, tense atmosphere, photorealistic live-action film still, 8k
 
 【镜头 2】林策拱手（🔒 锁脸）
-close-up, the young man wears NO robe, NO ancient clothing: a 25 years old Chinese young man with short black hair wearing a dark grey modern outdoor jacket and camo hiking backpack, calmly cupping one fist in the other hand in a traditional greeting gesture, composed confident expression, ancient city gate blurred in the background, dusk light, photorealistic live-action film still, 8k
+close-up, the young man wears NO robe, NO ancient clothing: a 25 years old Chinese young man with short black hair wearing a dark grey modern outdoor jacket and camo hiking backpack, calmly cupping one fist in the other hand in a traditional greeting gesture, composed confident expression, ancient Chinese city gate with wooden gatehouse blurred in the background, dusk light, photorealistic live-action film still, 8k
 
 【镜头 3】士兵面面相觑（⚠️ 不锁脸！画面无林策）
 直接点【可灵动态片段】走文生视频，可灵中文理解即可。
