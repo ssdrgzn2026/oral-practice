@@ -1,0 +1,42 @@
+《持械入宋》第3集 · 分镜与提示词
+====================================================
+剧情：士兵要拿下林策 → 青袍谋士出场喝止 → 谋士试探"宝物" → 林策展示手电 → 谋士邀他入府 → 结尾钩子：谋士密报
+
+【分镜录入区】——直接整段复制，贴到杂具小栈 ③"直接录入分镜"里
+（格式：画面描述 | 台词/解说词 | 秒数 | 说话人）
+
+两名士兵挺矛上前要抓人，青年退后半步 | 站住！拿下！ | 4 | 士兵甲
+人群后传来一声清喝，士兵动作一顿 | 住手。此人的器物，某家要了。 | 4 | 谋士
+青袍谋士手持折扇走近，上下打量青年，目光落在他手中的手电上 | 此物何来？何方神兵？ | 5 | 谋士
+青年按下开关，雪亮光柱照亮谋士惊愕的脸 | 这是……千里眼？ | 5 | 谋士
+谋士合拢折扇，侧身做出"请"的手势 | 公子若不嫌弃，请府上一叙。 | 5 | 谋士
+谋士转身离去，特写他摇着折扇低声自语，眼神深沉 | 此子……必须留在汴京。 | 5 | 谋士
+
+====================================================
+【提示词区】——锁脸生成时贴到对应镜头的英文提示词框
+角色：林策（LoRA 通道：lince_v1.safetensors，触发词 lince）
+注意：镜头 2、4 是谋士单人镜头（无林策），不锁脸，走可灵或 Kolors；
+     谋士的形象建议：青色长袍、折扇、山羊须、中年文士。
+====================================================
+
+【镜头 1】士兵上前（🔒 锁脸）
+medium shot, lince wearing a dark grey modern outdoor jacket and camo hiking backpack, stepping back half a step, facing camera, two spear tips pointing at him from both sides of the frame, soldiers' faces hidden in shadow, ancient city gate at dusk, tense, photorealistic live-action film still, 8k
+
+【镜头 2】谋士喝止（⚠️ 不锁脸）
+中文画面描述已够用，直接点【可灵动态片段】或 Kolors 配图：
+人群后一位青色长袍的中年谋士手持折扇高声喝止，士兵动作一顿，黄昏街市
+
+【镜头 3】谋士打量（🔒 锁脸，林策为主体）
+medium shot, lince wearing a dark grey modern outdoor jacket and camo hiking backpack, facing camera, being examined, at the blurred edge of the frame a Song dynasty scholar in a teal robe studying him closely with a folding fan, dusk street, photorealistic live-action film still, 8k
+
+【镜头 4】光柱惊谋士（⚠️ 不锁脸；谋士特写）
+中文描述：谋士的特写，一道雪亮的光柱照亮他惊愕的脸，折扇差点脱手
+做法：可灵文生视频直接出
+
+【镜头 5】谋士相请（🔒 锁脸）
+medium shot, lince wearing a dark grey modern outdoor jacket and camo hiking backpack, facing camera, at the blurred edge a scholar in teal robe closing his folding fan and gesturing an invitation, dusk street market, photorealistic live-action film still, 8k
+
+【镜头 6】谋士密语（⚠️ 不锁脸；结尾钩子）
+中文描述：谋士转身离去的背影特写，摇着折扇低声自语，眼神深沉，夜市灯火
+做法：可灵文生视频直接出
+====================================================
