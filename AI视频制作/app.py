@@ -274,8 +274,8 @@ def _comfy_run_video(wf: dict, timeout_min: int = 25) -> bytes:
 
 
 def gen_motion_prompt(desc: str, narration: str) -> str:
-    """把「画面描述+台词」合成 Wan 图生视频的动态提示词（中文，Wan 原生支持）。sha1 缓存"""
-    key = _sha(f"motion-v1|{CHAT_MODEL}|{desc}|{narration}")
+    """把「画面描述+台词」合成 Wan 图生视频的动态提示词（英文，镜头术语更稳）。sha1 缓存"""
+    key = _sha(f"motion-v2|{CHAT_MODEL}|{desc}|{narration}")
     cache = SCRIPT_DIR / f"{key}.txt"
     if cache.exists():
         return cache.read_text(encoding="utf-8")
@@ -283,10 +283,10 @@ def gen_motion_prompt(desc: str, narration: str) -> str:
         "你是图生视频模型（Wan2.2）的动态提示词工程师。首帧画面已经固定（内容见画面描述），"
         "你的任务只是描述画面中已有元素如何运动。\n"
         "要求：\n"
-        "1. 只写首帧里可见的东西怎么动：主体的一个简单动作 + 镜头运动（缓慢推近/拉远/横移/固定）；\n"
+        "1. 只写首帧里可见的东西怎么动：主体的一个简单动作 + 镜头运动（slow push in / pull back / pan / static）；\n"
         "2. 动作要与台词的情绪和内容匹配（如台词是喝止→士兵动作一顿、谋士抬手）；\n"
         "3. 5 秒时长，运动幅度小而稳；禁止画面切换、禁止新人物入场、禁止出现首帧里没有的东西；\n"
-        "4. 只输出动态提示词本身，一两句话，不超过 60 字。\n\n"
+        "4. 用英文输出，只输出动态提示词本身，一两句话，不超过 40 个英文单词。\n\n"
         f"画面描述：{desc}\n台词/解说词：{narration}"
     )
     r = requests.post(f"{BASE_URL}/chat/completions", headers=_api_headers(),

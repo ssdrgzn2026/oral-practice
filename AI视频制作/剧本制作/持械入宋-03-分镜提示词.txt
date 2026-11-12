@@ -42,3 +42,31 @@ medium shot, lince wearing a dark grey modern outdoor jacket and camo hiking bac
 中文描述：谋士转身离去的背影特写，摇着折扇低声自语，眼神深沉，夜市灯火
 做法：可灵文生视频直接出
 ====================================================
+
+【Wan 动态提示词区】——点「Wan·主力」前贴进动态提示词框（英文优先，Wan 镜头术语更稳；附中文对照）
+规则：只写首帧里已有的东西怎么动；一个简单动作+一个镜头运动；5秒小幅度；禁止新人物/新道具
+
+【镜头 1】士兵上前
+EN: The two Song dynasty soldiers thrust their spears forward one step; the young man in the modern jacket steps back half a pace; camera slowly pushes in on the young man's face.
+中：两名宋兵挺矛逼近一步，青年退后半步，镜头缓慢推近青年面部。
+
+【镜头 2】谋士喝止（谋士单人）
+EN: The scholar in the teal robe steps out from behind the crowd and raises his folding fan high; the soldiers freeze mid-motion; camera slowly pushes in on the scholar.
+中：青袍谋士从人群后迈出，折扇高举，士兵动作一顿停住，镜头缓慢推近谋士。
+
+【镜头 3】谋士打量
+EN: The scholar slowly takes half a step around the young man, tapping the folded fan in his palm, looking him up and down; camera pans slightly to follow the scholar.
+中：谋士绕着青年缓步半步，折扇轻敲掌心上下打量，镜头跟随谋士轻微横移。
+
+【镜头 4】光柱惊谋士（谋士特写）
+EN: A bright white beam suddenly lights up the scholar's shocked face; his pupils contract and he flinches back slightly, the folding fan almost slipping from his hand; static close-up.
+中：一道雪亮光柱骤然照亮谋士惊愕的脸，他瞳孔猛缩上身微仰，折扇差点脱手，镜头固定特写。
+
+【镜头 5】谋士相请
+EN: The scholar closes his folding fan, turns sideways and gestures a polite invitation with his free hand; camera slowly pulls back to reveal both figures.
+中：谋士合拢折扇，侧身抬手做出"请"的手势，镜头缓慢拉远。
+
+【镜头 6】谋士密语（结尾钩子）
+EN: The scholar turns and walks away slowly, twirling the folding fan between his fingers, whispering to himself with a deep look in his eyes; camera slowly pushes in on his profile.
+中：谋士转身缓步离去，折扇在指间轻摇，侧脸低语眼神深沉，镜头缓慢推近他的侧脸。
+====================================================
