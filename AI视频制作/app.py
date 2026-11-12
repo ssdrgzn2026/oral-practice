@@ -405,7 +405,7 @@ def lora_train_start(trigger: str, desc_en: str, images: list,
         f"--mixed_precision=bf16 --cache_latents --cache_latents_to_disk --gradient_checkpointing "
         f"--max_data_loader_n_workers=2 --persistent_data_loader_workers "
         f"--caption_extension=.txt --shuffle_caption --keep_tokens=1 "
-        f"> /root/autodl-tmp/lora_train/log/{trigger}.log 2>&1 & echo $!"
+        f"> /root/autodl-tmp/lora_train/log/{trigger}.log 2>&1 < /dev/null & echo $!"
     )
     rc, out, err = _ssh_autodl(train)
     if rc != 0 or not out.strip().isdigit():
@@ -417,8 +417,6 @@ def lora_train_start(trigger: str, desc_en: str, images: list,
 def lora_train_status(trigger: str) -> tuple:
     """返回 (stage, 说明文字)。stage: training / done / failed / deployed"""
     job = _lora_job(trigger)
-    if not job:
-        return ("none", "无训练记录")
     if job.get("stage") == "deployed":
         return ("deployed", "已部署并入库")
     rc, out, _ = _ssh_autodl(
@@ -427,6 +425,8 @@ def lora_train_status(trigger: str) -> tuple:
     lines = out.strip().splitlines()
     if lines and lines[0].endswith(f"{trigger}.safetensors"):
         return ("done", "训练完成，待部署验收")
+    if not job:
+        return ("none", "无训练记录")
     if rc == 0 and out.strip():
         last = lines[-1][:150] if lines else ""
         rc2, out2, _ = _ssh_autodl(f"ps -p {job.get('pid', 0)} -o etime= 2>/dev/null")
