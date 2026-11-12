@@ -17,24 +17,26 @@
 角色：林策（LoRA 通道：lince_v1.safetensors，触发词 lince）
 注意：镜头 2、4 是谋士单人镜头（无林策），不锁脸，走可灵或 Kolors；
      谋士的形象建议：青色长袍、折扇、山羊须、中年文士。
+⚠️ 提醒：凡出现士兵/路人/配角，必须写明朝代+服饰（如 Song dynasty Chinese soldiers in lamellar armor），
+     否则写实底模默认画成现代人（2026-11-12 镜头1翻车教训：士兵变钢盔现代兵、城门变西式拱廊）。
 ====================================================
 
 【镜头 1】士兵上前（🔒 锁脸）
-medium shot, lince wearing a dark grey modern outdoor jacket and camo hiking backpack, stepping back half a step, facing camera, two spear tips pointing at him from both sides of the frame, soldiers' faces hidden in shadow, ancient city gate at dusk, tense, photorealistic live-action film still, 8k
+medium shot, lince wearing a dark grey modern outdoor jacket and camo hiking backpack, stepping back half a step, facing camera, two Song dynasty Chinese soldiers in lamellar armor pointing long wooden spears at him from both sides of the frame, soldiers' faces hidden in shadow, ancient Chinese city gate with wooden gatehouse at dusk, tense, photorealistic live-action film still, 8k
 
 【镜头 2】谋士喝止（⚠️ 不锁脸）
 中文画面描述已够用，直接点【可灵动态片段】或 Kolors 配图：
 人群后一位青色长袍的中年谋士手持折扇高声喝止，士兵动作一顿，黄昏街市
 
 【镜头 3】谋士打量（🔒 锁脸，林策为主体）
-medium shot, lince wearing a dark grey modern outdoor jacket and camo hiking backpack, facing camera, being examined, at the blurred edge of the frame a Song dynasty scholar in a teal robe studying him closely with a folding fan, dusk street, photorealistic live-action film still, 8k
+medium shot, lince wearing a dark grey modern outdoor jacket and camo hiking backpack, facing camera, at the blurred edge of the frame a Song dynasty scholar-official in a teal hanfu robe with goatee studying him closely, holding a folding fan, dusk street market with wooden shops and lanterns, photorealistic live-action film still, 8k
 
 【镜头 4】光柱惊谋士（⚠️ 不锁脸；谋士特写）
 中文描述：谋士的特写，一道雪亮的光柱照亮他惊愕的脸，折扇差点脱手
 做法：可灵文生视频直接出
 
 【镜头 5】谋士相请（🔒 锁脸）
-medium shot, lince wearing a dark grey modern outdoor jacket and camo hiking backpack, facing camera, at the blurred edge a scholar in teal robe closing his folding fan and gesturing an invitation, dusk street market, photorealistic live-action film still, 8k
+medium shot, lince wearing a dark grey modern outdoor jacket and camo hiking backpack, facing camera, at the blurred edge a Song dynasty scholar in a teal hanfu robe closing his folding fan and gesturing an invitation, dusk street market, lanterns, photorealistic live-action film still, 8k
 
 【镜头 6】谋士密语（⚠️ 不锁脸；结尾钩子）
 中文描述：谋士转身离去的背影特写，摇着折扇低声自语，眼神深沉，夜市灯火
