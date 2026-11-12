@@ -1202,6 +1202,9 @@ def compose_video(shots: list, images: list, audios: list, size_wh, work: Path,
     segs = []
     for i, (img, aud) in enumerate(zip(images, audios)):
         dur = audio_duration(aud)
+        # 每镜时长下限 = 分镜秒数：配音太短时补静音撑满，不再把视频截短
+        target = max(dur, float(shots[i].get("seconds") or 0))
+        pad = ["-af", "apad"] if target > dur + 0.05 else []
         seg = work / f"seg{i}.mp4"
         if str(img).lower().endswith(".mp4"):
             # 可灵动态片段：循环/截断到配音时长，字幕用 drawtext 烧制
@@ -1222,14 +1225,14 @@ def compose_video(shots: list, images: list, audios: list, size_wh, work: Path,
                        f"x=(w-text_w)/2:y={y_pos}")
             subprocess.run(
                 ["ffmpeg", "-y", "-stream_loop", "-1", "-i", str(img), "-i", str(aud),
-                 "-vf", vf, "-c:v", "libx264", "-pix_fmt", "yuv420p",
-                 "-c:a", "aac", "-b:a", "128k", "-shortest", "-t", f"{dur:.2f}",
+                 "-vf", vf, "-c:v", "libx264", "-pix_fmt", "yuv420p"] + pad +
+                ["-c:a", "aac", "-b:a", "128k", "-shortest", "-t", f"{target:.2f}",
                  str(seg)], check=True, capture_output=True, timeout=600)
             segs.append(seg)
             continue
         if motion:
             # zoompan 缓慢推进 + 音频轨，按配音时长定该镜时长
-            frames = int(dur * fps) + 1
+            frames = int(target * fps) + 1
             vf = (f"scale={w*2}:{h*2},"
                   f"zoompan=z='min(1+0.15*on/{frames},1.15)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
                   f":d={frames}:s={w}x{h}:fps={fps}")
@@ -1238,8 +1241,8 @@ def compose_video(shots: list, images: list, audios: list, size_wh, work: Path,
             vf = f"scale={w}:{h}"
         subprocess.run(
             ["ffmpeg", "-y", "-loop", "1", "-i", str(img), "-i", str(aud),
-             "-vf", vf, "-r", str(fps), "-c:v", "libx264", "-pix_fmt", "yuv420p",
-             "-c:a", "aac", "-b:a", "128k", "-shortest", "-t", f"{dur:.2f}",
+             "-vf", vf, "-r", str(fps), "-c:v", "libx264", "-pix_fmt", "yuv420p"] + pad +
+            ["-c:a", "aac", "-b:a", "128k", "-shortest", "-t", f"{target:.2f}",
              str(seg)], check=True, capture_output=True, timeout=600)
         segs.append(seg)
     list_file = work / "concat.txt"
