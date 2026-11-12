@@ -273,6 +273,31 @@ def _comfy_run_video(wf: dict, timeout_min: int = 25) -> bytes:
     raise RuntimeError(f"Wan 视频生成超时（{timeout_min} 分钟）")
 
 
+def gen_motion_prompt(desc: str, narration: str) -> str:
+    """把「画面描述+台词」合成 Wan 图生视频的动态提示词（中文，Wan 原生支持）。sha1 缓存"""
+    key = _sha(f"motion-v1|{CHAT_MODEL}|{desc}|{narration}")
+    cache = SCRIPT_DIR / f"{key}.txt"
+    if cache.exists():
+        return cache.read_text(encoding="utf-8")
+    prompt = (
+        "你是图生视频模型（Wan2.2）的动态提示词工程师。首帧画面已经固定（内容见画面描述），"
+        "你的任务只是描述画面中已有元素如何运动。\n"
+        "要求：\n"
+        "1. 只写首帧里可见的东西怎么动：主体的一个简单动作 + 镜头运动（缓慢推近/拉远/横移/固定）；\n"
+        "2. 动作要与台词的情绪和内容匹配（如台词是喝止→士兵动作一顿、谋士抬手）；\n"
+        "3. 5 秒时长，运动幅度小而稳；禁止画面切换、禁止新人物入场、禁止出现首帧里没有的东西；\n"
+        "4. 只输出动态提示词本身，一两句话，不超过 60 字。\n\n"
+        f"画面描述：{desc}\n台词/解说词：{narration}"
+    )
+    r = requests.post(f"{BASE_URL}/chat/completions", headers=_api_headers(),
+                      json={"model": CHAT_MODEL, "temperature": 0.3,
+                            "messages": [{"role": "user", "content": prompt}]}, timeout=120)
+    r.raise_for_status()
+    text = r.json()["choices"][0]["message"]["content"].strip()
+    cache.write_text(text, encoding="utf-8")
+    return text
+
+
 def gen_wan_i2v(desc: str, image_path: str, size_wh, salt: str = "") -> Path:
     """Wan2.2 图生视频：以配图为首帧生成约 5 秒动态片段。Wan 原生支持中文提示词。
     salt 用于重抽时绕过缓存"""
@@ -383,7 +408,7 @@ def delete_character(name: str, public: bool = False):
 
 # ========== 项目存档（刷新不丢状态） ==========
 PROJ_KEYS = ("topic", "script", "shots", "images", "audios", "video",
-             "prompts_en", "pulid_history", "kling_history", "kling_src",
+             "prompts_en", "prompts_motion", "pulid_history", "kling_history", "kling_src",
              "active_char", "n_shots", "aspect_idx", "making")
 
 
@@ -1581,6 +1606,8 @@ with st.container(border=True):
             s["speaker"] = new_spk.strip() or "旁白"
             st.session_state.shots = shots
             st.session_state.pop("video", None)      # 内容变了，成片作废
+            st.session_state.get("prompts_motion", {}).pop(str(i), None)  # 动态提示词重新合成
+            st.session_state.pop(f"mot_{i}", None)
             if narr_changed:
                 st.session_state.pop("audios", None)  # 解说词变了，配音重生成
     if st.button("↻ 重新生成脚本", key="redo_script"):
@@ -1678,13 +1705,25 @@ with st.container(border=True):
                         st.error(f"镜头 {i+1} 配图失败：{e}")
                 st.rerun()
         if not is_video and wan_available():
+            # 动态提示词：LLM 由「画面描述+台词」合成，可见可改，Wan 只按它动
+            mp = st.session_state.setdefault("prompts_motion", {})
+            if str(i) not in mp and shots[i]["desc"].strip():
+                try:
+                    mp[str(i)] = gen_motion_prompt(shots[i]["desc"], shots[i].get("narration", ""))
+                except Exception:  # noqa: BLE001
+                    mp[str(i)] = shots[i]["desc"]
+            if shots[i]["desc"].strip():
+                mp[str(i)] = cols[i].text_area("动态提示词（Wan 用，可改）",
+                                               value=mp.get(str(i), ""), key=f"mot_{i}",
+                                               height=68, label_visibility="collapsed",
+                                               placeholder="动态提示词：谁怎么动+镜头怎么动")
             if cols[i].button("🎞 本地动态片段（Wan·主力）", key=f"wan_{i}",
                               use_container_width=True):
                 with st.spinner(f"Wan 正在生成镜头 {i+1} 动态片段（4090 约5~15分钟）…"):
                     try:
                         st.session_state.setdefault("kling_src", {})[str(i)] = p  # 记住首帧
-                        images[i] = str(gen_wan_i2v(shots[i]["desc"], p, size_wh,
-                                                    salt=str(time.time())))
+                        images[i] = str(gen_wan_i2v(mp.get(str(i)) or shots[i]["desc"],
+                                                    p, size_wh, salt=str(time.time())))
                         st.session_state.setdefault("kling_history", {}).setdefault(
                             str(i), []).append(images[i])
                         st.session_state.images = images
@@ -1719,8 +1758,9 @@ with st.container(border=True):
                 with st.spinner(f"Wan 正在重抽镜头 {i+1}（约5~15分钟）…"):
                     try:
                         src = st.session_state.get("kling_src", {}).get(str(i))
-                        images[i] = str(gen_wan_i2v(shots[i]["desc"], src, size_wh,
-                                                    salt=str(time.time())))
+                        mp = st.session_state.get("prompts_motion", {})
+                        images[i] = str(gen_wan_i2v(mp.get(str(i)) or shots[i]["desc"],
+                                                    src, size_wh, salt=str(time.time())))
                         khist.append(images[i])
                         st.session_state.images = images
                         st.session_state.pop("video", None)
