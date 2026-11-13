@@ -14,20 +14,32 @@ import time
 
 import requests
 
-ENV_FILE = "/opt/oral-practice/.env"
-HEARTBEAT = "/opt/oral-practice/AI视频制作/data/video_cache/autodl_heartbeat"
+ENV_CANDIDATES = ["/app/.env", "/opt/oral-practice/.env"]
+HEARTBEAT_CANDIDATES = ["/app/AI视频制作/data/video_cache/autodl_heartbeat",
+                        "/opt/oral-practice/AI视频制作/data/video_cache/autodl_heartbeat"]
 IDLE_MIN = int(os.environ.get("AUTODL_IDLE_MIN", "45"))
 
 
 def load_env():
-    try:
-        for line in open(ENV_FILE, encoding="utf-8"):
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, v = line.split("=", 1)
-                os.environ.setdefault(k.strip(), v.strip())
-    except OSError:
-        pass
+    for env_file in ENV_CANDIDATES:
+        try:
+            for line in open(env_file, encoding="utf-8"):
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    os.environ.setdefault(k.strip(), v.strip())
+            return
+        except OSError:
+            continue
+
+
+def heartbeat_mtime() -> float:
+    for p in HEARTBEAT_CANDIDATES:
+        try:
+            return os.path.getmtime(p)
+        except OSError:
+            continue
+    return 0.0
 
 
 def log(msg):
@@ -44,17 +56,16 @@ def main():
         return
 
     # 条件1：心跳静默超时
-    try:
-        idle = time.time() - os.path.getmtime(HEARTBEAT)
-    except OSError:
-        idle = 1e9  # 从未有心跳
+    hb = heartbeat_mtime()
+    idle = time.time() - hb if hb else 1e9  # 从未有心跳
     if idle < IDLE_MIN * 60:
         log(f"心跳活跃（{idle/60:.0f} 分钟前有活动），不关机")
         return
 
     # 条件2：ComfyUI 队列（隧道在线时）
+    comfy_base = os.environ.get("COMFYUI_BASE", "http://127.0.0.1:6006").rstrip("/")
     try:
-        q = requests.get("http://127.0.0.1:6006/queue", timeout=5).json()
+        q = requests.get(f"{comfy_base}/queue", timeout=5).json()
         busy = len(q.get("queue_running", [])) + len(q.get("queue_pending", []))
         if busy:
             log(f"ComfyUI 有 {busy} 个任务在跑，不关机")

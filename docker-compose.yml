@@ -108,6 +108,8 @@ services:
       - KLING_API_KEY=${KLING_API_KEY:-}
       - COMFYUI_BASE=${COMFYUI_BASE:-http://host.docker.internal:6006}
       - AUTODL_SSH_TARGET=${AUTODL_SSH_TARGET:-}
+      - AUTODL_TOKEN=${AUTODL_TOKEN:-}
+      - AUTODL_INSTANCE=${AUTODL_INSTANCE:-}
       - VIDEO_LOGIN_REQUIRED=${VIDEO_LOGIN_REQUIRED:-0}
       - ADMIN_PHONES=${ADMIN_PHONES:-}
     extra_hosts:
