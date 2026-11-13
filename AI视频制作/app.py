@@ -393,9 +393,10 @@ def lora_train_start(trigger: str, desc_en: str, images: list,
     rc, out, err = _ssh_autodl(" && ".join(cmds))
     if rc != 0:
         raise RuntimeError(f"建数据集失败：{err[-300:]}")
-    train = (
-        f"cd /root/autodl-tmp/kohya && HF_ENDPOINT=https://hf-mirror.com "
-        f"nohup /root/miniconda3/bin/accelerate launch --num_cpu_threads_per_process=2 sdxl_train_network.py "
+    script = (
+        "#!/bin/bash\ncd /root/autodl-tmp/kohya\n"
+        f"HF_ENDPOINT=https://hf-mirror.com exec /root/miniconda3/bin/accelerate launch "
+        f"--num_cpu_threads_per_process=2 sdxl_train_network.py "
         f"--pretrained_model_name_or_path=/root/autodl-tmp/ComfyUI/models/checkpoints/Juggernaut-XL_v9.safetensors "
         f"--train_data_dir={data_dir} --output_dir=/root/autodl-tmp/lora_train/model "
         f"--logging_dir=/root/autodl-tmp/lora_train/log "
@@ -407,9 +408,15 @@ def lora_train_start(trigger: str, desc_en: str, images: list,
         f"--mixed_precision=bf16 --cache_latents --cache_latents_to_disk --gradient_checkpointing "
         f"--max_data_loader_n_workers=2 --persistent_data_loader_workers "
         f"--caption_extension=.txt --shuffle_caption --keep_tokens=1 "
-        f"> /root/autodl-tmp/lora_train/log/{trigger}.log 2>&1 < /dev/null & echo $!"
+        f">> /root/autodl-tmp/lora_train/log/{trigger}.log 2>&1\n"
     )
-    rc, out, err = _ssh_autodl(train)
+    # 两步走：先落启动脚本，再 setsid 启动——避免后台子 shell 握死 ssh 通道导致 120s 假超时
+    rc, out, err = _ssh_autodl(
+        f"cat > /root/lora_train_{trigger}.sh <<'EOS'\n{script}EOS\nchmod +x /root/lora_train_{trigger}.sh")
+    if rc != 0:
+        raise RuntimeError(f"写启动脚本失败：{err[-300:]}")
+    rc, out, err = _ssh_autodl(
+        f"setsid /root/lora_train_{trigger}.sh > /dev/null 2>&1 < /dev/null & echo $!")
     if rc != 0 or not out.strip().isdigit():
         raise RuntimeError(f"启动训练失败：{out[-200:]} {err[-200:]}")
     _lora_job_save(trigger, {"pid": int(out.strip()), "started": time.time(),
