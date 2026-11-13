@@ -1899,6 +1899,28 @@ with st.container(border=True):
     edited = st.text_area("分镜脚本将基于这份文案拆分", value=st.session_state.script,
                           height=180, label_visibility="collapsed")
     cc1, cc2 = st.columns([1, 3])
+    # 粘贴的是分镜格式（画面|台词|秒数|说话人|Wan动态|锁脸）时，提供一键转正入口
+    _pipe_lines = [ln for ln in edited.splitlines() if ln.count("|") >= 2 or ln.count("｜") >= 2]
+    if len(_pipe_lines) >= 2:
+        st.info(f"检测到 {len(_pipe_lines)} 行分镜格式内容。这不是口播文案——"
+                "应作为分镜直接录入（保留 Wan动态/锁脸提示词）。")
+        if st.button("🎯 这是一份分镜，直接作为分镜使用", type="primary",
+                     use_container_width=True, key="pipe_as_shots"):
+            parsed = _parse_manual_shots(edited)
+            if parsed:
+                st.session_state.shots = parsed
+                st.session_state.making = True
+                for k in ("images", "audios", "video", "seeds", "uploads", "audio_uploads",
+                          "prompts_motion", "prompts_en"):
+                    st.session_state.pop(k, None)
+                for _i in range(12):
+                    st.session_state.pop(f"mot_{_i}", None)
+                    st.session_state.pop(f"pen_{_i}", None)
+                    st.session_state.pop(f"shot_mot_{_i}", None)
+                    st.session_state.pop(f"shot_pen_{_i}", None)
+                st.rerun()
+            else:
+                st.error("解析失败，请检查格式")
     if cc1.button("🚀 用此文案开始制作", type="primary", use_container_width=True):
         if not edited.strip():
             st.error("文案不能为空")
@@ -1945,6 +1967,8 @@ with st.container(border=True):
             for _i in range(12):  # 清掉旧的提示词框组件状态，让分镜自带的提示词接管
                 st.session_state.pop(f"mot_{_i}", None)
                 st.session_state.pop(f"pen_{_i}", None)
+                st.session_state.pop(f"shot_mot_{_i}", None)
+                st.session_state.pop(f"shot_pen_{_i}", None)
             st.rerun()
     if shots is None:
         if not st.session_state.get("making"):
