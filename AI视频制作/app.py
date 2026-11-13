@@ -1669,10 +1669,25 @@ def render_assets():
                 vc2.image(val["b"], use_container_width=True)
                 st.caption("判断标准：两张脸都是同一人=锁脸合格；右图服装漂移属正常（提示词需带服装短语）")
                 if st.button("✅ 验收通过，存入角色库", key="lora_accept", type="primary"):
-                    save_character(val["name"].strip() or trig, val["desc"].strip(), [],
-                                   lora=f"{trig}.safetensors", trigger=trig)
+                    # 角色名为空且已有同触发词的卡：更新旧卡的 LoRA 文件名，不新建裸卡
+                    chars_now = load_characters()
+                    merged = False
+                    if not val["name"].strip():
+                        for _n, _v in chars_now.items():
+                            if (_v.get("trigger") or "") == trig:
+                                _target = (SHARED_DIR / "characters.json") if _v.get("public") else CHAR_FILE
+                                _all = json.loads(_target.read_text(encoding="utf-8"))
+                                _all[_n]["lora"] = f"{trig}.safetensors"
+                                _target.write_text(json.dumps(_all, ensure_ascii=False, indent=2),
+                                                   encoding="utf-8")
+                                st.success(f"已更新现有角色「{_n}」的 LoRA → {trig}.safetensors")
+                                merged = True
+                                break
+                    if not merged:
+                        save_character(val["name"].strip() or trig, val["desc"].strip(), [],
+                                       lora=f"{trig}.safetensors", trigger=trig)
+                        st.success(f"「{val['name'] or trig}」已入库，制作页可选")
                     st.session_state.pop("lora_val", None)
-                    st.success(f"「{val['name'] or trig}」已入库，制作页可选")
                     st.rerun()
 
 
