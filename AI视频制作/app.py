@@ -482,6 +482,46 @@ def lora_validate(trigger: str, desc_en: str) -> tuple:
     return tuple(outs)
 
 
+# ========== InfiniteTalk 本地对口型（特写台词镜头，零成本） ==========
+TALK_WF_FILE = MODULE_DIR / "talk_workflow.json"  # 已烟测通过的 InfiniteTalk API 工作流
+
+
+def talk_available() -> bool:
+    return TALK_WF_FILE.exists() and comfy_online()
+
+
+def gen_talk_clip(image_path: str, audio_path: str, size_wh, salt: str = "") -> Path:
+    """InfiniteTalk：锁脸参考图 + 配音音频 → 带口型的视频片段（本地）。salt 用于重做绕过缓存"""
+    _heartbeat()
+    img_bytes = Path(image_path).read_bytes()
+    aud_bytes = Path(audio_path).read_bytes()
+    key = _sha(f"talk|{_sha_bytes(img_bytes)}|{_sha_bytes(aud_bytes)}|{salt}")
+    out = WAN_DIR / f"{key}.mp4"
+    if out.exists():
+        return out
+    with open(TALK_WF_FILE, encoding="utf-8") as f:
+        wf = json.load(f)
+    r = requests.post(f"{COMFY_BASE}/upload/image",
+                      files={"image": ("talk_face.png", img_bytes)}, timeout=60)
+    r.raise_for_status()
+    wf["284"]["inputs"]["image"] = r.json()["name"]
+    # 音频经 ssh 写入实例 input 目录（该 ComfyUI 版本无音频上传端点）
+    import base64 as _b64
+    aname = f"talk_{_sha_bytes(aud_bytes)}.mp3"
+    b64 = _b64.b64encode(aud_bytes).decode()
+    rc, _, err = _ssh_autodl(
+        f"echo {b64} | base64 -d > /root/autodl-tmp/ComfyUI/input/{aname}", timeout=120)
+    if rc != 0:
+        raise RuntimeError(f"音频上传失败：{err[-200:]}")
+    wf["125"]["inputs"]["audio"] = aname
+    wf["128"]["inputs"]["seed"] = int(time.time() * 1000) % (2**31)
+    w, h = (480, 832) if size_wh[1] > size_wh[0] else (832, 480)
+    wf["281"]["inputs"].update(width=w, height=h)
+    wf["192"]["inputs"].update(width=w, height=h)
+    out.write_bytes(_comfy_run_video(wf, timeout_min=25))
+    return out
+
+
 # ========== ComfyUI（PuLID 锁脸配图，可选；默认关，隧道连通即用） ==========
 COMFY_BASE = os.environ.get("COMFYUI_BASE", "http://127.0.0.1:6006").rstrip("/")
 COMFY_DIR = CACHE_DIR / "comfy"          # ComfyUI 生成的锁脸图缓存
@@ -632,7 +672,8 @@ def delete_character(name: str, public: bool = False):
 # ========== 项目存档（刷新不丢状态） ==========
 PROJ_KEYS = ("topic", "script", "shots", "images", "audios", "video",
              "prompts_en", "prompts_motion", "pulid_history", "kling_history", "kling_src",
-             "active_char", "n_shots", "aspect_idx", "making", "make_mode", "img_style")
+             "active_char", "n_shots", "aspect_idx", "making", "make_mode", "img_style",
+             "talk_marks")
 
 
 def save_project(name: str):
@@ -1306,6 +1347,7 @@ def compose_video(shots: list, images: list, audios: list, size_wh, work: Path,
                        f"x=(w-text_w)/2:y={y_pos}")
             subprocess.run(
                 ["ffmpeg", "-y", "-stream_loop", "-1", "-i", str(img), "-i", str(aud),
+                 "-map", "0:v:0", "-map", "1:a:0",
                  "-vf", vf, "-c:v", "libx264", "-pix_fmt", "yuv420p"] + pad +
                 ["-c:a", "aac", "-b:a", "128k", "-shortest", "-t", f"{target:.2f}",
                  str(seg)], check=True, capture_output=True, timeout=600)
@@ -2311,6 +2353,27 @@ with st.container(border=True):
         source = "自定义上传" if str(i) in audio_uploads else "AI 配音"
         cols[i].caption(f"镜头 {i+1} · {source}")
         cols[i].audio(p)
+        # 对口型：本镜有配音 + 配图是静态图（特写台词镜头用），走 InfiniteTalk 本地生成
+        if (talk_available() and not Path(p).name.startswith("silence_")
+                and images and i < len(images)
+                and str(images[i]).lower().endswith((".png", ".jpg", ".jpeg"))):
+            if cols[i].button("🗣 对口型片段（本地）", key=f"talk_{i}",
+                              use_container_width=True):
+                with st.spinner(f"InfiniteTalk 正在生成镜头 {i+1} 口型片段（约5~10分钟）…"):
+                    try:
+                        st.session_state.setdefault("kling_src", {})[str(i)] = images[i]  # 记住首帧
+                        clip = str(gen_talk_clip(images[i], p, size_wh,
+                                                 salt=str(time.time())))
+                        st.session_state.setdefault("kling_history", {}).setdefault(
+                            str(i), []).append(clip)
+                        images[i] = clip
+                        st.session_state.images = images
+                        st.session_state.setdefault("talk_marks", {})[str(i)] = True
+                        st.session_state.pop("video", None)
+                        autosave()
+                        st.rerun()
+                    except Exception as e:  # noqa: BLE001
+                        st.error(f"镜头 {i+1} 对口型失败：{e}")
         up = cols[i].file_uploader("上传自定义音频", type=["mp3", "wav"],
                                    key=f"upload_audio_{i}", label_visibility="collapsed")
         if up is not None:
