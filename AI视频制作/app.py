@@ -428,6 +428,14 @@ def lora_train_status(trigger: str) -> tuple:
     job = _lora_job(trigger)
     if job.get("stage") == "deployed":
         return ("deployed", "已部署并入库")
+    # 有进行中的任务时以任务文件为准（旧模型文件还在时不能误判"训练完成"）
+    if job.get("stage") == "training":
+        rc2, out2, _ = _ssh_autodl(f"ps -p {job.get('pid', 0)} -o etime= 2>/dev/null")
+        if out2.strip():
+            rc3, out3, _ = _ssh_autodl(
+                f"tail -1 /root/autodl-tmp/lora_train/log/{trigger}.log 2>/dev/null")
+            return ("training", f"训练中（已运行 {out2.strip()}）：{out3.strip()[-120:]}")
+        # 进程已结束：看产物决定 done / failed
     rc, out, _ = _ssh_autodl(
         f"ls /root/autodl-tmp/lora_train/model/{trigger}.safetensors 2>/dev/null; "
         f"tail -3 /root/autodl-tmp/lora_train/log/{trigger}.log 2>/dev/null")
@@ -436,13 +444,9 @@ def lora_train_status(trigger: str) -> tuple:
         return ("done", "训练完成，待部署验收")
     if not job:
         return ("none", "无训练记录")
-    if rc == 0 and out.strip():
-        last = lines[-1][:150] if lines else ""
-        rc2, out2, _ = _ssh_autodl(f"ps -p {job.get('pid', 0)} -o etime= 2>/dev/null")
-        if out2.strip():
-            return ("training", f"训练中（已运行 {out2.strip()}）：{last}")
-        return ("failed", f"训练进程已退出但未产出模型：{last}")
-    return ("training", "日志暂不可读，训练中…")
+    if job.get("stage") == "training":
+        return ("failed", f"训练进程已退出但未产出模型：{lines[-1][:150] if lines else ''}")
+    return ("none", "无训练记录")
 
 
 def lora_deploy(trigger: str):
