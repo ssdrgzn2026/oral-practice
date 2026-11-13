@@ -1639,17 +1639,21 @@ def render_assets():
                             st.error(f"部署/验收失败：{e}")
             elif stage == "failed":
                 st.error(f"❌ {stage_txt}")
-            elif st.button("🚀 开始训练（约1小时）", key="lora_go", type="primary",
-                           disabled=not (l_name.strip() and trig and l_desc.strip()
-                                         and l_files and len(l_files) >= 10)):
-                with st.spinner("上传训练图并启动训练…"):
-                    try:
-                        lora_train_start(trig, l_desc.strip(),
-                                         [f.getvalue() for f in l_files])
-                        st.success(f"已启动：{len(l_files)} 张图，触发词 {trig}")
-                        st.rerun()
-                    except Exception as e:  # noqa: BLE001
-                        st.error(f"启动失败：{e}")
+            # 开始/重新训练：done/deployed 状态下也允许覆盖重训（换训练图时）
+            if stage != "training":
+                _relabel = "↻ 重新训练（覆盖旧模型，约1小时）" if stage in ("done", "deployed") \
+                    else "🚀 开始训练（约1小时）"
+                if st.button(_relabel, key="lora_go", type="primary",
+                             disabled=not (l_name.strip() and trig and l_desc.strip()
+                                           and l_files and len(l_files) >= 10)):
+                    with st.spinner("上传训练图并启动训练…"):
+                        try:
+                            lora_train_start(trig, l_desc.strip(),
+                                             [f.getvalue() for f in l_files])
+                            st.success(f"已启动：{len(l_files)} 张图，触发词 {trig}")
+                            st.rerun()
+                        except Exception as e:  # noqa: BLE001
+                            st.error(f"启动失败：{e}")
             if trig and stage in ("none",) and not (l_files and len(l_files) >= 10):
                 st.caption("至少 10 张训练图才能开始（建议 15~30 张）")
             # 验收区：两张对照图，人眼判断后一键入库
