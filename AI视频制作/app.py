@@ -317,6 +317,7 @@ def gen_motion_prompt(desc: str, narration: str) -> str:
 def gen_wan_i2v(desc: str, image_path: str, size_wh, salt: str = "") -> Path:
     """Wan2.2 图生视频：以配图为首帧生成约 5 秒动态片段。Wan 原生支持中文提示词。
     salt 用于重抽时绕过缓存"""
+    _heartbeat()
     img_bytes = Path(image_path).read_bytes()
     key = _sha(f"wan|{desc}|{_sha_bytes(img_bytes)}|{size_wh[0]}x{size_wh[1]}|{salt}")
     out = WAN_DIR / f"{key}.mp4"
@@ -374,6 +375,7 @@ def _lora_job_save(trigger: str, job: dict):
 def lora_train_start(trigger: str, desc_en: str, images: list,
                      repeats: int = 10, epochs: int = 8):
     """启动一个角色的 LoRA 训练：传图 → 建数据集 → nohup 后台训练"""
+    _heartbeat()
     import shlex
     names = []
     for j, b in enumerate(images):
@@ -490,6 +492,45 @@ PROJ_DIR.mkdir(parents=True, exist_ok=True)
 _WF_PROMPT, _WF_NEG, _WF_IMG, _WF_SEED, _WF_SIZE = "22", "23", "12", "3", "5"
 
 
+# ========== AutoDL 无人值守：自动开机 + 闲置自动关机 ==========
+AUTODL_TOKEN = os.environ.get("AUTODL_TOKEN", "")
+AUTODL_INSTANCE = os.environ.get("AUTODL_INSTANCE", "ucqdw9kvnz-ee48963c")
+AUTODL_API = "https://api.autodl.com"
+HEARTBEAT_FILE = CACHE_DIR / "autodl_heartbeat"  # 任何 GPU 操作都刷新它，看门狗据此判忙闲
+
+
+def _heartbeat():
+    """刷新 GPU 活动时间（生成/训练类操作前调用）"""
+    try:
+        HEARTBEAT_FILE.write_text(str(time.time()))
+    except OSError:
+        pass
+
+
+def _autodl_api(method: str, path: str, body: dict = None) -> dict:
+    r = requests.request(method, AUTODL_API + path,
+                         headers={"Authorization": AUTODL_TOKEN},
+                         json=body or {}, timeout=30)
+    r.raise_for_status()
+    data = r.json()
+    if data.get("code") != "Success":
+        raise RuntimeError(f"AutoDL API 错误：{data.get('msg')}")
+    return data.get("data")
+
+
+def autodl_power_on():
+    """调 AutoDL 开机（10 分钟内不重复调用）"""
+    lock = CACHE_DIR / "autodl_poweron_lock"
+    try:
+        if lock.exists() and time.time() - lock.stat().st_mtime < 600:
+            return
+    except OSError:
+        pass
+    _autodl_api("POST", "/api/v1/dev/instance/pro/power_on",
+                {"instance_uuid": AUTODL_INSTANCE})
+    lock.write_text(str(time.time()))
+
+
 def comfy_online() -> bool:
     """ComfyUI 是否可达（隧道连通才算在线）"""
     if not COMFY_WF_FILE.exists():
@@ -498,6 +539,33 @@ def comfy_online() -> bool:
         return requests.get(f"{COMFY_BASE}/system_stats", timeout=2).status_code == 200
     except Exception:  # noqa: BLE001
         return False
+
+
+def comfy_status_ui(key: str):
+    """ComfyUI 状态徽标：离线且配置了 Token 时给「一键开机」按钮，点完自动轮询到上线"""
+    if comfy_online():
+        st.caption("🟢 ComfyUI 在线")
+        return True
+    if not AUTODL_TOKEN:
+        st.caption("⚪ ComfyUI 离线")
+        return False
+    if st.button("🔌 AutoDL 一键开机（约1~2分钟）", key=key):
+        with st.spinner("AutoDL 开机中，等待 ComfyUI 上线…"):
+            try:
+                autodl_power_on()
+            except Exception as e:  # noqa: BLE001
+                st.error(f"开机失败：{e}")
+                st.stop()
+            t0 = time.time()
+            while time.time() - t0 < 240:
+                time.sleep(10)
+                if comfy_online():
+                    st.success("已上线")
+                    st.rerun()
+            st.warning("已发出开机指令但尚未上线，请稍后再试（可能在排队等卡）")
+    else:
+        st.caption("⚪ ComfyUI 离线（可一键开机）")
+    return False
 
 
 def load_characters() -> dict:
@@ -688,6 +756,7 @@ def gen_comfy_pulid(desc: str, char: dict, size_wh, seed: int = 0, prompt_en: st
     """调 ComfyUI 出定妆图：角色有 LoRA 走 LoRA 通道（定脸定装），否则走 PuLID 锁脸。sha1 缓存"""
     if prompt_en is None:
         prompt_en = gen_prompt_en(desc, char["desc_en"])
+    _heartbeat()
     lora_name = (char.get("lora") or "").strip()
     ckpt = os.environ.get("COMFY_CHECKPOINT", "").strip()
     face_key = ""
@@ -765,6 +834,7 @@ def _comfy_run(wf: dict) -> bytes:
 
 def gen_comfy_txt2img(prompt_en: str, seed: int = 0, width: int = 768, height: int = 1024) -> Path:
     """纯文生图（绕过 PuLID）：群演面孔/场景定妆等批量出图"""
+    _heartbeat()
     key = _sha(f"t2i|{prompt_en}|{width}x{height}|{seed}|{os.environ.get('COMFY_CHECKPOINT', '')}")
     out = COMFY_DIR / f"{key}.png"
     if out.exists():
@@ -1396,7 +1466,7 @@ def render_assets():
     st.caption("角色、场景、群演、道具——建在这里，制作页直接调用")
     t1, t2, t3, t4, t5 = st.tabs(["👤 角色卡", "🏯 场景库", "👥 群演库", "🗡 道具库", "🏋 LoRA 训练"])
     with t1:
-        st.caption("🟢 ComfyUI 在线" if comfy_online() else "⚪ ComfyUI 离线（锁脸生成不可用）")
+        comfy_status_ui("assets_poweron")
         # 角色卡：支持一人多面（正面/侧面/全身多张定妆图）
         with st.popover("➕ 新建角色"):
             n = st.text_input("角色名", key="char_new_name", placeholder="如：林策")
@@ -1898,8 +1968,8 @@ with st.container(border=True):
     sel1, sel2 = st.columns([2, 1])
     sel1.selectbox("🎭 当前锁脸角色（到「资产库」页新建/管理角色卡）",
                    ["（不使用）"] + list(chars.keys()), key="active_char")
-    sel2.caption("")
-    sel2.caption("🟢 ComfyUI 在线" if is_online else "⚪ ComfyUI 离线")
+    with sel2:
+        is_online = comfy_status_ui("make_poweron")
     active_char = st.session_state.get("active_char", "（不使用）")
     active_char = chars.get(active_char) if active_char != "（不使用）" else None
 
