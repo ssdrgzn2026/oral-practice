@@ -1055,6 +1055,9 @@ def _parse_manual_shots(text: str) -> list:
         line = re.sub(r"^\s*(?:第\s*)?(?:镜\s*头?\s*)?\d+\s*[：:.、．]\s*", "", line.strip())
         if not line:
             continue
+        # 跳过说明/注释行（（格式：…（v4修正版…【分镜录入区】等）
+        if line[0] in "（(【①②③④⑤⑥⑦⑧⑨⑩" or line.startswith(("格式", "注意", "提醒", "规则")):
+            continue
         # 跳过表头行（如"画面描述|解说词|秒数|说话人"）
         cells = [c.strip() for c in re.split(r"[|｜]", line)]
         if cells[0] in ("画面描述", "描述", "镜头描述", "画面") and len(cells) >= 2:
