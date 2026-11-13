@@ -550,19 +550,20 @@ def comfy_status_ui(key: str):
         st.caption("⚪ ComfyUI 离线")
         return False
     if st.button("🔌 AutoDL 一键开机（约1~2分钟）", key=key):
-        with st.spinner("AutoDL 开机中，等待 ComfyUI 上线…"):
-            try:
-                autodl_power_on()
-            except Exception as e:  # noqa: BLE001
-                st.error(f"开机失败：{e}")
-                st.stop()
+        note = "AutoDL 开机中，等待 ComfyUI 上线…"
+        try:
+            autodl_power_on()
+        except Exception:  # noqa: BLE001
+            note = ("普通实例不支持 API 开机：请到 AutoDL 控制台手动点【开机】，"
+                    "本页会自动检测上线（隧道自动重连）…")
+        with st.spinner(note):
             t0 = time.time()
-            while time.time() - t0 < 240:
+            while time.time() - t0 < 300:
                 time.sleep(10)
                 if comfy_online():
                     st.success("已上线")
                     st.rerun()
-            st.warning("已发出开机指令但尚未上线，请稍后再试（可能在排队等卡）")
+            st.warning("尚未上线：如已手动开机请再等 1 分钟刷新；未开机请到控制台操作")
     else:
         st.caption("⚪ ComfyUI 离线（可一键开机）")
     return False

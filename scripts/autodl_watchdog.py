@@ -83,12 +83,14 @@ def main():
         log(f"有 LoRA 训练在跑（{n_train} 个进程），不关机")
         return
 
-    # 关机
+    # 关机：普通容器实例走实例内 shutdown（等效控制台关机，停止计费）；
+    # Pro 实例以后可换 API power_off
     log(f"闲置 {idle/60:.0f} 分钟且无任务，执行关机")
-    resp = requests.post("https://api.autodl.com/api/v1/dev/instance/pro/power_off",
-                         headers={"Authorization": token},
-                         json={"instance_uuid": inst}, timeout=30)
-    log(f"power_off 返回：{resp.status_code} {resp.text[:200]}")
+    r = subprocess.run(
+        f"ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=8 {ssh_target} "
+        "'shutdown -h now'",
+        shell=True, capture_output=True, text=True, timeout=30)
+    log(f"shutdown 已下发（ssh 返回 {r.returncode}，实例断电即断连属正常）")
 
 
 if __name__ == "__main__":
