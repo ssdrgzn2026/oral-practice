@@ -515,6 +515,13 @@ def gen_talk_clip(image_path: str, audio_path: str, size_wh, salt: str = "") -> 
         raise RuntimeError(f"音频上传失败：{err[-200:]}")
     wf["125"]["inputs"]["audio"] = aname
     wf["128"]["inputs"]["seed"] = int(time.time() * 1000) % (2**31)
+    # 口型长度对齐配音时长：按 25fps 算总帧数（4k+1 对齐），杜绝"声尽口还动"
+    try:
+        dur = audio_duration(audio_path)
+        frames = max(81, int(dur * 25) // 4 * 4 + 1)
+        wf["270"]["inputs"]["value"] = frames
+    except Exception:  # noqa: BLE001
+        pass
     w, h = (480, 832) if size_wh[1] > size_wh[0] else (832, 480)
     wf["281"]["inputs"].update(width=w, height=h)
     wf["192"]["inputs"].update(width=w, height=h)
