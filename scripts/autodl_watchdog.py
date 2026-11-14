@@ -73,10 +73,11 @@ def main():
     except Exception:
         pass  # 离线视为无任务，继续判断
 
-    # 条件3：训练进程
+    # 条件3：训练进程（注意：用 ps+grep 且排除 grep 自身；pgrep -f 会匹配命令行里
+    # 含同样字符串的 ssh 临时 shell，造成"永远有训练"的误判）
     r = subprocess.run(
         f"ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=8 {ssh_target} "
-        "'pgrep -f sdxl_train_network | wc -l'",
+        "'ps aux | grep sdxl_train_network | grep -v grep | wc -l'",
         shell=True, capture_output=True, text=True, timeout=30)
     n_train = (r.stdout.strip() or "0")
     if r.returncode == 0 and n_train not in ("0", ""):
