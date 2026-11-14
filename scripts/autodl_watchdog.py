@@ -55,6 +55,29 @@ def main():
         log("未配置 AUTODL_TOKEN/INSTANCE/SSH_TARGET，跳过")
         return
 
+    # 条件0：实例刚开机不久（<IDLE_MIN）不关机——防止心跳还停留在上次使用，
+    # 用户刚开机干活就被立刻关掉
+    r0 = subprocess.run(
+        f"ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=8 {ssh_target} "
+        "'ps -p 1 -o etime= | tail -1'",
+        shell=True, capture_output=True, text=True, timeout=30)
+    if r0.returncode == 0 and r0.stdout.strip():
+        up = r0.stdout.strip()
+        mins = 0
+        try:
+            parts = up.replace("-", ":").split(":")
+            parts = [int(p) for p in parts]
+            mins = parts[-2] if len(parts) >= 2 else 0
+            if len(parts) == 3:
+                mins += parts[0] * 60
+            elif len(parts) >= 4:
+                mins += parts[-3] * 60 + parts[-4] * 1440
+        except ValueError:
+            mins = 9999
+        if mins < IDLE_MIN:
+            log(f"实例刚开机 {mins} 分钟，跳过（开机保护期）")
+            return
+
     # 条件1：心跳静默超时
     hb = heartbeat_mtime()
     idle = time.time() - hb if hb else 1e9  # 从未有心跳
