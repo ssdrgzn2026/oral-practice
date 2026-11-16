@@ -705,6 +705,11 @@ def load_project(name: str):
     for k, v in state.items():
         st.session_state[k] = v
     st.session_state.proj_name = name
+    # 清掉逐镜输入框的组件状态，否则上一项目的提示词残留在框里并被 autosave 写回本项目
+    for _i in range(12):
+        for _k in (f"mot_{_i}", f"pen_{_i}", f"shot_mot_{_i}", f"shot_pen_{_i}",
+                   f"shot_desc_{_i}", f"shot_narr_{_i}", f"shot_spk_{_i}", f"shot_char_{_i}"):
+            st.session_state.pop(_k, None)
 
 
 def autosave():
