@@ -55,3 +55,19 @@
 - **必过项**：写不写服装提示词，两张验收图都是同一张脸（锁脸合格）
 - **目标项**：不写服装时，服装仍正确不漂移（服装锁定——v3 的根治目标）
 - 不达标处理：按本标准补图/换图重训，不凑合入库
+
+---
+
+## 附：角色描述速查（训练中心「角色外貌/服装描述」框直接粘贴）
+
+**林策（触发词 lince，注意别写成 linca）**
+```
+a 25 years old Chinese young man, short black hair, dark grey modern outdoor jacket, camo hiking backpack
+```
+
+**沈砚（触发词 shenyan）**
+```
+a middle-aged Song dynasty scholar with goatee and hairpin crown, teal hanfu robe with red waist sash, holding a folding fan
+```
+
+> 提醒：林策框里出现 scholar/goatee/teal robe 就是拿错沈砚的了——两栏别混。
