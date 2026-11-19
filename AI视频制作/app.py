@@ -386,7 +386,8 @@ def lora_train_start(trigger: str, desc_en: str, images: list,
         names.append(n)
     data_dir = f"/root/autodl-tmp/lora_train/img_{trigger}"
     cap = f"{trigger}, {desc_en}, cinematic photo"
-    cmds = [f"mkdir -p {data_dir}/{repeats}_{trigger} /root/autodl-tmp/lora_train/model /root/autodl-tmp/lora_train/log"]
+    cmds = [f"rm -rf {data_dir}",  # 先清空旧数据集，防上次训练的图残留污染
+            f"mkdir -p {data_dir}/{repeats}_{trigger} /root/autodl-tmp/lora_train/model /root/autodl-tmp/lora_train/log"]
     for n in names:
         cmds.append(f"cp /root/autodl-tmp/ComfyUI/input/{n} {data_dir}/{repeats}_{trigger}/{n}")
         cmds.append(f"printf '%s' {shlex.quote(cap)} > {data_dir}/{repeats}_{trigger}/{n[:-4]}.txt")
