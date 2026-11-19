@@ -1,22 +1,20 @@
-《械启汴京》第1集 · 分镜与提示词
+《械启汴京》第1集 · 分镜与提示词（3镜版）
 ====================================================
-剧情：林策穿越汴京街市 → 手电示人 → 官兵拦阻 → 光柱退敌 → 钩子：谋士暗中盯上宝物
+剧情：林策穿越汴京街市 → 手电示人 → 钩子：谋士暗中盯上宝物
+（v2 说明：删去原 3/4 镜（官兵拦阻/光柱退敌），与第2集开头盘问剧情去重；01 以谋士暗中觊觎收尾，02 从拦路盘问自然展开）
 
 【分镜录入区】——直接整段复制，贴到杂具小栈 ③"直接录入分镜"里
 （格式：画面描述 | 台词/解说词 | 秒数 | 说话人 | Wan动态提示词(EN) | 锁脸提示词(EN)，后两项可空=自动生成）
-（v5 格式：统一汴京街市场景尾缀；林策全程禁武器、服装加权；谋士只出模糊背影不露脸；
-  ③步逐镜锁脸角色：1/2/3/4/5→林策）
+（v5.1 格式：统一汴京街市场景尾缀；林策全程禁武器、服装加权；谋士只出模糊背影不露脸；
+  ③步逐镜锁脸角色：1/2/3→林策）
 
 北宋汴京街市黄昏，现代青年站在街道中央茫然环顾，宋代行人对他指指点点 | 公元1125年，林策穿越到了北宋汴京。 | 5 | 旁白 | The young man looks around confused and lost, Song dynasty pedestrians at the edges point at him curiously; camera slowly pushes in on his face. | medium shot, lince wearing a (dark grey modern outdoor jacket:1.4) and (camo hiking backpack:1.3), unarmed, no weapons, modern clothing contrasting with ancient surroundings, standing confused in the middle of a bustling dusk street market in Bianjing, Song dynasty pedestrians in hanfu pointing at him from the far blurred background, no animals, no dogs, wooden shops, red lanterns, photorealistic live-action film still, 8k
 现代青年从背包抽出黑色手电筒，按下开关射出雪亮光柱，周围百姓惊愕后退 | 他摸出手电筒——在这时代，光就是力量。 | 5 | 旁白 | He draws a flashlight from his backpack and switches it on; the bright beam flares up, people around flinch back; static close-up. | extreme close-up, lince wearing a (dark grey modern outdoor jacket:1.4) and (camo hiking backpack:1.3), holding a black modern tactical flashlight, its bright white beam flaring and lighting his determined face from below, night street market in Bianjing, wooden shops, red lanterns, no corridor, no tunnel, no arches, photorealistic live-action film still, 8k
-城门口两名士兵横矛拦住青年，青年举手示意无害 | 站住！来者何人！ | 4 | 士兵甲 | Two long spear tips thrust toward him from both sides of the frame; the young man raises his empty hands innocently; camera slowly pushes in on his face. | close-up, lince wearing a (dark grey modern outdoor jacket:1.4) and (camo hiking backpack:1.3), unarmed, no sword, no weapons, empty hands raised innocently, modern short black hair, NO topknot, NO hanfu, modern clothing contrasting with ancient surroundings, facing camera, two long spear tips entering the frame from both sides pointing at him, soldiers hidden in shadow off-frame, ancient Chinese city gate with wooden gatehouse at dusk, red lanterns, photorealistic live-action film still, 8k
-雪亮光柱扫过，两名士兵惊惧跪倒、长矛脱手，周围百姓伏地 | 妖、妖术！ | 4 | 士兵乙 | The bright beam sweeps across; two soldiers fall to their knees in fear dropping their spears, their faces hidden; camera pulls back slightly. | medium shot at night, lince wearing a (dark grey modern outdoor jacket:1.4) and (camo hiking backpack:1.3), holding a glowing flashlight, its beam shining on two Song dynasty soldiers in lamellar armor kneeling face-down in fear, their faces completely hidden, spears dropped nearby, NO modern military uniforms, empty hands, nothing in hands, ancient city gate at night, red lanterns, photorealistic live-action film still, 8k
 青年被人群围住，画面边缘一位青袍谋士的模糊背影正暗中观察他 | 那物事……有意思。 | 5 | 谋士 | At the blurred edge of the frame, the back of a scholar in a teal robe stops and quietly watches the young man, twirling a folding fan; the crowd surrounds the young man in focus; camera holds steady. | medium shot, lince wearing a (dark grey modern outdoor jacket:1.4) and (camo hiking backpack:1.3), unarmed, modern clothing contrasting with ancient surroundings, facing camera in sharp focus surrounded by a crowd, at the blurred edge of the frame only the back of a Song dynasty scholar in a teal robe secretly watching him, dusk street market in Bianjing, red lanterns, photorealistic live-action film still, 8k
 
 ====================================================
 【制作备注】
-- 全片锁脸角色均为林策；谋士第5镜只出模糊背影（不露脸，防双人同框变脸）
-- 士兵只露矛尖或跪伏埋脸，全片除林策/谋士背影外无清晰配角脸
-- 对口型建议镜：3（士兵甲喝问）或 5（谋士低语钩子）
-- 服装提示词已带权重，抽卡若见古装/武器直接弃用重抽
+- 全片锁脸角色均为林策；谋士第3镜只出模糊背影（不露脸，防双人同框变脸）
+- 对口型建议镜：3（谋士低语钩子）
+- 服装提示词已带权重，抽卡若见古装/武器/动物/拱廊直接弃用重抽
 ====================================================
