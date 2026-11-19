@@ -486,6 +486,69 @@ def lora_validate(trigger: str, desc_en: str) -> tuple:
     return tuple(outs)
 
 
+# ========== 成片高清放大（ESRGAN 帧级放大到 1080P，走 AutoDL） ==========
+def _scp_to_autodl(local_path: str, remote_path: str):
+    """scp 传文件到 AutoDL（与 ssh 同一把免密密钥；注意 scp 端口参数是大写 -P）"""
+    if not AUTODL_SSH:
+        raise RuntimeError("服务器未配置 AUTODL_SSH_TARGET")
+    scp_target = AUTODL_SSH.replace("-p ", "-P ", 1)
+    host_part = scp_target.split(None, 1)[1]
+    full = (f"scp -o StrictHostKeyChecking=no -o BatchMode=yes -P {scp_target.split()[1]} "
+            f"{local_path} {host_part}:{remote_path}")
+    r = subprocess.run(full, shell=True, capture_output=True, text=True, timeout=600)
+    if r.returncode != 0:
+        raise RuntimeError(f"scp 上传失败：{r.stderr[-200:]}")
+
+
+def gen_upscaled_video(video_path: str, salt: str = "") -> Path:
+    """成片 ESRGAN 帧级放大：竖屏→1080x1920 / 横屏→1920x1080。
+    一次性工作流：VHS_LoadVideo → ESRGAN x4 → 缩放裁剪 → VHS 合成；音轨在本地合并。"""
+    _heartbeat()
+    vp = Path(video_path)
+    key = _sha(f"upscale|{vp.name}|{vp.stat().st_size}|{salt}")
+    out = WAN_DIR / f"{key}.mp4"
+    if out.exists():
+        return out
+    # 上传成片到实例
+    src_name = f"up_src_{key[:8]}.mp4"
+    _scp_to_autodl(str(vp), f"/root/autodl-tmp/ComfyUI/input/{src_name}")
+    portrait = True
+    try:
+        r = subprocess.run(["ffprobe", "-v", "quiet", "-show_entries", "stream=width,height",
+                            "-of", "csv=p=0", str(vp)], capture_output=True, text=True, timeout=30)
+        w0, h0 = [int(x) for x in r.stdout.strip().split(",")[:2]]
+        portrait = h0 >= w0
+    except Exception:  # noqa: BLE001
+        pass
+    tw, th = (1080, 1920) if portrait else (1920, 1080)
+    wf = {
+        "1": {"class_type": "VHS_LoadVideo", "inputs": {
+            "video": src_name, "force_rate": 0, "force_size": "Disabled",
+            "custom_width": 0, "custom_height": 0, "frame_load_cap": 0,
+            "skip_first_frames": 0, "select_every_nth": 1}},
+        "2": {"class_type": "UpscaleModelLoader", "inputs": {"model_name": "RealESRGAN_x4plus.pth"}},
+        "3": {"class_type": "ImageUpscaleWithModel", "inputs": {"upscale_model": ["2", 0], "image": ["1", 0]}},
+        "4": {"class_type": "ImageResizeKJv2", "inputs": {
+            "image": ["3", 0], "width": tw, "height": th, "upscale_method": "lanczos",
+            "keep_proportion": "crop", "pad_color": "0, 0, 0", "crop_position": "center",
+            "divisible_by": 2, "device": "cpu"}},
+        "5": {"class_type": "VHS_VideoCombine", "inputs": {
+            "images": ["4", 0], "frame_rate": 24.0, "loop_count": 0,
+            "filename_prefix": "upscaled", "format": "video/h264-mp4", "pix_fmt": "yuv420p",
+            "crf": 18, "save_metadata": True, "trim_to_audio": False,
+            "pingpong": False, "save_output": False}},
+    }
+    raw = WAN_DIR / f"{key}_nosound.mp4"
+    if not raw.exists():
+        raw.write_bytes(_comfy_run_video(wf, timeout_min=30))
+    # 合并原音轨（工作流不带声音，本地 ffmpeg 合成）
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", str(raw), "-i", str(vp), "-map", "0:v:0", "-map", "1:a:0",
+         "-c:v", "copy", "-c:a", "aac", "-b:a", "128k", "-shortest", str(out)],
+        check=True, capture_output=True, timeout=300)
+    return out
+
+
 # ========== InfiniteTalk 本地对口型（特写台词镜头，零成本） ==========
 TALK_WF_FILE = MODULE_DIR / "talk_workflow.json"  # 已烟测通过的 InfiniteTalk API 工作流
 
@@ -824,6 +887,10 @@ def gen_comfy_pulid(desc: str, char: dict, size_wh, seed: int = 0, prompt_en: st
     """调 ComfyUI 出定妆图：角色有 LoRA 走 LoRA 通道（定脸定装），否则走 PuLID 锁脸。sha1 缓存"""
     if prompt_en is None:
         prompt_en = gen_prompt_en(desc, char["desc_en"])
+    # 统一光影锚点：45°前侧柔光+弱轮廓光，全剧光效一致（WAN进阶建议）
+    LIGHT_SUFFIX = ", lit by soft 45-degree frontal key light with subtle rim light, cinematic contrast"
+    if "key light" not in prompt_en:
+        prompt_en = prompt_en.rstrip(" .,") + LIGHT_SUFFIX
     _heartbeat()
     lora_name = (char.get("lora") or "").strip()
     ckpt = os.environ.get("COMFY_CHECKPOINT", "").strip()
@@ -1367,7 +1434,7 @@ def compose_video(shots: list, images: list, audios: list, size_wh, work: Path,
             subprocess.run(
                 ["ffmpeg", "-y", "-stream_loop", "-1", "-i", str(img), "-i", str(aud),
                  "-map", "0:v:0", "-map", "1:a:0",
-                 "-vf", vf, "-c:v", "libx264", "-pix_fmt", "yuv420p"] + pad +
+                 "-vf", vf, "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p"] + pad +
                 ["-c:a", "aac", "-b:a", "128k", "-shortest", "-t", f"{target:.2f}",
                  str(seg)], check=True, capture_output=True, timeout=600)
             segs.append(seg)
@@ -1383,7 +1450,7 @@ def compose_video(shots: list, images: list, audios: list, size_wh, work: Path,
             vf = f"scale={w}:{h}"
         subprocess.run(
             ["ffmpeg", "-y", "-loop", "1", "-i", str(img), "-i", str(aud),
-             "-vf", vf, "-r", str(fps), "-c:v", "libx264", "-pix_fmt", "yuv420p"] + pad +
+             "-vf", vf, "-r", str(fps), "-c:v", "libx264", "-crf", "18", "-pix_fmt", "yuv420p"] + pad +
             ["-c:a", "aac", "-b:a", "128k", "-shortest", "-t", f"{target:.2f}",
              str(seg)], check=True, capture_output=True, timeout=600)
         segs.append(seg)
@@ -2530,8 +2597,28 @@ with st.container(border=True):
             dst = OUT_DIR / f"{st.session_state.get('proj_name') or '未命名'}_{int(time.time())}.mp4"
             shutil.copy2(video, dst)
             st.success(f"已存入我的作品：{dst.name}")
+        # 高清放大：ESRGAN 帧级放大到 1080P（走 AutoDL，一次性工作流）
+        up = st.session_state.get("upscaled_video")
+        if comfy_online():
+            if st.button("🔍 高清放大到 1080P（ESRGAN，约5~20分钟）",
+                         key="do_upscale", use_container_width=True):
+                with st.spinner("正在上传成片并逐帧放大（4090 全速）…"):
+                    try:
+                        st.session_state.upscaled_video = str(
+                            gen_upscaled_video(video, salt=str(time.time())))
+                        autosave()
+                        st.rerun()
+                    except Exception as e:  # noqa: BLE001
+                        st.error(f"放大失败：{e}")
+        if up and Path(up).exists():
+            st.success("✅ 1080P 放大完成")
+            st.video(up)
+            with open(up, "rb") as f:
+                st.download_button("⬇️ 下载 1080P 版", f, file_name="AI视频_1080P.mp4",
+                                   mime="video/mp4", use_container_width=True)
         if st.button("↻ 清除结果，重新合成", key="redo_compose"):
             st.session_state.pop("video", None)
+            st.session_state.pop("upscaled_video", None)
             st.rerun()
 
 # 每次页面渲染结束自动保存项目（有项目名且有分镜时）
