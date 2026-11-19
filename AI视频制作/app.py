@@ -430,11 +430,14 @@ def lora_train_status(trigger: str) -> tuple:
         return ("deployed", "已部署并入库")
     # 有进行中的任务时以任务文件为准（旧模型文件还在时不能误判"训练完成"）
     if job.get("stage") == "training":
-        rc2, out2, _ = _ssh_autodl(f"ps -p {job.get('pid', 0)} -o etime= 2>/dev/null")
-        if out2.strip():
+        # 注意：启动时记录的 pid 是 setsid 包装进程（立即退出），不能用它判断；
+        # 直接查训练进程是否存在（与看门狗同款检测）
+        rc2, out2, _ = _ssh_autodl(
+            "ps aux | grep sdxl_train_network | grep -v grep | wc -l")
+        if (out2.strip() or "0") not in ("0", ""):
             rc3, out3, _ = _ssh_autodl(
                 f"tail -1 /root/autodl-tmp/lora_train/log/{trigger}.log 2>/dev/null")
-            return ("training", f"训练中（已运行 {out2.strip()}）：{out3.strip()[-120:]}")
+            return ("training", f"训练中：{out3.strip()[-120:]}")
         # 进程已结束：看产物决定 done / failed
     rc, out, _ = _ssh_autodl(
         f"ls /root/autodl-tmp/lora_train/model/{trigger}.safetensors 2>/dev/null; "
