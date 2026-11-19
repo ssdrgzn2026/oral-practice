@@ -702,8 +702,11 @@ def save_project(name: str):
 def load_project(name: str):
     """从项目文件夹恢复全部状态"""
     state = json.loads((PROJ_DIR / name / "project.json").read_text(encoding="utf-8"))
-    for k, v in state.items():
-        st.session_state[k] = v
+    for k in PROJ_KEYS:
+        if k in state:
+            st.session_state[k] = state[k]
+        else:
+            st.session_state.pop(k, None)  # 本项目没有的键要清掉，防旧列表残留（如 6 张图配 3 个镜头）
     st.session_state.proj_name = name
     # 清掉逐镜输入框的组件状态，否则上一项目的提示词残留在框里并被 autosave 写回本项目
     for _i in range(12):
@@ -2258,6 +2261,8 @@ with st.container(border=True):
                         st.rerun()
         # 本镜锁脸角色：分镜里逐镜指定的优先，否则用全局选择
         char_i = None
+        if i >= len(shots):
+            break  # 图片比镜头多（旧项目残留），超出部分直接忽略
         _sc = shots[i].get("char", "")
         if _sc and _sc != "（不锁脸）":
             char_i = chars.get(_sc)
