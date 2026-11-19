@@ -71,3 +71,75 @@ a middle-aged Song dynasty scholar with goatee and hairpin crown, teal hanfu rob
 ```
 
 > 提醒：林策框里出现 scholar/goatee/teal robe 就是拿错沈砚的了——两栏别混。
+
+---
+
+## 附：抽片攒图②·提示词清单（锁脸抽片直接逐段粘贴）
+
+> 用法：「🎰 抽片攒图」②的「服装+背景描述」框逐段粘贴；每段抽 3~4 张，
+> 景别自然变化，想手动控制就在描述开头加 close-up, / medium shot, / full body shot,
+> （特写:中景:全身 ≈ 3:5:2）。每张过目：脸走样/服装变色/多道具当场删。
+
+### 林策 v4（共 26 张 + 基准脸 1 = 27 张）
+
+第 1 段｜特写肖像（4 张）
+```
+close-up portrait, wearing a dark grey modern outdoor jacket and camo hiking backpack, plain studio grey background, soft frontal lighting
+```
+第 2 段｜汴京街市·古（4 张）
+```
+wearing a dark grey modern outdoor jacket and camo hiking backpack, standing in a Song dynasty street market at dusk, wooden shops, red lanterns
+```
+第 3 段｜城门府门·古（4 张）
+```
+wearing a dark grey modern outdoor jacket and camo hiking backpack, standing before an ancient Chinese city gate with wooden gatehouse, dusk
+```
+第 4 段｜现代都市（4 张）
+```
+wearing a dark grey modern outdoor jacket and camo hiking backpack, standing in a modern Chinese city street, glass skyscrapers, daylight
+```
+第 5 段｜纯色影棚（4 张）
+```
+wearing a dark grey modern outdoor jacket and camo hiking backpack, in a clean photography studio with plain warm beige backdrop, soft studio lighting
+```
+第 6 段｜夜景灯笼·古（3 张）
+```
+wearing a dark grey modern outdoor jacket and camo hiking backpack, night street market in Bianjing, red lanterns bokeh
+```
+第 7 段｜庭院园林·古（3 张）
+```
+wearing a dark grey modern outdoor jacket and camo hiking backpack, standing in an ancient Chinese courtyard garden, stone pavement, potted plants
+```
+
+> 送训参数：角色名 林策，触发词 **linca**（沿用！分镜提示词全用这个词），
+> 描述框用上方「角色描述速查」林策那段。
+
+### 沈砚 v4（共 22 张 + 基准脸 1 = 23 张，全青袍无水印）
+
+第 1 段｜特写肖像（4 张）
+```
+close-up portrait, wearing a (teal hanfu robe:1.4) with red waist sash, hairpin crown, goatee, plain studio grey background, soft frontal lighting
+```
+第 2 段｜府门石阶（4 张）
+```
+wearing a (teal hanfu robe:1.4) with red waist sash, holding a folding fan, standing before an ancient Chinese mansion gate, stone steps, red lanterns
+```
+第 3 段｜庭院园林（4 张）
+```
+wearing a (teal hanfu robe:1.4) with red waist sash, holding a folding fan, standing in a courtyard with Taihu rocks and bamboo
+```
+第 4 段｜汴京街市（4 张）
+```
+wearing a (teal hanfu robe:1.4) with red waist sash, holding a folding fan, dusk street market in Bianjing, wooden shops, red lanterns
+```
+第 5 段｜夜景灯笼（3 张）
+```
+wearing a (teal hanfu robe:1.4) with red waist sash, holding a folding fan, night market, red lanterns bokeh
+```
+第 6 段｜书房烛影（3 张）
+```
+wearing a (teal hanfu robe:1.4) with red waist sash, holding a folding fan, in a study room with bamboo scrolls, candlelight
+```
+
+> 送训参数：角色名 谋士-沈砚，触发词 **shenyan**，
+> 描述框用上方「角色描述速查」沈砚那段（带发冠+红腰带版）。
