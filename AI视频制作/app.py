@@ -1603,7 +1603,7 @@ def render_assets():
     """🎭 资产库页：角色卡/场景库/群演库/道具库"""
     st.subheader("🎭 资产库")
     st.caption("角色、场景、群演、道具——建在这里，制作页直接调用")
-    t1, t2, t3, t4, t5 = st.tabs(["👤 角色卡", "🏯 场景库", "👥 群演库", "🗡 道具库", "🏋 LoRA 训练"])
+    t1, t2, t3, t4, t5, t6 = st.tabs(["👤 角色卡", "🏯 场景库", "👥 群演库", "🗡 道具库", "🏋 LoRA 训练", "🎰 抽片攒图"])
     with t1:
         comfy_status_ui("assets_poweron")
         # 角色卡：支持一人多面（正面/侧面/全身多张定妆图）
@@ -1764,6 +1764,115 @@ def render_assets():
                         st.success(f"「{val['name'] or trig}」已入库，制作页可选")
                     st.session_state.pop("lora_val", None)
                     st.rerun()
+    with t6:
+        st.caption("攒训练图流水线：① 抽脸选定一张 → ② 锁脸换背景/服装批量抽 → ③ 选够 15~30 张 → ④ 一键送训。脸一旦选定不再变，只按提示词改背景和服装。")
+        if not comfy_online():
+            st.warning("⚪ ComfyUI 离线，抽片不可用（需 AutoDL 开机 + 隧道连通）")
+        else:
+            ds_name = st.text_input("角色名（攒图分组）", value=st.session_state.get("ds_name", ""),
+                                    key="ds_name", placeholder="如：沈砚")
+            DS_DIR = CHAR_DIR / "datasets" / (ds_name.strip() or "_tmp")
+            FACE_DIR, CAND_DIR = DS_DIR / "faces", DS_DIR / "cands"
+            FACE_DIR.mkdir(parents=True, exist_ok=True)
+            CAND_DIR.mkdir(parents=True, exist_ok=True)
+            ref_path = DS_DIR / "ref.png"
+
+            # ① 抽脸：无 LoRA 文生图，每张脸都随机；选定后不再变
+            st.markdown("**① 抽脸（随机出脸，选定一张当基准）**")
+            face_desc = st.text_area("角色脸描述（英文）", key="ds_face_desc", height=68,
+                                     placeholder="a 40 years old Chinese man, short beard, square face, calm eyes")
+            if st.button("🎲 抽 4 张脸", key="ds_draw_faces"):
+                if not face_desc.strip():
+                    st.error("先填脸描述")
+                else:
+                    with st.spinner("抽脸中（约1分钟）…"):
+                        try:
+                            for j in range(4):
+                                seed = int(time.time() * 1000) % (2**31) + j * 101
+                                img = gen_comfy_txt2img(
+                                    f"portrait photo of {face_desc.strip()}, neutral expression, "
+                                    f"looking at camera, plain background, film still, 8k",
+                                    seed=seed)
+                                (FACE_DIR / f"face_{seed}.png").write_bytes(img.read_bytes())
+                            st.rerun()
+                        except Exception as e:  # noqa: BLE001
+                            st.error(f"抽脸失败：{e}")
+            faces = sorted(FACE_DIR.glob("face_*.png"), key=lambda p: p.stat().st_mtime)
+            if faces:
+                fcols = st.columns(min(len(faces), 4))
+                for j, fp in enumerate(faces[-8:]):
+                    fcols[j % 4].image(str(fp), use_container_width=True)
+                    if fcols[j % 4].button("✅ 用这张脸", key=f"ds_pick_{fp.stem}",
+                                           use_container_width=True):
+                        ref_path.write_bytes(fp.read_bytes())
+                        st.rerun()
+
+            # ② 锁脸抽片：PuLID 锁脸，只改背景/服装
+            if ref_path.exists():
+                st.markdown("**② 锁脸抽片（脸不变，按提示词换背景/服装）**")
+                rc1, rc2 = st.columns([3, 1])
+                rc1.image(str(ref_path), caption="当前基准脸", width=120)
+                if rc2.button("🗑 换脸重选", key="ds_unpick", use_container_width=True):
+                    ref_path.unlink()
+                    st.rerun()
+                vary_desc = st.text_area("服装+背景描述（英文，会接在脸特征后）", key="ds_vary_desc",
+                                         height=68,
+                                         placeholder="wearing a teal hanfu robe, standing in a Song dynasty courtyard, red lanterns, dusk")
+                n_draw = rc2.selectbox("抽几张", [2, 4, 6], index=1, key="ds_n_draw")
+                if st.button("🎰 锁脸抽片", key="ds_draw_cands", type="primary"):
+                    if not vary_desc.strip():
+                        st.error("先填服装+背景描述")
+                    else:
+                        with st.spinner(f"锁脸抽 {n_draw} 张（约{n_draw}分钟）…"):
+                            try:
+                                char_tmp = {"desc_en": face_desc.strip() or "a person",
+                                            "face": str(ref_path)}
+                                for j in range(n_draw):
+                                    seed = int(time.time() * 1000) % (2**31) + j * 733
+                                    full_p = (f"cinematic photo, {vary_desc.strip()}, "
+                                              f"photorealistic live-action film still, 8k")
+                                    img = gen_comfy_pulid(vary_desc.strip(), char_tmp,
+                                                          (768, 1024), seed=seed, prompt_en=full_p)
+                                    (CAND_DIR / f"cand_{int(time.time())}_{j}.png").write_bytes(
+                                        img.read_bytes())
+                                st.rerun()
+                            except Exception as e:  # noqa: BLE001
+                                st.error(f"抽片失败：{e}")
+
+            # ③ 图片集
+            cands = sorted(CAND_DIR.glob("cand_*.png"), key=lambda p: p.stat().st_mtime)
+            st.markdown(f"**③ 图片集（{len(cands)} 张，15~30 张可送训）**")
+            if cands:
+                gcols = st.columns(6)
+                for j, fp in enumerate(cands):
+                    g = gcols[j % 6]
+                    g.image(str(fp), use_container_width=True)
+                    with open(fp, "rb") as _f:
+                        g.download_button("⬇", _f, file_name=fp.name,
+                                          key=f"ds_dl_{fp.stem}", use_container_width=True)
+                    if g.button("🗑", key=f"ds_del_{fp.stem}", use_container_width=True):
+                        fp.unlink()
+                        st.rerun()
+            else:
+                st.info("还没有图，先抽脸再抽片")
+
+            # ④ 送入训练
+            if len(cands) >= 10:
+                trig6 = st.session_state.get("lora_trig", "").strip()
+                desc6 = st.session_state.get("lora_desc", "").strip()
+                if not (trig6 and desc6):
+                    st.warning("先到「🏋 LoRA 训练」页填好触发词和英文描述，再回来送训")
+                elif st.button(f"🚀 用这 {len(cands)} 张图开始训练（约1小时）",
+                               key="ds_go_train", type="primary", use_container_width=True):
+                    with st.spinner("上传数据集并启动训练…"):
+                        try:
+                            imgs = [fp.read_bytes() for fp in cands]
+                            if ref_path.exists():
+                                imgs.insert(0, ref_path.read_bytes())
+                            lora_train_start(trig6, desc6, imgs)
+                            st.success(f"已启动训练：{len(imgs)} 张，触发词 {trig6}。到「🏋 LoRA 训练」页看进度")
+                        except Exception as e:  # noqa: BLE001
+                            st.error(f"启动失败：{e}")
 
 
 def render_prompts():
