@@ -47,6 +47,12 @@ jobs:
             set -e
             cd ${{ env.DEPLOY_PATH }}
 
+            # 服务器端部署锁：GitHub 侧的取消杀不死远端构建，用 flock 串行化，防多构建撞车打爆小机
+            exec 9>/tmp/mischub-deploy.lock
+            echo "等待部署锁…"
+            flock 9
+            echo "获得部署锁，开始部署"
+
             # 解包源码（保留 .env 与数据目录）
             tar -xzf mischub-src.tar.gz
             rm -f mischub-src.tar.gz
