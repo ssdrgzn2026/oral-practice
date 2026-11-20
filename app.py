@@ -236,6 +236,16 @@ def demo():
     return render_template("demo.html")
 
 
+@app.route("/demo/graph")
+def demo_graph():
+    return render_template("graph.html")
+
+
+@app.route("/demo/cnn")
+def demo_cnn():
+    return render_template("cnn.html")
+
+
 @app.route("/tickets")
 def tickets():
     return render_template("tickets.html")

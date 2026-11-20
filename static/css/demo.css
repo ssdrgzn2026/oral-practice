@@ -1,0 +1,49 @@
+/* 演示器中心公共样式（/demo 及各演示器页面共用） */
+:root { --brand:#4f46e5; --ok:#16a34a; --bad:#dc2626; --hot:#f59e0b; }
+body.demo-body { background:#f3f4f8; }
+.demo-wrap { max-width:1100px; margin:0 auto; padding:16px 16px 60px; }
+.demo-head { text-align:center; margin:18px 0 8px; }
+.demo-head h1 { font-size:24px; margin:0 0 6px; }
+.demo-head p { color:#666; margin:0; }
+.backlink { display:inline-block; margin-top:8px; color:var(--brand); text-decoration:none; font-size:14px; }
+
+/* 覆盖 style.css 中 .panel{display:none}（那是票务页 Tab 面板用的） */
+.panel { display:block; background:#fff; border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,.06); padding:18px; margin-top:18px; }
+.panel h2 { font-size:18px; margin:0 0 4px; }
+.panel .hint { color:#777; font-size:13px; margin:0 0 12px; }
+.demo-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media(max-width:860px){ .demo-grid { grid-template-columns:1fr; } }
+.subbox { border:1px solid #e5e7ef; border-radius:10px; padding:12px; }
+.subbox h3 { font-size:14px; margin:0 0 8px; color:#444; }
+
+.controls { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; align-items:center; }
+.controls select, .controls input[type=text] { padding:6px 8px; border:1px solid #cfd3e3; border-radius:8px; font-size:14px; }
+.controls button, .btn { padding:7px 14px; border:none; border-radius:8px; background:var(--brand); color:#fff; font-size:14px; cursor:pointer; }
+.controls button:hover, .btn:hover { opacity:.9; }
+.btn.gray { background:#6b7280; }
+.btn:disabled { background:#c4c8d8; cursor:not-allowed; }
+
+.codebox { background:#1e2230; color:#d7e0f4; border-radius:10px; padding:12px 14px; font-family:Consolas,'Courier New',monospace; font-size:13px; line-height:1.7; overflow-x:auto; white-space:pre; }
+.codebox .ln { display:block; }
+.codebox .ln.hot { background:rgba(245,158,11,.28); border-left:3px solid var(--hot); margin-left:-8px; padding-left:5px; }
+.narrate { background:#eef0fe; border-left:4px solid var(--brand); border-radius:6px; padding:10px 12px; margin-top:12px; font-size:14px; color:#333; min-height:20px; }
+
+/* 闯关（挖空填空） */
+.quiz-code { background:#1e2230; color:#d7e0f4; border-radius:10px; padding:14px; font-family:Consolas,monospace; font-size:13.5px; line-height:2.0; overflow-x:auto; white-space:pre; }
+.blank { display:inline-block; min-width:70px; width:auto; background:#2b3047; border:none; border-bottom:2px solid var(--hot); color:#ffe9b8; font-family:inherit; font-size:inherit; text-align:center; padding:0 4px; border-radius:4px 4px 0 0; }
+.blank:focus { outline:2px solid var(--hot); }
+.blank.right { border-bottom-color:var(--ok); color:#9ff0c0; background:rgba(22,163,74,.25); }
+.blank.wrong { border-bottom-color:var(--bad); color:#ffb4b4; background:rgba(220,38,38,.25); }
+.quiz-foot { margin-top:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.quiz-msg { font-size:14px; }
+.level-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+.level-tab { padding:6px 14px; border-radius:20px; border:1px solid #cfd3e3; background:#fff; cursor:pointer; font-size:14px; }
+.level-tab.cur { background:var(--brand); color:#fff; border-color:var(--brand); }
+.level-tab.locked { opacity:.45; cursor:not-allowed; }
+.level-tab.done { border-color:var(--ok); color:var(--ok); }
+.level-tab.cur.done { background:var(--ok); color:#fff; }
+.pass-banner { text-align:center; padding:30px 10px; font-size:18px; color:var(--ok); }
+
+/* 门户页卡片（沿用首页 module-card 风格，见 style.css） */
+.demo-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; margin-top:18px; }
+.demo-cards .module-card { text-decoration:none; }
