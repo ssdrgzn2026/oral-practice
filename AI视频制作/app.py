@@ -904,7 +904,7 @@ def gen_comfy_pulid(desc: str, char: dict, size_wh, seed: int = 0, prompt_en: st
         face_path = char.get("face") or (char.get("faces") or [None])[0]
         face_bytes = Path(face_path).read_bytes()
         face_key = _sha_bytes(face_bytes)
-    key = _sha(f"pulid|{prompt_en}|{face_key}|{lora_name}|{size_wh[0]}x{size_wh[1]}|{seed}|{ckpt}")
+    key = _sha(f"pulid2|{prompt_en}|{face_key}|{lora_name}|{size_wh[0]}x{size_wh[1]}|{seed}|{ckpt}")
     out = COMFY_DIR / f"{key}.png"
     if out.exists():
         return out
@@ -2301,7 +2301,10 @@ with st.container(border=True):
             st.session_state.images = images
             st.session_state.pop("video", None)
             st.rerun()
-    seeds = st.session_state.setdefault("seeds", [0] * len(shots))
+    seeds = st.session_state.get("seeds") or []
+    if len(seeds) < len(shots):  # 跨项目切换时补齐种子列表（防越界）
+        seeds = seeds + [0] * (len(shots) - len(seeds))
+    st.session_state.seeds = seeds[:len(shots)]
     cols = st.columns(len(images))
     for i, p in enumerate(images):
         ph = shots[i].get("photo", 0) if i < len(shots) else 0
