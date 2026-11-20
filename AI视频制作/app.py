@@ -1856,6 +1856,14 @@ def render_assets():
             # ③ 图片集
             cands = sorted(CAND_DIR.glob("cand_*.png"), key=lambda p: p.stat().st_mtime)
             st.markdown(f"**③ 图片集（{len(cands)} 张，15~30 张可送训）**")
+            up = st.file_uploader("📤 直接上传图片入集（场景/道具 LoRA 攒图走这里，无需锁脸）",
+                                  type=["png", "jpg", "jpeg"], accept_multiple_files=True,
+                                  key="ds_upload_cands")
+            if up:
+                for _f in up:
+                    (CAND_DIR / f"cand_{int(time.time()*1000)}_{_sha_bytes(_f.getvalue())[:8]}.png").write_bytes(
+                        _f.getvalue())
+                st.rerun()
             if cands:
                 gcols = st.columns(6)
                 for j, fp in enumerate(cands):
