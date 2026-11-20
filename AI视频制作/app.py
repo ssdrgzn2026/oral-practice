@@ -1225,6 +1225,16 @@ def _parse_manual_shots(text: str) -> list:
     return shots
 
 
+def _clear_shot_widgets(max_shots: int = 60):
+    """换掉/清空 shots 前，必须清掉逐镜编辑组件的残留状态。
+    Streamlit 规则：key 已在 session_state 里的组件会忽略 value= 参数，继续显示旧值；
+    不清就会在下一轮渲染把旧镜头内容写回新 shots（表现为「录入新分镜改不了」）。"""
+    for i in range(max_shots):
+        for prefix in ("shot_desc_", "shot_narr_", "shot_spk_", "shot_char_",
+                       "desc_tpl_sel_", "mot_", "pen_", "shot_mot_", "shot_pen_"):
+            st.session_state.pop(f"{prefix}{i}", None)
+
+
 # ========== 第 4 步：文生图 ==========
 def gen_image(desc: str, size: str, seed: int = 0, style_suffix: str = None) -> Path:
     """Kolors 中文原生模型，直接用中文描述；seed 用于单镜重跑时绕过缓存/换随机性"""
@@ -2101,11 +2111,7 @@ with st.container(border=True):
                 for k in ("images", "audios", "video", "seeds", "uploads", "audio_uploads",
                           "prompts_motion", "prompts_en"):
                     st.session_state.pop(k, None)
-                for _i in range(12):
-                    st.session_state.pop(f"mot_{_i}", None)
-                    st.session_state.pop(f"pen_{_i}", None)
-                    st.session_state.pop(f"shot_mot_{_i}", None)
-                    st.session_state.pop(f"shot_pen_{_i}", None)
+                _clear_shot_widgets()
                 st.rerun()
             else:
                 st.error("解析失败，请检查格式")
@@ -2117,12 +2123,14 @@ with st.container(border=True):
         st.session_state.making = True
         for k in ("shots", "images", "audios", "video", "seeds", "uploads", "audio_uploads"):
             st.session_state.pop(k, None)
+        _clear_shot_widgets()
         st.rerun()
     if cc2.button("↻ 重新生成文案", key="redo_script_text"):
         st.session_state.pop("script", None)
         st.session_state.pop("making", None)
         for k in ("shots", "images", "audios", "video", "seeds", "uploads", "audio_uploads"):
             st.session_state.pop(k, None)
+        _clear_shot_widgets()
         st.rerun()
 
 size_wh = SIZES[aspect_label]
@@ -2152,11 +2160,7 @@ with st.container(border=True):
             for k in ("images", "audios", "video", "seeds", "uploads", "audio_uploads",
                       "prompts_motion", "prompts_en"):
                 st.session_state.pop(k, None)
-            for _i in range(12):  # 清掉旧的提示词框组件状态，让分镜自带的提示词接管
-                st.session_state.pop(f"mot_{_i}", None)
-                st.session_state.pop(f"pen_{_i}", None)
-                st.session_state.pop(f"shot_mot_{_i}", None)
-                st.session_state.pop(f"shot_pen_{_i}", None)
+            _clear_shot_widgets()  # 清掉旧的提示词/镜头框组件状态，让分镜自带的内容接管
             st.rerun()
     if shots is None:
         if not st.session_state.get("making"):
@@ -2168,6 +2172,7 @@ with st.container(border=True):
             st.session_state.making = True
             for k in ("images", "audios", "video", "seeds", "uploads", "audio_uploads"):
                 st.session_state.pop(k, None)
+            _clear_shot_widgets()
             st.rerun()
         if not st.session_state.get("making"):
             st.stop()
@@ -2246,6 +2251,7 @@ with st.container(border=True):
     if st.button("↻ 重新生成脚本", key="redo_script"):
         for k in ("shots", "images", "audios", "video", "seeds", "uploads", "audio_uploads"):
             st.session_state.pop(k, None)
+        _clear_shot_widgets()
         st.rerun()
 
 # ========== 第 4 步：文生图 ==========
