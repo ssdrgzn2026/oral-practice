@@ -1815,10 +1815,15 @@ def render_assets():
         if faces:
             fcols = st.columns(min(len(faces), 4))
             for j, fp in enumerate(faces[-8:]):
-                fcols[j % 4].image(str(fp), use_container_width=True)
-                if fcols[j % 4].button("✅ 用这张脸", key=f"ds_pick_{fp.stem}",
-                                       use_container_width=True):
+                fc = fcols[j % 4]
+                fc.image(str(fp), use_container_width=True)
+                b1, b2 = fc.columns(2)
+                if b1.button("✅ 用这张脸", key=f"ds_pick_{fp.stem}",
+                             use_container_width=True):
                     ref_path.write_bytes(fp.read_bytes())
+                    st.rerun()
+                if b2.button("🗑", key=f"ds_fdel_{fp.stem}", use_container_width=True):
+                    fp.unlink()
                     st.rerun()
 
         # ② 锁脸抽片：PuLID 锁脸，只改背景/服装
