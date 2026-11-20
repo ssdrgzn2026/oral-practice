@@ -1887,6 +1887,8 @@ def render_assets():
         if len(cands) >= 10:
             trig6 = st.session_state.get("lora_trig", "").strip()
             desc6 = st.session_state.get("lora_desc", "").strip()
+            inc_ref = st.checkbox("训练集包含①选定的基准脸（角色 LoRA 勾上；场景/道具 LoRA 务必取消，否则人脸会被学进场景）",
+                                  value=True, key="ds_inc_ref")
             if not (trig6 and desc6):
                 st.warning("先到「🏋 LoRA 训练」页填好触发词和英文描述，再回来送训")
             elif st.button(f"🚀 用这 {len(cands)} 张图开始训练（约1小时）",
@@ -1895,7 +1897,7 @@ def render_assets():
                 with st.spinner("上传数据集并启动训练…"):
                     try:
                         imgs = [fp.read_bytes() for fp in cands]
-                        if ref_path.exists():
+                        if inc_ref and ref_path.exists():
                             imgs.insert(0, ref_path.read_bytes())
                         lora_train_start(trig6, desc6, imgs)
                         st.success(f"已启动训练：{len(imgs)} 张，触发词 {trig6}。到「🏋 LoRA 训练」页看进度")
