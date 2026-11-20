@@ -70,6 +70,14 @@ td.flash{ animation:flash 1s ease; }
     <div class="panel" id="demoPanel">
         <h2>第 1 步 · 演示环节</h2>
         <p class="hint">左边是无向图，右边是它在内存里的邻接矩阵（G.arcs）。点按钮执行操作，观察矩阵 0/1 的变化和正在执行的 C 代码。</p>
+        <div class="narrate" style="margin:0 0 12px">
+            <b>📖 操作方法</b><br>
+            1. <b>加边 / 删边</b>：先在两个下拉框里各选一个顶点，再点对应按钮——右边矩阵对称的两格会变 1（蓝）或变 0，下方同步高亮正在执行的 C 代码。<br>
+            2. <b>加顶点</b>：在输入框写个名字（如 E），点"加顶点 InsertVex"，矩阵会多出清零的一行一列。<br>
+            3. <b>删顶点</b>：在最右下拉框选顶点，点"删顶点 DeleteVex"——注意看后面的顶点前移、矩阵行列搬移，这是最难的一步。<br>
+            4. 懒得手点？点 <b>▶ 自动播放</b>，它会按 main 函数的真实流程演示一遍（建图→加边→删边→加点→删点→销毁），每步配讲解。<br>
+            5. 看明白后点底部 <b>"看完了，去闯关"</b>，把挖空的 C 代码填回来验收，共 4 关，全对通关。
+        </div>
         <div class="demo-grid">
             <div class="subbox">
                 <h3>① 图的形状</h3>
@@ -266,7 +274,7 @@ function renderGraph(){
         pos.push([cx+R*Math.cos(a), cy+R*Math.sin(a)]);
     }
     ctx.strokeStyle='#8b8fd0'; ctx.lineWidth=1.6;
-    for(var i2=0;i2<n;i2++) for(var j=i2+1;j<n;j2++)
+    for(var i2=0;i2<n;i2++) for(var j=i2+1;j<n;j++)
         if(G.arcs[i2][j]){ ctx.beginPath(); ctx.moveTo(pos[i2][0],pos[i2][1]); ctx.lineTo(pos[j][0],pos[j][1]); ctx.stroke(); }
     for(var k=0;k<n;k++){
         ctx.beginPath(); ctx.arc(pos[k][0],pos[k][1],20,0,7);
