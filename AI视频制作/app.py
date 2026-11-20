@@ -2346,6 +2346,26 @@ with st.container(border=True):
                     except Exception as e:  # noqa: BLE001
                         st.error(f"镜头 {i+1} 配图失败：{e}")
                 st.rerun()
+            if is_online and cols[i].button("🎨 文生图（ComfyUI·写实）", key=f"t2i_{i}",
+                                            use_container_width=True,
+                                            help="不锁脸的镜头用这条：Juggernaut 写实底模+英文提示词，朝代/铠甲约束比 Kolors 稳"):
+                with st.spinner(f"ComfyUI 正在文生图镜头 {i+1}（约1分钟）…"):
+                    try:
+                        try:
+                            en = gen_prompt_en(shots[i]["desc"],
+                                               "ancient Chinese people in Song dynasty hanfu or lamellar armor")
+                        except Exception:  # noqa: BLE001
+                            en = shots[i]["desc"]
+                        seeds[i] = int(time.time() * 1000) % (2**31)
+                        w_, h_ = (768, 1024) if size_wh[1] > size_wh[0] else (1152, 640)
+                        images[i] = str(gen_comfy_txt2img(en, seed=seeds[i],
+                                                          width=w_, height=h_))
+                        uploads.pop(str(i), None)
+                        st.session_state.images = images
+                        st.session_state.pop("video", None)
+                    except Exception as e:  # noqa: BLE001
+                        st.error(f"镜头 {i+1} 文生图失败：{e}")
+                st.rerun()
         if not is_video and wan_available():
             # 动态提示词：LLM 由「画面描述+台词」合成，可见可改，Wan 只按它动
             mp = st.session_state.setdefault("prompts_motion", {})
