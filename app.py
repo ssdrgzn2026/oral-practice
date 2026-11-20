@@ -231,6 +231,11 @@ def _save_subs(subs):
         SUBS_FILE.write_text(json.dumps(subs, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
+@app.route("/demo")
+def demo():
+    return render_template("demo.html")
+
+
 @app.route("/tickets")
 def tickets():
     return render_template("tickets.html")
