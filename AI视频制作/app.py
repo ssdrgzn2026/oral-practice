@@ -1772,6 +1772,20 @@ def render_assets():
                             st.error(f"部署/验收失败：{e}")
             elif stage == "failed":
                 st.error(f"❌ {stage_txt}")
+            elif stage == "deployed":
+                st.success(f"✅ 已训练完成并部署到 ComfyUI（models/loras/{trig}.safetensors）")
+                st.caption("场景/道具 LoRA 无需入角色库：到「视频制作 → ④分镜配图 → 🏯 全局画风/场景 LoRA」下拉选用即可")
+                if st.button("🧪 重新生成验收对照图（约2分钟）", key="lora_reval"):
+                    with st.spinner("跑验收对照图…"):
+                        try:
+                            _kind = "scene" if st.session_state.get("lora_kind", "").startswith("场景") else "char"
+                            va, vb = lora_validate(trig, l_desc or "street market", kind=_kind)
+                            st.session_state.lora_val = {"trigger": trig, "name": l_name,
+                                                         "desc": l_desc, "kind": _kind,
+                                                         "a": str(va), "b": str(vb)}
+                            st.rerun()
+                        except Exception as e:  # noqa: BLE001
+                            st.error(f"验收失败：{e}")
             # 开始/重新训练：done/deployed 状态下也允许覆盖重训（换训练图时）
             if stage != "training":
                 _relabel = "↻ 重新训练（覆盖旧模型，约1小时）" if stage in ("done", "deployed") \
