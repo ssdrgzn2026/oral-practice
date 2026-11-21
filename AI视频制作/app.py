@@ -2375,7 +2375,8 @@ with st.container(border=True):
     _remote_loras = list_remote_loras() if is_online else []
     sl1.selectbox("🏯 全局画风/场景 LoRA（每镜自动叠加，权重建议 0.3~0.4）",
                   ["（不使用）"] + _remote_loras, key="style_lora_sel")
-    sl2.selectbox("画风权重", [0.25, 0.3, 0.35, 0.4, 0.45, 0.5], index=3, key="style_lora_w")
+    sl2.selectbox("画风权重", [0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5], index=4, key="style_lora_w",
+                  help="实测：有人物主体的镜头 0.15（高了会把主角古装化）；空镜/过场 0.3~0.4")
     _sl = st.session_state.get("style_lora_sel", "（不使用）")
     style_lora = _sl if _sl.endswith(".safetensors") else None
     style_lora_w = float(st.session_state.get("style_lora_w", 0.4))
