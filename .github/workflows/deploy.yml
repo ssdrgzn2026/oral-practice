@@ -74,12 +74,19 @@ jobs:
               sed -i "s/^KLING_API_KEY=.*/KLING_API_KEY=$EXISTING_KLING/" .env
             fi
 
-            # 在服务器上构建镜像并重启服务
+            # 在服务器上构建镜像并重启服务（全程落盘日志，便于失败后 SSH 排查）
+            set -o pipefail
+            {
+            echo "=== build 开始 $(date '+%F %T') ==="
             docker compose build
+            echo "=== build 完成，up -d 开始 $(date '+%F %T') ==="
             docker compose up -d --remove-orphans
+            echo "=== up -d 完成 $(date '+%F %T') ==="
+            docker compose ps
 
             # 清理悬空镜像，避免磁盘耗尽
             docker image prune -f || true
+            free -m | head -2
 
             # 健康检查：Streamlit 服务在小机上启动慢，每个目标最多重试 90 秒
             ok=1
@@ -90,7 +97,7 @@ jobs:
                 if [ "$HEALTH" = "200" ]; then break; fi
                 sleep 5
               done
-              echo "健康检查 ${target}: HTTP ${HEALTH}"
+              echo "健康检查 ${target}: HTTP ${HEALTH} (第 ${i} 次尝试)"
               if [ "$HEALTH" != "200" ]; then ok=0; fi
             done
 
@@ -100,8 +107,10 @@ jobs:
             fi
 
             echo "❌ 健康检查失败，请手动排查"
+            docker compose ps
             docker compose logs --tail=50
             exit 1
+            } 2>&1 | tee /tmp/mischub-deploy.log
 
       - name: Notify result
         if: always()
