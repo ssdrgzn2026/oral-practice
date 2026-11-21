@@ -896,7 +896,23 @@ def gen_prompt_en(desc: str, char_desc_en: str) -> str:
     return text
 
 
-def gen_comfy_pulid(desc: str, char: dict, size_wh, seed: int = 0, prompt_en: str = None) -> Path:
+def list_remote_loras() -> list:
+    """列出 AutoDL ComfyUI 可用的 LoRA 文件名（5 分钟缓存）"""
+    cache = st.session_state.get("_remote_loras")
+    if cache and time.time() - cache[0] < 300:
+        return cache[1]
+    try:
+        rc, out, _ = _ssh_autodl("ls /root/autodl-tmp/ComfyUI/models/loras/ 2>/dev/null || true")
+        files = [ln.strip() for ln in out.splitlines()
+                 if ln.strip().endswith(".safetensors")] if rc == 0 else []
+    except Exception:  # noqa: BLE001
+        files = []
+    st.session_state._remote_loras = (time.time(), files)
+    return files
+
+
+def gen_comfy_pulid(desc: str, char: dict, size_wh, seed: int = 0, prompt_en: str = None,
+                    style_lora: str = None, style_strength: float = 0.4) -> Path:
     """调 ComfyUI 出定妆图：角色有 LoRA 走 LoRA 通道（定脸定装），否则走 PuLID 锁脸。sha1 缓存"""
     if prompt_en is None:
         prompt_en = gen_prompt_en(desc, char["desc_en"])
@@ -913,7 +929,7 @@ def gen_comfy_pulid(desc: str, char: dict, size_wh, seed: int = 0, prompt_en: st
         face_path = char.get("face") or (char.get("faces") or [None])[0]
         face_bytes = Path(face_path).read_bytes()
         face_key = _sha_bytes(face_bytes)
-    key = _sha(f"pulid2|{prompt_en}|{face_key}|{lora_name}|{size_wh[0]}x{size_wh[1]}|{seed}|{ckpt}")
+    key = _sha(f"pulid2|{prompt_en}|{face_key}|{lora_name}|{style_lora}|{style_strength}|{size_wh[0]}x{size_wh[1]}|{seed}|{ckpt}")
     out = COMFY_DIR / f"{key}.png"
     if out.exists():
         return out
@@ -925,6 +941,15 @@ def gen_comfy_pulid(desc: str, char: dict, size_wh, seed: int = 0, prompt_en: st
         trigger = (char.get("trigger") or "lince").strip()
         wf["22"]["inputs"]["text"] = f"{trigger}, {prompt_en}"
         wf["40"]["inputs"]["lora_name"] = lora_name
+        if style_lora:
+            # 全局画风/场景 LoRA 槽位：底模 → 画风LoRA(41) → 角色LoRA(40) 串联，权重独立
+            wf["41"] = {"class_type": "LoraLoader",
+                        "inputs": {"lora_name": style_lora,
+                                   "strength_model": style_strength,
+                                   "strength_clip": style_strength,
+                                   "model": ["4", 0], "clip": ["4", 1]}}
+            wf["40"]["inputs"]["model"] = ["41", 0]
+            wf["40"]["inputs"]["clip"] = ["41", 1]
         wf["3"]["inputs"]["seed"] = seed or int(time.time() * 1000) % (2**31)
         if ckpt:
             wf["4"]["inputs"]["ckpt_name"] = ckpt
@@ -2313,6 +2338,18 @@ with st.container(border=True):
     active_char = st.session_state.get("active_char", "（不使用）")
     active_char = chars.get(active_char) if active_char != "（不使用）" else None
 
+    # ---- 全局画风/场景 LoRA 槽位（如 bjstreet；叠加在角色 LoRA 之下，每镜自动生效）----
+    sl1, sl2 = st.columns([2, 1])
+    _remote_loras = list_remote_loras() if is_online else []
+    sl1.selectbox("🏯 全局画风/场景 LoRA（每镜自动叠加，权重建议 0.3~0.4）",
+                  ["（不使用）"] + _remote_loras, key="style_lora_sel")
+    sl2.selectbox("画风权重", [0.25, 0.3, 0.35, 0.4, 0.45, 0.5], index=3, key="style_lora_w")
+    _sl = st.session_state.get("style_lora_sel", "（不使用）")
+    style_lora = _sl if _sl.endswith(".safetensors") else None
+    style_lora_w = float(st.session_state.get("style_lora_w", 0.4))
+    if style_lora:
+        st.caption(f"🏯 画风 LoRA 已启用：{style_lora}（权重 {style_lora_w}），逐镜「锁脸生成」后生效；与角色 LoRA 串联，单镜共 2 个 LoRA")
+
     if images is None:
         # 懒生成：不自动消耗 Kolors 额度，先用参考照片/占位图就位，AI 配图由按钮触发
         images = []
@@ -2553,7 +2590,9 @@ with st.container(border=True):
                         seeds[i] = int(time.time() * 1000) % (2**31)  # 每次点击换新种子（抽卡）
                         images[i] = str(gen_comfy_pulid(shots[i]["desc"], char_i,
                                                         size_wh, seed=seeds[i],
-                                                        prompt_en=pe.get(str(i)) or None))
+                                                        prompt_en=pe.get(str(i)) or None,
+                                                        style_lora=style_lora,
+                                                        style_strength=style_lora_w))
                         st.session_state.setdefault("pulid_history", {}).setdefault(
                             str(i), []).append(images[i])
                         st.session_state.images = images
