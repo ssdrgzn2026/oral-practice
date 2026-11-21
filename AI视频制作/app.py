@@ -198,20 +198,21 @@ def _kling_quota_inc():
 
 
 def gen_kling_video(desc: str, size_wh, image_path: str = None, salt: str = "",
-                    style_suffix: str = None) -> Path:
-    """可灵生成 5 秒动态片段；有配图时用图生视频（以配图为首帧）。salt 用于重抽时绕过缓存"""
+                    style_suffix: str = None, duration: str = "5") -> Path:
+    """可灵生成动态片段（duration 5 或 10 秒）；有配图时用图生视频（以配图为首帧）。salt 用于重抽时绕过缓存"""
+    duration = "10" if str(duration) == "10" else "5"
     prompt = desc.rstrip("，。") + (style_suffix or IMG_STYLE_SUFFIX)
     img_b64 = ""
     if image_path:
         img_b64 = base64.b64encode(Path(image_path).read_bytes()).decode()
-    key = _sha(f"kling|{KLING_MODEL}|{prompt}|{size_wh[0]}x{size_wh[1]}|{img_b64[:64]}|{salt}")
+    key = _sha(f"kling|{KLING_MODEL}|{prompt}|{size_wh[0]}x{size_wh[1]}|{duration}|{img_b64[:64]}|{salt}")
     out = KLING_DIR / f"{key}.mp4"
     if out.exists():
         return out
     if kling_quota_left() <= 0:
         raise RuntimeError(f"今日可灵额度已用完（每天 {KLING_DAILY_LIMIT} 次），明天再来")
     headers = {"Authorization": f"Bearer {KLING_KEY}", "Content-Type": "application/json"}
-    body = {"model_name": KLING_MODEL, "prompt": prompt, "duration": "5",
+    body = {"model_name": KLING_MODEL, "prompt": prompt, "duration": duration,
             "aspect_ratio": "9:16" if size_wh[1] > size_wh[0] else "16:9"}
     if img_b64:
         body["image"] = img_b64
@@ -225,9 +226,9 @@ def gen_kling_video(desc: str, size_wh, image_path: str = None, salt: str = "",
         raise RuntimeError(f"可灵返回错误：{resp.get('message')}")
     task_id = resp["data"]["task_id"]
     _kling_quota_inc()
-    # 轮询任务状态（异步生成，通常 1~5 分钟）
+    # 轮询任务状态（异步生成，5秒片约1~5分钟，10秒片更久）
     qurl = f"{url}/{task_id}"
-    for _ in range(36):
+    for _ in range(60):
         time.sleep(10)
         q = requests.get(qurl, headers=headers, timeout=30).json()
         status = (q.get("data") or {}).get("task_status")
@@ -239,7 +240,7 @@ def gen_kling_video(desc: str, size_wh, image_path: str = None, salt: str = "",
             return out
         if status == "failed":
             raise RuntimeError(f"可灵生成失败：{(q.get('data') or {}).get('task_status_msg')}")
-    raise RuntimeError("可灵生成超时（6 分钟未完成）")
+    raise RuntimeError("可灵生成超时（10 分钟未完成）")
 
 
 # ========== Wan2.2 本地图生视频（主力动态片段通道，走 ComfyUI/AutoDL） ==========
@@ -2273,9 +2274,12 @@ with st.container(border=True):
 # ========== 第 4 步：文生图 ==========
 with st.container(border=True):
     st.subheader("④ 分镜配图（Kolors · ComfyUI 锁脸）")
-    style_col, _ = st.columns([1, 2])
+    style_col, dur_col, _ = st.columns([1, 1, 1])
     img_style = style_col.selectbox("配图风格（Kolors/可灵通道；锁脸通道固定写实）",
                                     list(IMG_STYLES.keys()), key="img_style")
+    kling_dur = "10" if dur_col.selectbox(
+        "可灵片段时长", ["5 秒（默认）", "10 秒（运镜更舒展，适合大场面/推近）"],
+        key="kling_dur_sel").startswith("10") else "5"
     STYLE_SUFFIX = IMG_STYLES[img_style]
     uploads = st.session_state.setdefault("uploads", {})  # 镜头序号(str) -> 自定义图片路径
 
@@ -2429,7 +2433,7 @@ with st.container(border=True):
                     try:
                         st.session_state.setdefault("kling_src", {})[str(i)] = p  # 记住首帧，供重抽用
                         images[i] = str(gen_kling_video(shots[i]["desc"], size_wh, image_path=p,
-                                                        style_suffix=STYLE_SUFFIX))
+                                                        style_suffix=STYLE_SUFFIX, duration=kling_dur))
                         st.session_state.setdefault("kling_history", {}).setdefault(
                             str(i), []).append(images[i])
                         st.session_state.images = images
@@ -2467,7 +2471,7 @@ with st.container(border=True):
                         src = st.session_state.get("kling_src", {}).get(str(i))
                         images[i] = str(gen_kling_video(
                             shots[i]["desc"], size_wh, image_path=src,
-                            salt=str(time.time()), style_suffix=STYLE_SUFFIX))
+                            salt=str(time.time()), style_suffix=STYLE_SUFFIX, duration=kling_dur))
                         khist.append(images[i])
                         st.session_state.images = images
                         st.session_state.pop("video", None)
