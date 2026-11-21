@@ -81,13 +81,15 @@ jobs:
             # 清理悬空镜像，避免磁盘耗尽
             docker image prune -f || true
 
-            # 等待服务启动
-            sleep 8
-
-            # 健康检查
+            # 健康检查：Streamlit 服务在小机上启动慢，每个目标最多重试 90 秒
             ok=1
             for target in "5000/" "8501/convert/healthz" "8502/dcf/healthz" "8503/video/healthz" "8504/oral/healthz"; do
-              HEALTH=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${target}" || echo "000")
+              HEALTH="000"
+              for i in $(seq 1 18); do
+                HEALTH=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${target}" || echo "000")
+                if [ "$HEALTH" = "200" ]; then break; fi
+                sleep 5
+              done
               echo "健康检查 ${target}: HTTP ${HEALTH}"
               if [ "$HEALTH" != "200" ]; then ok=0; fi
             done
