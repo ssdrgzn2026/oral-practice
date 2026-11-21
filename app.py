@@ -246,6 +246,11 @@ def demo_cnn():
     return render_template("cnn.html")
 
 
+@app.route("/demo/fitness")
+def demo_fitness():
+    return render_template("fitness.html")
+
+
 @app.route("/tickets")
 def tickets():
     return render_template("tickets.html")

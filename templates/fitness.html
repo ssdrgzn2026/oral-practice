@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>推拉腿健身跟练 · 演示器</title>
+<link rel="stylesheet" href="/static/css/style.css">
+<link rel="stylesheet" href="/static/css/demo.css">
+<style>
+.day-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+.day-tab{ padding:8px 18px; border-radius:20px; border:1px solid #cfd3e3; background:#fff; cursor:pointer; font-size:15px; }
+.day-tab.cur{ background:var(--brand); color:#fff; border-color:var(--brand); }
+.ex-card{ border:1px solid #e5e7ef; border-radius:10px; padding:12px 14px; margin-bottom:10px; }
+.ex-head{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; cursor:pointer; }
+.ex-head .num{ color:var(--brand); font-weight:700; }
+.ex-head .nm{ font-size:16px; font-weight:600; }
+.ex-head .st{ color:#666; font-size:13px; margin-left:auto; }
+.ex-focus{ font-size:13px; color:#777; margin:4px 0 0; }
+.ex-detail{ display:none; margin-top:8px; font-size:13.5px; line-height:1.8; }
+.ex-card.open .ex-detail{ display:block; }
+.ex-detail h4{ margin:8px 0 2px; font-size:13px; color:var(--brand); }
+.ex-detail ul{ margin:0; padding-left:18px; }
+.ex-detail .keep{ color:#c026d3; font-size:12.5px; }
+.sec-title{ margin:18px 0 8px; font-size:15px; color:#444; }
+/* 跟练播放器 */
+#player{ position:fixed; inset:0; background:#14162b; color:#fff; z-index:50; display:none; flex-direction:column; align-items:center; padding:10px 14px; overflow-y:auto; }
+#player.on{ display:flex; }
+#animCv{ width:min(90vw,420px); height:300px; background:#1e2236; border-radius:14px; }
+.p-exname{ font-size:22px; font-weight:700; margin:10px 0 2px; }
+.p-setinfo{ font-size:15px; color:#aab; }
+.p-big{ font-size:56px; font-weight:800; font-variant-numeric:tabular-nums; margin:2px 0; color:#ffd66b; }
+.p-tip{ max-width:520px; font-size:13.5px; color:#cdd3f0; background:#232842; border-radius:8px; padding:8px 12px; margin:6px 0; min-height:38px; text-align:center; }
+.p-controls{ display:flex; gap:10px; margin:10px 0; flex-wrap:wrap; justify-content:center; }
+.p-controls button{ padding:10px 20px; border:none; border-radius:10px; font-size:15px; cursor:pointer; background:var(--brand); color:#fff; }
+.p-controls button.ghost{ background:#3a4066; }
+.p-next{ font-size:13px; color:#889; }
+#player.resting #animCv{ opacity:.35; }
+.p-rest-label{ color:#7ee2a8; font-size:14px; }
+</style>
+</head>
+<body class="demo-body">
+<div class="demo-wrap">
+    <div class="demo-head">
+        <h1>🏋️ 一周三练 · 推拉腿跟练</h1>
+        <p>每个动作配动画演示 + 要点 + 避坑，点开始跟练自动走组数和组间休息</p>
+        <a class="backlink" href="/demo">← 返回演示器中心</a>
+    </div>
+    <div class="panel">
+        <div class="narrate" style="margin:0 0 12px">
+            <b>📖 使用方法</b><br>
+            1. 选好今天是哪个训练日（周一推 / 周三拉 / 周五腿），点 <b>▶ 开始跟练</b>。<br>
+            2. 播放器会按顺序演示每个动作：<b>看动画学轨迹 → 对照要点做组 → 点"完成本组"进入组间休息倒计时 → 自动进入下一组</b>。<br>
+            3. 计时类动作（平板支撑）自动倒计时；次数类动作为演示参考，做完点"完成本组"。<br>
+            4. 动作卡片点开可以看<b>动作要点</b>和<b>避坑提醒</b>；想得更细，按卡片里的关键词去 Keep 搜真人视频。
+        </div>
+        <div class="day-tabs" id="dayTabs"></div>
+        <div class="quiz-foot" style="margin:0 0 12px">
+            <button class="btn" id="btnStart">▶ 开始跟练</button>
+            <label style="font-size:13px;color:#777"><input type="checkbox" id="chkVoice" checked> 语音播报</label>
+        </div>
+        <div id="dayBody"></div>
+    </div>
+</div>
+
+<!-- 跟练播放器 -->
+<div id="player">
+    <div class="p-exname" id="pName"></div>
+    <div class="p-setinfo" id="pSet"></div>
+    <canvas id="animCv" width="840" height="600"></canvas>
+    <div class="p-big" id="pBig"></div>
+    <div class="p-rest-label" id="pRestLabel"></div>
+    <div class="p-tip" id="pTip"></div>
+    <div class="p-next" id="pNext"></div>
+    <div class="p-controls">
+        <button class="ghost" id="pPause">⏸ 暂停</button>
+        <button id="pDone">✓ 完成本组</button>
+        <button class="ghost" id="pSkip">跳过动作 »</button>
+        <button class="ghost" id="pExit">✕ 退出</button>
+    </div>
+</div>
+
+<script>
+/* ================= 火柴人动画引擎 =================
+ * 侧视图姿态参数（绝对角度，度）：
+ *   hipH  髋部高度 0~1（1=站立）
+ *   torso 躯干前倾角（0=直立，90=水平躺/俯）
+ *   thigh 大腿相对"竖直向下"向前抬的角度
+ *   shin  膝弯角（小腿相对大腿向后折）
+ *   arm   上臂绝对角（0=垂下，90=前平举，180=举过头顶，负值=向后）
+ *   fore  肘弯角（前臂相对上臂向前收）
+ * 正视图姿态参数：hipH, knee(膝弯), armOut(手臂侧举角 0=垂下 90=侧平举), elbow(肘弯), lean
+ * props: 'barHands'(手持杠铃) 'barBack'(杠铃在肩背) 'barHips' 'bench'(凳子) 'barUp'(头顶横杆)
+ */
+var CV = null, CTX = null;
+function lerp(a,b,t){ return a+(b-a)*t; }
+function mixPose(A,B,t){
+    var P={};
+    for(var k in A) P[k]=(typeof A[k]==='number'&&typeof B[k]==='number')?lerp(A[k],B[k],t):A[k];
+    return P;
+}
+function drawSide(P, W, H){
+    var c=CTX, groundY=H*0.88, cx=CV.width*0.42;
+    var legL=H*0.30, torsoL=H*0.26, armL=H*0.24, headR=H*0.055;
+    var hipY=groundY-legL*P.hipH, hip={x:cx,y:hipY};
+    c.strokeStyle='#e8ecff'; c.lineWidth=5; c.lineCap='round'; c.lineJoin='round';
+    var rad=Math.PI/180;
+    function pt(o,angDeg,len){ var a=angDeg*rad; return {x:o.x+Math.sin(a)*len, y:o.y+Math.cos(a)*len}; }
+    function line(a,b){ c.beginPath(); c.moveTo(a.x,a.y); c.lineTo(b.x,b.y); c.stroke(); }
+    // 道具先画
+    if(P.props==='bench'){ c.strokeStyle='#3d4470'; c.lineWidth=8;
+        line({x:cx-50,y:groundY-legL*0.35},{x:cx+120,y:groundY-legL*0.35});
+        line({x:cx-30,y:groundY-legL*0.35},{x:cx-30,y:groundY});
+        line({x:cx+100,y:groundY-legL*0.35},{x:cx+100,y:groundY});
+        c.strokeStyle='#e8ecff'; c.lineWidth=5; }
+    if(P.props==='barUp'){ c.strokeStyle='#3d4470'; c.lineWidth=8;
+        line({x:cx-30,y:H*0.08},{x:cx+180,y:H*0.08}); c.strokeStyle='#e8ecff'; c.lineWidth=5; }
+    // 躯干（torso: 0 直立；越大越向前 +x 倾倒）
+    var ta=P.torso*rad;
+    var neck={x:hip.x+Math.sin(ta)*torsoL, y:hip.y-Math.cos(ta)*torsoL};
+    line(hip,neck);
+    // 头
+    var head={x:neck.x+Math.sin(ta)*headR*1.4, y:neck.y-Math.cos(ta)*headR*1.4};
+    c.beginPath(); c.arc(head.x,head.y,headR,0,7); c.stroke();
+    // 腿：大腿角 thigh（0=竖直向下，正=向前抬），膝弯 shin
+    var knee=pt(hip, P.thigh, legL*0.52);
+    var ankle=pt(knee, P.thigh-P.shin, legL*0.52);
+    line(hip,knee); line(knee,ankle);
+    // 后侧腿（轻微错开，营造立体感）
+    c.strokeStyle='#9aa3d8';
+    var knee2=pt(hip, P.thigh-6, legL*0.52), ankle2=pt(knee2, P.thigh-6-P.shin, legL*0.52);
+    line(hip,knee2); line(knee2,ankle2);
+    c.strokeStyle='#e8ecff';
+    // 手臂：从肩关节（neck 下一点）
+    var sho={x:neck.x-Math.sin(ta)*6, y:neck.y+Math.cos(ta)*6};
+    var ua=(P.arm)*rad;
+    var elb={x:sho.x+Math.sin(ua)*armL*0.52, y:sho.y+Math.cos(ua)*armL*0.52};
+    var wr={x:elb.x+Math.sin(ua-(P.fore)*rad)*armL*0.52, y:elb.y+Math.cos(ua-(P.fore)*rad)*armL*0.52};
+    line(sho,elb); line(elb,wr);
+    // 杠铃/器械
+    var barProp=(P.props&&P.props.indexOf('bar')===0)?P.props:(P.props2||null);
+    if(barProp==='barHands'){ c.strokeStyle='#f4d03f'; c.lineWidth=7;
+        line({x:wr.x-34,y:wr.y},{x:wr.x+34,y:wr.y});
+        c.fillStyle='#f4d03f';
+        c.fillRect(wr.x-40,wr.y-12,8,24); c.fillRect(wr.x+32,wr.y-12,8,24);
+        c.strokeStyle='#e8ecff'; c.lineWidth=5; }
+    if(barProp==='barBack'){ c.strokeStyle='#f4d03f'; c.lineWidth=7;
+        var bp={x:sho.x-Math.sin(ta)*4, y:sho.y+Math.cos(ta)*4};
+        var dx=Math.cos(ta), dy=Math.sin(ta);
+        line({x:bp.x-dx*40,y:bp.y-dy*40},{x:bp.x+dx*40,y:bp.y+dy*40});
+        c.fillStyle='#f4d03f';
+        c.fillRect(bp.x-dx*46-4,bp.y-dy*46-12,8,24); c.fillRect(bp.x+dx*46-4,bp.y+dy*46-12,8,24);
+        c.strokeStyle='#e8ecff'; c.lineWidth=5; }
+    if(barProp==='barHips'){ c.strokeStyle='#f4d03f'; c.lineWidth=7;
+        line({x:hip.x-40,y:hip.y},{x:hip.x+40,y:hip.y});
+        c.fillStyle='#f4d03f';
+        c.fillRect(hip.x-46,hip.y-12,8,24); c.fillRect(hip.x+38,hip.y-12,8,24);
+        c.strokeStyle='#e8ecff'; c.lineWidth=5; }
+    // 地面
+    c.strokeStyle='#2c3260'; c.lineWidth=3;
+    line({x:20,y:groundY+6},{x:W-20,y:groundY+6});
+}
+function drawFront(P, W, H){
+    var c=CTX, groundY=H*0.88, cx=CV.width*0.5;
+    var legL=H*0.30*(1-P.knee/260), torsoL=H*0.28, armL=H*0.26, headR=H*0.055;
+    var hipY=groundY-legL, hip={x:cx,y:hipY};
+    var rad=Math.PI/180;
+    c.strokeStyle='#e8ecff'; c.lineWidth=5; c.lineCap='round';
+    function line(a,b){ c.beginPath(); c.moveTo(a.x,a.y); c.lineTo(b.x,b.y); c.stroke(); }
+    var lean=(P.lean||0)*rad;
+    var neck={x:hip.x+Math.sin(lean)*torsoL, y:hip.y-Math.cos(lean)*torsoL};
+    line(hip,neck);
+    c.beginPath(); c.arc(neck.x,neck.y-headR*1.5,headR,0,7); c.stroke();
+    // 双腿
+    var sp=H*0.045, kb=P.knee*rad*0.5;
+    line(hip,{x:cx-sp- Math.sin(kb)*10, y:groundY}); line(hip,{x:cx+sp+Math.sin(kb)*10, y:groundY});
+    // 双臂（armOut 0=垂 90=侧平举）
+    var ao=P.armOut*rad, eb=(P.elbow||0)*rad;
+    [-1,1].forEach(function(s){
+        var elb={x:neck.x+s*Math.sin(ao)*armL*0.52, y:neck.y+Math.cos(ao)*armL*0.52};
+        var wr={x:elb.x+s*Math.sin(ao-eb*s)*armL*0.52, y:elb.y+Math.cos(ao-eb*s)*armL*0.52};
+        line(neck,elb); line(elb,wr);
+    });
+    c.strokeStyle='#2c3260'; c.lineWidth=3;
+    line({x:20,y:groundY+6},{x:W-20,y:groundY+6});
+}
+/* 动作模板：view + 关键帧循环 */
+var TMPL={
+    squat:      {view:'side',frames:[{hipH:1,torso:8,thigh:0,shin:6,arm:75,fore:60,props:'barBack'},{hipH:.55,torso:32,thigh:82,shin:82,arm:75,fore:60,props:'barBack'}]},
+    bench:      {view:'side',frames:[{hipH:.32,torso:88,thigh:78,shin:88,arm:135,fore:8,props:'bench'},{hipH:.32,torso:88,thigh:78,shin:88,arm:105,fore:70,props:'bench'}],bar:'hands'},
+    incline:    {view:'side',frames:[{hipH:.32,torso:60,thigh:78,shin:88,arm:135,fore:8,props:'bench'},{hipH:.32,torso:60,thigh:78,shin:88,arm:105,fore:70,props:'bench'}],bar:'hands'},
+    press:      {view:'side',frames:[{hipH:1,torso:4,thigh:0,shin:4,arm:60,fore:75},{hipH:1,torso:4,thigh:0,shin:4,arm:170,fore:6}],bar:'hands'},
+    pulldown:   {view:'side',frames:[{hipH:.45,torso:6,thigh:85,shin:90,arm:170,fore:6,props:'bench'},{hipH:.45,torso:12,thigh:85,shin:90,arm:120,fore:65,props:'bench'}],bar:'hands'},
+    row:        {view:'side',frames:[{hipH:.8,torso:52,thigh:12,shin:18,arm:20,fore:6},{hipH:.8,torso:52,thigh:12,shin:18,arm:-18,fore:78}],bar:'hands'},
+    pushdown:   {view:'side',frames:[{hipH:1,torso:8,thigh:0,shin:4,arm:12,fore:85},{hipH:1,torso:8,thigh:0,shin:4,arm:12,fore:6}]},
+    curl:       {view:'side',frames:[{hipH:1,torso:4,thigh:0,shin:4,arm:8,fore:6},{hipH:1,torso:4,thigh:0,shin:4,arm:8,fore:135}],bar:'hands'},
+    latraise:   {view:'front',frames:[{hipH:1,knee:4,armOut:12,elbow:8},{hipH:1,knee:4,armOut:85,elbow:8}]},
+    fly:        {view:'front',frames:[{hipH:1,knee:6,armOut:100,elbow:20,lean:12},{hipH:1,knee:6,armOut:58,elbow:20,lean:12}]},
+    plank:      {view:'side',frames:[{hipH:.3,torso:92,thigh:96,shin:4,arm:88,fore:88}],static:1},
+    sideplank:  {view:'front',frames:[{hipH:1,knee:2,armOut:6,elbow:80,lean:38}],static:1},
+    rdl:        {view:'side',frames:[{hipH:1,torso:10,thigh:6,shin:10,arm:25,fore:4},{hipH:.92,torso:68,thigh:10,shin:12,arm:35,fore:4}],bar:'hands'},
+    lunge:      {view:'side',frames:[{hipH:1,torso:4,thigh:0,shin:4,arm:6,fore:6},{hipH:.62,torso:8,thigh:80,shin:85,arm:6,fore:6}]},
+    hipthrust:  {view:'side',frames:[{hipH:.18,torso:55,thigh:75,shin:70,arm:150,fore:20,props:'bench'},{hipH:.42,torso:38,thigh:75,shin:70,arm:55,fore:10,props:'bench'}],bar:'hips'},
+    calf:       {view:'side',frames:[{hipH:1,torso:3,thigh:0,shin:2,arm:20,fore:10},{hipH:1.07,torso:3,thigh:0,shin:2,arm:20,fore:10}]},
+    crunch:     {view:'side',frames:[{hipH:.32,torso:18,thigh:85,shin:88,arm:150,fore:10},{hipH:.32,torso:52,thigh:85,shin:88,arm:120,fore:30}]},
+    legraise:   {view:'side',frames:[{hipH:.98,torso:0,thigh:2,shin:2,arm:175,fore:4,props:'barUp'},{hipH:.98,torso:0,thigh:85,shin:6,arm:175,fore:4,props:'barUp'}]},
+    pallof:     {view:'side',frames:[{hipH:1,torso:4,thigh:0,shin:6,arm:60,fore:80},{hipH:1,torso:4,thigh:0,shin:6,arm:88,fore:4}]}
+};
+/* 动画循环 */
+var animOn=false, animT=0, animTmpl=null, animDir=1, REP_MS=1500;
+function startAnim(tmpl){
+    animTmpl=TMPL[tmpl]; animT=0; animDir=1;
+    if(!animOn){ animOn=true; requestAnimationFrame(animLoop); }
+}
+function animLoop(){
+    if(!animOn) return;
+    var cv=CV, ctx=CTX;
+    ctx.clearRect(0,0,cv.width,cv.height);
+    var t=animT;
+    var ease=t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+    var P=mixPose(animTmpl.frames[0], animTmpl.frames[animTmpl.frames.length-1], animTmpl.static?0:ease);
+    if(animTmpl.bar) P.props2='bar'+animTmpl.bar[0].toUpperCase()+animTmpl.bar.slice(1);
+    if(animTmpl.view==='front') drawFront(P,cv.width,cv.height); else drawSide(P,cv.width,cv.height);
+    animT+=animDir*16/REP_MS;
+    if(animT>=1){animT=1;animDir=-1;} if(animT<=0){animT=0;animDir=1;}
+    requestAnimationFrame(animLoop);
+}
+
+/* ================= 计划数据（摘自训练计划文档） =================
+ * sets 组数, reps "8-10" 或 time 秒（计时类）, rest 组间休息秒, tmpl 动画模板 */
+var DAYS=[
+{ id:'push', name:'周一 · 推日', sub:'胸 / 肩前中束 / 三头 + 核心', warm:'课前预热：肩环绕×10、弹力带肩外旋×15、弓步转体每侧×5、空杆卧推×15', cool:'课后拉伸：门框胸肌拉伸、肩前束拉伸、过头三头拉伸、眼镜蛇式腹部拉伸（每个 20–30 秒 × 2 组）', exs:[
+    {name:'平板杠铃卧推', tmpl:'bench', sets:4, reps:'8-10', rest:105, focus:'胸大肌整体，附带前肩、三头', keep:'杠铃平板卧推',
+     tips:['眼睛位于杠铃正下方，双脚踩实、臀部贴凳','握距略宽于肩，重量压掌根','起杠先沉肩收紧肩胛，全程不松','下放到乳头附近，肘与躯干 45–60°','推起呼气，顶端不锁死肘'],
+     pits:['手腕后折是腕痛主因','肩胛松开肩前送 = 肩痛头号原因','弹胸借力、臀部离凳就减重','无人保护不上极限重量，换史密斯架']},
+    {name:'上斜哑铃卧推', tmpl:'incline', sets:3, reps:'10-12', rest:90, focus:'上胸，改善胸型', keep:'上斜哑铃卧推',
+     tips:['凳面 30–40°，超 45° 就练肩了','哑铃下放到上胸两侧，大臂与躯干约 45°','推起略呈弧线，顶端靠近不碰撞','回放 2–3 秒控制'],
+     pits:['凳角过高 → 前束代偿','下放过深肩前探 → 肩囊受压','顶端对撞哑铃 → 失去张力']},
+    {name:'龙门架绳索十字夹胸', tmpl:'fly', sets:3, reps:'12-15', rest:60, focus:'胸中缝、胸外侧塑形', keep:'龙门架夹胸',
+     tips:['滑轮调高位略高于肩','前后站、前倾 15–20°、核心收紧','肘微屈角度固定，像环抱大树合拢','胸前交汇停 1 秒，2–3 秒回放'],
+     pits:['肘角度变化 → 变成推不是夹','重量大耸肩借力 → 减重','回放被拽回去 → 离心必须控制']},
+    {name:'站姿杠铃推举', tmpl:'press', sets:3, reps:'10-12', rest:90, focus:'三角肌前束 + 中束', keep:'杠铃推举',
+     tips:['核心臀部收紧，杠置锁骨上','推起头稍向后让，杠走垂直线','顶端杠在耳朵正上方','下放 2 秒控制'],
+     pits:['腰椎后仰 → 腰痛主因，说明重了','耸肩借力 → 斜方代偿','顶端停在身体前方 → 肩受力差']},
+    {name:'绳索侧平举', tmpl:'latraise', sets:3, reps:'12-15/侧', rest:60, focus:'三角肌中束，加宽肩膀', keep:'绳索侧平举（或哑铃侧平举）',
+     tips:['滑轮调最低，侧对龙门架','肘微屈固定，抬至与肩同高','顶端不耸肩，2–3 秒下放'],
+     pits:['高过肩太多 → 斜方代偿+撞击风险','甩身体借力 → 立刻减重','握太紧前臂先力竭']},
+    {name:'EZ 杆绳索下压', tmpl:'pushdown', sets:3, reps:'12-15', rest:60, focus:'肱三头肌', keep:'绳索下压',
+     tips:['上臂夹紧体侧全程固定','只做肘屈伸，压至接近伸直','顶峰收紧 1 秒，回放保持张力'],
+     pits:['上臂摆动 → 三头受力锐减','用体重压杆 → 重量大了','回放耸肩肘外张 → 重新夹紧']},
+    {name:'平板支撑', tmpl:'plank', sets:3, time:45, rest:60, focus:'腹横肌、核心稳定', keep:'平板支撑',
+     tips:['肘在肩正下方','头到脚跟一条直线，收腹夹臀','均匀呼吸不憋气','塌腰即结束该组，时长逐周加'],
+     pits:['塌腰撅臀 → 腰椎受压','憋气硬撑','姿势崩了还凑时间']},
+    {name:'侧平板支撑', tmpl:'sideplank', sets:3, time:30, rest:60, focus:'腹内外斜肌（侧腹）', keep:'侧平板支撑', bothSides:1,
+     tips:['肘在肩正下方，身体侧向一条线','髋部上顶不下沉','两侧时间一致，弱侧先做'],
+     pits:['髋下沉 → 侧腹不受力','身体前后倒 → 先屈膝版','支撑侧耸肩']}
+]},
+{ id:'pull', name:'周三 · 拉日', sub:'背 / 肩后束 / 二头 + 核心', warm:'课前预热：肩胛引体×8–10、猫式伸展×8、轻重量高位下拉×12', cool:'课后拉伸：背阔肌拉伸、上背"抱自己"拉伸、二头拉伸、婴儿式 30 秒', exs:[
+    {name:'高位下拉', tmpl:'pulldown', sets:4, reps:'8-12', rest:105, focus:'背阔肌，加宽后背', keep:'高位下拉',
+     tips:['大腿卡稳挡垫，握距约肩宽 1.5 倍','先沉肩再用背发力拉至锁骨上方','后仰不超过 15°，回放 2–3 秒','进阶可用辅助引体替代 1–2 组'],
+     pits:['后仰甩成坐姿划船 → 背刺激减半','拉到颈后坚决不做','不沉肩纯用手臂拽','回放完全松掉']},
+    {name:'T 杠划船', tmpl:'row', sets:4, reps:'8-10', rest:105, focus:'中上背、菱形肌、斜方中下束', keep:'T 杠划船',
+     tips:['固定端顶牢防滑脱','俯身约 45°，腰背中立挺直','沿小腹方向拉起，顶峰肩胛夹紧 1 秒','躯干角度全程不变'],
+     pits:['弓腰驼背拉 = 背训最易受伤','身体弹动甩重量 → 减重','耸肩 → 上斜方代偿','只拉半程 → 幅度优先']},
+    {name:'绳索坐姿划船', tmpl:'row', sets:3, reps:'10-12', rest:90, focus:'中背部，改善圆肩', keep:'坐姿划船',
+     tips:['挺胸沉肩，拉到下腹/肚脐','顶峰肩胛后缩夹紧 1 秒','回放身体不过度前倾'],
+     pits:['大幅前后晃 → 练腰不练背','耸肩','弓背去"够"把手']},
+    {name:'绳索面拉', tmpl:'row', sets:3, reps:'12-15', rest:60, focus:'三角肌后束、肩袖，保护肩关节', keep:'面拉',
+     tips:['滑轮与眼同高，后退一步有张力','向额头拉，肘向外向上打开','终点像"展示双二头肌"，停 1 秒'],
+     pits:['滑轮太低 → 变成划船','重量大耸肩后仰 → 减重','只拉不旋 → 价值减半']},
+    {name:'EZ 杆杠铃弯举', tmpl:'curl', sets:3, reps:'10-12', rest:60, focus:'肱二头肌', keep:'曲杆弯举',
+     tips:['上臂贴体全程固定','弯举至胸前顶峰稍停','下放 2–3 秒控制','手腕顺杆曲度自然角度'],
+     pits:['甩腰后仰 → 减重','上臂摆动 → 受力不纯','下放失控 → 离心是关键']},
+    {name:'哑铃锤式弯举', tmpl:'curl', sets:3, reps:'12', rest:60, focus:'肱肌，增加手臂围度', keep:'锤式弯举',
+     tips:['掌心相对像握锤子','举至与肩同高，顶端不翻腕','弱侧先练，可交替做'],
+     pits:['摆动借力','顶端耸肩','下放肘前移张力跑掉']},
+    {name:'平板支撑', tmpl:'plank', sets:3, time:45, rest:60, focus:'腹横肌、核心稳定', keep:'平板支撑',
+     tips:['肘在肩正下方，一条直线','均匀呼吸，塌腰即停','时长逐周递增'],
+     pits:['塌腰撅臀','姿势变形还硬撑']},
+    {name:'侧平板支撑', tmpl:'sideplank', sets:3, time:30, rest:60, focus:'腹内外斜肌（侧腹）', keep:'侧平板支撑', bothSides:1,
+     tips:['髋部上顶不下沉','两侧时间一致，弱侧先做'],
+     pits:['髋下沉是最常见错误','支撑侧耸肩']}
+]},
+{ id:'legs', name:'周五 · 腿 + 核心', sub:'股四头 / 臀 / 腘绳 / 小腿 / 腹', warm:'课前预热：髋部环绕×10、弓步压髋每侧×8、徒手深蹲×15、臀桥×12、空杆深蹲×10', cool:'课后拉伸：股四头拉伸、体前屈腘绳拉伸、仰卧 4 字臀拉、推墙小腿拉伸、眼镜蛇式（每个 20–30 秒 × 2 组）', exs:[
+    {name:'杠铃深蹲', tmpl:'squat', sets:4, reps:'8-10', rest:120, focus:'股四头肌、臀大肌、腘绳肌、核心', keep:'杠铃深蹲',
+     tips:['杠置斜方肌上，挺胸收紧上背再起杠','脚略宽于肩，脚尖外八 15–30°','先吸气入腹绷核心，髋膝同时启动','大腿至少与地面平行，膝盖对准脚尖','站起全脚掌蹬地、呼气过黏滞点'],
+     pits:['膝盖内扣 → 想"膝向外撑"','脚跟离地 → 重心放足中','弓腰 → 减重改善活动度','半程还加重 → 幅度优先','冲大重量装保护杠或史密斯架']},
+    {name:'罗马尼亚硬拉', tmpl:'rdl', sets:3, reps:'10-12', rest:120, focus:'腘绳肌、臀部、下背', keep:'罗马尼亚硬拉',
+     tips:['杠全程贴大腿','屁股向后推，膝微屈角度固定','滑至膝下有拉伸感即停','伸髋站直，顶端不后仰'],
+     pits:['弓腰拉 = 腰伤头号原因','杠飘离身体 → 全程贴腿','下放过低 → 腰椎代偿处即终点','抬头看镜 → 视线看地面']},
+    {name:'箭步蹲（哑铃/壶铃）', tmpl:'lunge', sets:3, reps:'10/侧', rest:90, focus:'臀、股四头肌，纠正左右不平衡', keep:'哑铃箭步蹲',
+     tips:['挺胸核心收紧，向前跨大步','垂直下蹲至前腿接近平行','前脚全掌蹬地站起再换腿','弱侧先做，强侧跟随弱侧次数'],
+     pits:['步幅太小 → 前膝压力集中','前膝内扣','身体前倾借力','后膝砸地 → 轻触即可']},
+    {name:'臀推', tmpl:'hipthrust', sets:3, reps:'12', rest:90, focus:'臀大肌', keep:'杠铃臀推（臀冲）',
+     tips:['上背靠凳沿，杠横放髋部垫毛巾','顶端小腿接近垂直地面','顶髋至肩髋膝一条线，夹臀 1–2 秒','下放臀悬空不落地'],
+     pits:['顶端顶腰不过伸 → 到位即停','脚位不对 → 受力跑偏','爆发力弹起 → 顶峰收缩是灵魂']},
+    {name:'站姿提踵', tmpl:'calf', sets:4, reps:'15-20', rest:60, focus:'小腿腓肠肌、比目鱼肌', keep:'站姿提踵',
+     tips:['前脚掌踩台阶边缘，扶稳','脚跟放到最低点拉伸 2 秒','踮到最高点收缩 1 秒','膝微屈不锁死，慢而稳'],
+     pits:['只做半程最常见','弹震式 → 跟腱风险','晃动借力 → 宁慢勿快']},
+    {name:'绳索卷腹', tmpl:'crunch', sets:3, reps:'15', rest:60, focus:'腹直肌（腹部正面）', keep:'绳索卷腹',
+     tips:['把手固定额头前方不动','逐节卷起脊柱，胸口卷向骨盆','不是屈髋下坐','回放充分拉伸腹部'],
+     pits:['用手臂拉重量','磕头式屈髋 → 腹不参与','回放被拽回去']},
+    {name:'悬垂举腿', tmpl:'legraise', sets:3, reps:'10-12', rest:60, focus:'下腹、髋屈肌', keep:'悬垂举腿',
+     tips:['先练屈膝版：抬膝至大腿平行','顶端骨盆微后倾"卷"一下','缓慢下放不摆动'],
+     pits:['荡秋千借力 → 退回屈膝版','只抬腿不卷骨盆 → 下腹没感觉','下放失控甩下来']},
+    {name:'龙门架抗旋转推', tmpl:'pallof', sets:3, reps:'12/侧', rest:60, focus:'腹斜肌、核心抗旋转', keep:'绳索抗旋转（Pallof Press）', bothSides:1,
+     tips:['滑轮胸高，侧对龙门架','核心绷紧抵抗侧向拉力','双手沿中线直线推出，停 1–2 秒','全程身体不旋转不侧倾'],
+     pits:['被拉得转体 → 减重','推出时塌腰挺肚','手向两侧偏移']}
+]}];
+
+/* ================= 列表渲染 ================= */
+var curDay=0;
+function renderDay(){
+    var D=DAYS[curDay], body=document.getElementById('dayBody');
+    var html='<div class="narrate" style="margin:0 0 10px"><b>🔥 热身</b>：'+D.warm+'<br><b>🧘 练后</b>：'+D.cool+'</div>';
+    D.exs.forEach(function(e,i){
+        html+='<div class="ex-card" data-i="'+i+'"><div class="ex-head"><span class="num">'+(i+1)+'</span>'
+            +'<span class="nm">'+e.name+'</span>'
+            +'<span class="st">'+e.sets+' 组 × '+(e.time? e.time+' 秒':e.reps+' 次')+'｜休 '+e.rest+'s</span></div>'
+            +'<p class="ex-focus">重点：'+e.focus+'　·　<span class="keep">Keep 搜「'+e.keep+'」</span></p>'
+            +'<div class="ex-detail"><h4>动作要点</h4><ul>'+e.tips.map(function(t){return '<li>'+t+'</li>';}).join('')+'</ul>'
+            +'<h4>避坑提醒</h4><ul>'+e.pits.map(function(t){return '<li>'+t+'</li>';}).join('')+'</ul></div></div>';
+    });
+    body.innerHTML=html;
+    body.querySelectorAll('.ex-head').forEach(function(h){
+        h.onclick=function(){ h.parentNode.classList.toggle('open'); };
+    });
+    document.querySelectorAll('.day-tab').forEach(function(b,i){ b.classList.toggle('cur',i===curDay); });
+}
+(function initDays(){
+    var tabs=document.getElementById('dayTabs');
+    DAYS.forEach(function(d,i){
+        var b=document.createElement('button');
+        b.className='day-tab'; b.textContent=d.name;
+        b.onclick=function(){ curDay=i; renderDay(); };
+        tabs.appendChild(b);
+    });
+    renderDay();
+})();
+
+/* ================= 跟练播放器 ================= */
+var PL={day:0,ex:0,set:1,phase:'work',remain:0,timer:null,paused:false,tipIdx:0,side:0};
+function speak(t){
+    if(!document.getElementById('chkVoice').checked) return;
+    try{ speechSynthesis.cancel();
+        var u=new SpeechSynthesisUtterance(t); u.lang='zh-CN'; u.rate=1.05;
+        speechSynthesis.speak(u); }catch(e){}
+}
+function curEx(){ return DAYS[PL.day].exs[PL.ex]; }
+function startPlayer(){
+    PL={day:curDay,ex:0,set:1,phase:'work',remain:0,timer:null,paused:false,tipIdx:0,side:0};
+    CV=document.getElementById('animCv'); CTX=CV.getContext('2d');
+    document.getElementById('player').classList.add('on');
+    startExercise();
+}
+function startExercise(){
+    var e=curEx();
+    document.getElementById('player').classList.remove('resting');
+    document.getElementById('pName').textContent=e.name;
+    document.getElementById('pRestLabel').textContent='';
+    startAnim(e.tmpl);
+    tipRotate(e);
+    var nxt=DAYS[PL.day].exs[PL.ex+1];
+    document.getElementById('pNext').textContent=nxt?('下一个：'+nxt.name+'　'+nxt.sets+' 组 × '+(nxt.time?nxt.time+'秒':nxt.reps+'次')):'这是今天最后一个动作';
+    PL.phase='work';
+    if(e.time){ PL.remain=e.time;
+        speak(e.name+'，第 '+PL.set+' 组，'+e.time+' 秒，开始');
+        tick();
+    }else{
+        setBig(e.reps);
+        speak(e.name+'，第 '+PL.set+' 组，'+e.reps.replace('-',' 到 ')+' 次');
+        setBig('做 '+e.reps+' 次');
+    }
+    updateSetInfo();
+}
+function updateSetInfo(){
+    var e=curEx();
+    var s='第 '+PL.set+' / '+e.sets+' 组';
+    if(e.bothSides) s+='（'+(PL.side?'右侧':'左侧')+'）';
+    document.getElementById('pSet').textContent=s;
+}
+function setBig(t){ document.getElementById('pBig').textContent=t; }
+function tipRotate(e){
+    clearInterval(PL.tipTimer);
+    PL.tipIdx=0;
+    var show=function(){
+        var pool=e.tips.concat(e.pits.map(function(p){return '⚠ '+p;}));
+        document.getElementById('pTip').textContent=pool[PL.tipIdx%pool.length];
+        PL.tipIdx++;
+    };
+    show(); PL.tipTimer=setInterval(show,5000);
+}
+function tick(){
+    clearInterval(PL.timer);
+    setBig(fmtT(PL.remain));
+    PL.timer=setInterval(function(){
+        if(PL.paused) return;
+        PL.remain--;
+        setBig(fmtT(Math.max(0,PL.remain)));
+        if(PL.remain<=3&&PL.remain>0) speak(String(PL.remain));
+        if(PL.remain<=0){ clearInterval(PL.timer); finishSet(); }
+    },1000);
+}
+function fmtT(s){ return Math.floor(s/60)+':'+('0'+s%60).slice(-2); }
+function finishSet(){
+    var e=curEx();
+    if(e.bothSides && PL.side===0 && curEx().time){ /* 计时双侧：换边再来一次 */
+        PL.side=1; PL.remain=e.time; updateSetInfo();
+        speak('换另一侧，'+e.time+' 秒，开始'); tick(); return;
+    }
+    PL.side=0;
+    if(PL.set<e.sets){ restPhase(e.rest); }
+    else{ nextExercise(); }
+}
+function restPhase(e){
+    PL.phase='rest';
+    document.getElementById('player').classList.add('resting');
+    document.getElementById('pRestLabel').textContent='组间休息';
+    var nxt=DAYS[PL.day].exs[PL.ex+1];
+    speak('休息 '+e.rest+' 秒');
+    PL.remain=e.rest;
+    clearInterval(PL.timer);
+    setBig(fmtT(PL.remain));
+    PL.timer=setInterval(function(){
+        if(PL.paused) return;
+        PL.remain--;
+        setBig(fmtT(Math.max(0,PL.remain)));
+        if(PL.remain===5) speak('准备，'+(PL.set+1<=e.sets?('第 '+(PL.set+1)+' 组'):''));
+        if(PL.remain<=0){
+            clearInterval(PL.timer);
+            PL.set++;
+            startExercise();
+        }
+    },1000);
+}
+function nextExercise(){
+    if(PL.ex<DAYS[PL.day].exs.length-1){ PL.ex++; PL.set=1; PL.side=0; startExercise(); }
+    else{
+        animOn=false; clearInterval(PL.timer); clearInterval(PL.tipTimer);
+        setBig('🎉'); document.getElementById('pName').textContent='今天的训练完成！';
+        document.getElementById('pSet').textContent='';
+        document.getElementById('pRestLabel').textContent='';
+        document.getElementById('pTip').textContent='别忘记课后拉伸：'+DAYS[PL.day].cool;
+        document.getElementById('pNext').textContent='';
+        speak('今天的训练全部完成，记得做课后拉伸');
+    }
+}
+document.getElementById('btnStart').onclick=startPlayer;
+document.getElementById('pDone').onclick=function(){
+    if(PL.phase!=='work') return;
+    clearInterval(PL.timer);
+    speak('完成');
+    finishSet();
+};
+document.getElementById('pSkip').onclick=function(){
+    clearInterval(PL.timer);
+    speak('跳过');
+    nextExercise();
+};
+document.getElementById('pPause').onclick=function(){
+    PL.paused=!PL.paused;
+    this.textContent=PL.paused?'▶ 继续':'⏸ 暂停';
+    if(PL.paused){ animOn=false; speechSynthesis.cancel(); } else { animOn=true; requestAnimationFrame(animLoop); }
+};
+document.getElementById('pExit').onclick=function(){
+    animOn=false; clearInterval(PL.timer); clearInterval(PL.tipTimer);
+    try{ speechSynthesis.cancel(); }catch(e){}
+    document.getElementById('player').classList.remove('on');
+};
+</script>
+<script src="/static/js/track.js"></script>
+</body>
+</html>
