@@ -495,7 +495,7 @@ def lora_validate(trigger: str, desc_en: str, kind: str = "char") -> tuple:
     for tag, prompt in prompts:
         wf["22"]["inputs"]["text"] = prompt
         wf["3"]["inputs"]["seed"] = int(time.time() * 1000) % (2**31)
-        key = _sha(f"loraval|{trigger}|{tag}|{prompt}")
+        key = _sha(f"loraval|{trigger}|{tag}|{prompt}|{wf['40']['inputs'].get('strength_model')}")
         out = COMFY_DIR / f"{key}.png"
         if not out.exists():
             out.write_bytes(_comfy_run(wf))
