@@ -1743,6 +1743,13 @@ def render_assets():
             st.warning("服务器未配置 AUTODL_SSH_TARGET，训练功能不可用（需在阿里云 .env 配置后重启）")
         elif not comfy_online():
             st.warning("⚪ ComfyUI 离线，训练不可用（需 AutoDL 开机 + 隧道连通）")
+            _off_trig = st.session_state.get("lora_trig", "").strip()
+            _off_job = _lora_job(_off_trig) if _off_trig else {}
+            if _off_job:
+                _el = int((time.time() - _off_job.get("started", time.time())) / 60)
+                st.info(f"📋 「{_off_trig}」最后一次训练记录：状态 **{_off_job.get('stage')}**、"
+                        f"{_off_job.get('n_images', '?')} 张图、启动于 {_el} 分钟前。"
+                        f"⚠️ 注意：实例关机会杀死训练进程——若开机后状态为 failed/无进度，需重新送训")
         else:
             lc1, lc2 = st.columns(2)
             l_name = lc1.text_input("角色名（入库用）", key="lora_name", placeholder="如：谋士-沈砚")
