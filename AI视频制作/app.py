@@ -423,6 +423,9 @@ def lora_train_start(trigger: str, desc_en: str, images: list,
         raise RuntimeError(f"启动训练失败：{out[-200:]} {err[-200:]}")
     _lora_job_save(trigger, {"pid": int(out.strip()), "started": time.time(),
                              "epochs": epochs, "n_images": len(images), "stage": "training"})
+    # 新训练启动：清掉同触发词的旧验收图，防止上一炉的结果冒充新模型现状
+    if st.session_state.get("lora_val", {}).get("trigger") == trigger:
+        st.session_state.pop("lora_val", None)
 
 
 def lora_train_status(trigger: str) -> tuple:
@@ -1756,7 +1759,9 @@ def render_assets():
             trig = l_trig.strip()
             stage, stage_txt = lora_train_status(trig) if trig else ("none", "")
             if stage == "training":
-                st.info(f"⏳ {stage_txt}（训练约 1 小时，可离开此页，回来点下方刷新）")
+                _job = _lora_job(trig)
+                _el = int((time.time() - _job.get("started", time.time())) / 60)
+                st.info(f"⏳ {stage_txt}\n\n已耗时 **{_el} 分钟**（全程约 60 分钟，可离开此页，回来点下方刷新）")
                 if st.button("↻ 刷新训练进度", key="lora_refresh"):
                     st.rerun()
             elif stage == "done":
