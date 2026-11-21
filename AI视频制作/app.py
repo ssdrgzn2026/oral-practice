@@ -472,6 +472,10 @@ def lora_validate(trigger: str, desc_en: str, kind: str = "char") -> tuple:
     with open(LORA_WF_FILE, encoding="utf-8") as f:
         wf = json.load(f)
     wf["40"]["inputs"]["lora_name"] = f"{trigger}.safetensors"
+    if kind == "scene":
+        # 场景 LoRA 按实际使用权重验收（0.4）；拉满 1.0 会风格坍缩，误判模型坏了
+        wf["40"]["inputs"]["strength_model"] = 0.4
+        wf["40"]["inputs"]["strength_clip"] = 0.4
     ckpt = os.environ.get("COMFY_CHECKPOINT", "").strip()
     if ckpt:
         wf["4"]["inputs"]["ckpt_name"] = ckpt
@@ -1948,6 +1952,8 @@ def render_assets():
             desc6 = st.session_state.get("lora_desc", "").strip()
             inc_ref = st.checkbox("训练集包含①选定的基准脸（角色 LoRA 勾上；场景/道具 LoRA 务必取消，否则人脸会被学进场景）",
                                   value=True, key="ds_inc_ref")
+            if trig6 and desc6:
+                st.caption(f"📝 本次所有训练图的 caption 将是：`{trig6}, {desc6}, cinematic photo`——图文必须相符，填错=训废")
             if not (trig6 and desc6):
                 st.warning("先到「🏋 LoRA 训练」页填好触发词和英文描述，再回来送训")
             elif st.button(f"🚀 用这 {len(cands)} 张图开始训练（约1小时）",
