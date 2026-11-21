@@ -2369,6 +2369,8 @@ with st.container(border=True):
     style_lora_w = float(st.session_state.get("style_lora_w", 0.4))
     if style_lora:
         st.caption(f"🏯 画风 LoRA 已启用：{style_lora}（权重 {style_lora_w}），逐镜「锁脸生成」后生效；与角色 LoRA 串联，单镜共 2 个 LoRA")
+    draft_mode = st.toggle("⚡ 草稿模式：锁脸先出小图快抽（省一半时间），选定后点「⬆ 出高清」用同一种子同提示词出全尺寸",
+                           key="draft_mode")
 
     if images is None:
         # 懒生成：不自动消耗 Kolors 额度，先用参考照片/占位图就位，AI 配图由按钮触发
@@ -2605,11 +2607,13 @@ with st.container(border=True):
                                use_container_width=True, disabled=True)
             elif cols[i].button(f"🔒 锁脸生成（{_char_label}）",
                                 key=f"pulid_{i}", use_container_width=True):
-                with st.spinner(f"ComfyUI 正在锁脸生成镜头 {i+1}（约1分钟）…"):
+                _draft = st.session_state.get("draft_mode")
+                _dw = ((512, 768) if size_wh[1] > size_wh[0] else (768, 512)) if _draft else size_wh
+                with st.spinner(f"ComfyUI 正在锁脸生成镜头 {i+1}（{'草稿约20秒' if _draft else '约1分钟'}）…"):
                     try:
                         seeds[i] = int(time.time() * 1000) % (2**31)  # 每次点击换新种子（抽卡）
                         images[i] = str(gen_comfy_pulid(shots[i]["desc"], char_i,
-                                                        size_wh, seed=seeds[i],
+                                                        _dw, seed=seeds[i],
                                                         prompt_en=pe.get(str(i)) or None,
                                                         style_lora=style_lora,
                                                         style_strength=style_lora_w))
@@ -2643,6 +2647,23 @@ with st.container(border=True):
                         st.session_state.images = images
                         st.session_state.pop("video", None)
                         st.rerun()
+            if st.session_state.get("draft_mode") and not is_video:
+                if cols[i].button("⬆ 用上次种子出高清（同提示词全尺寸，构图近似）",
+                                  key=f"hd_{i}", use_container_width=True):
+                    with st.spinner(f"正在出镜头 {i+1} 高清版（约1分钟）…"):
+                        try:
+                            images[i] = str(gen_comfy_pulid(shots[i]["desc"], char_i,
+                                                            size_wh, seed=seeds[i],
+                                                            prompt_en=pe.get(str(i)) or None,
+                                                            style_lora=style_lora,
+                                                            style_strength=style_lora_w))
+                            hist.append(images[i])
+                            st.session_state.images = images
+                            st.session_state.pop("video", None)
+                            autosave()
+                            st.rerun()
+                        except Exception as e:  # noqa: BLE001
+                            st.error(f"镜头 {i+1} 出高清失败：{e}")
         if cols[i].button("↺ 重做此镜配图", key=f"rebuild_{i}", use_container_width=True,
                           help="清空该镜配图和提示词缓存，回到占位图重新生成"):
             images[i] = str(placeholder_image(i, size_wh))
