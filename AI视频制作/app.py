@@ -466,21 +466,29 @@ def lora_deploy(trigger: str):
     _lora_job_save(trigger, job)
 
 
-def lora_validate(trigger: str, desc_en: str) -> tuple:
-    """LoRA 验收：同一底模跑两张对照（写服装 / 不写服装），返回两张图路径"""
+def lora_validate(trigger: str, desc_en: str, kind: str = "char") -> tuple:
+    """LoRA 验收：同一底模跑两张对照，返回两张图路径。
+    角色：写服装 / 不写服装；场景·道具：写触发词 / 不写触发词（LoRA 挂载但不触发，应为普通画面）"""
     with open(LORA_WF_FILE, encoding="utf-8") as f:
         wf = json.load(f)
     wf["40"]["inputs"]["lora_name"] = f"{trigger}.safetensors"
     ckpt = os.environ.get("COMFY_CHECKPOINT", "").strip()
     if ckpt:
         wf["4"]["inputs"]["ckpt_name"] = ckpt
+    if kind == "scene":
+        prompts = (
+            ("A", f"cinematic photo, {trigger}, {desc_en}, movie quality, 8k"),
+            ("B", f"cinematic photo, {desc_en}, movie quality, 8k"),
+        )
+    else:
+        prompts = (
+            ("A", f"cinematic photo of {trigger}, a young man wearing {desc_en}, "
+                  f"standing in a Song dynasty street market at dusk, lanterns, movie quality"),
+            ("B", f"cinematic photo of {trigger}, a young man standing in a bustling "
+                  f"Song dynasty street market at dusk, lanterns, movie quality"),
+        )
     outs = []
-    for tag, prompt in (
-        ("A", f"cinematic photo of {trigger}, a young man wearing {desc_en}, "
-              f"standing in a Song dynasty street market at dusk, lanterns, movie quality"),
-        ("B", f"cinematic photo of {trigger}, a young man standing in a bustling "
-              f"Song dynasty street market at dusk, lanterns, movie quality"),
-    ):
+    for tag, prompt in prompts:
         wf["22"]["inputs"]["text"] = prompt
         wf["3"]["inputs"]["seed"] = int(time.time() * 1000) % (2**31)
         key = _sha(f"loraval|{trigger}|{tag}|{prompt}")
@@ -1707,6 +1715,9 @@ def render_assets():
             lc1, lc2 = st.columns(2)
             l_name = lc1.text_input("角色名（入库用）", key="lora_name", placeholder="如：谋士-沈砚")
             l_trig = lc2.text_input("触发词（英文小写，唯一）", key="lora_trig", placeholder="如：shenyan")
+            l_kind = st.selectbox("资产类型（决定验收对照方式）",
+                                  ["角色", "场景/道具"], key="lora_kind",
+                                  help="场景/道具 LoRA 的验收是「写触发词 vs 不写触发词」的纯场景对照，不会再画人物")
             l_desc = st.text_area("角色外貌/服装描述（英文，训练 caption 用）", key="lora_desc",
                                   placeholder="a middle-aged Song dynasty scholar, goatee, teal hanfu robe, holding a folding fan",
                                   height=90)
@@ -1725,9 +1736,12 @@ def render_assets():
                     with st.spinner("部署中 + 跑验收对照图…"):
                         try:
                             lora_deploy(trig)
-                            va, vb = lora_validate(trig, l_desc or "dark grey modern outdoor jacket")
+                            _kind = "scene" if st.session_state.get("lora_kind", "").startswith("场景") else "char"
+                            va, vb = lora_validate(trig, l_desc or "dark grey modern outdoor jacket",
+                                                   kind=_kind)
                             st.session_state.lora_val = {"trigger": trig, "name": l_name,
-                                                         "desc": l_desc, "a": str(va), "b": str(vb)}
+                                                         "desc": l_desc, "kind": _kind,
+                                                         "a": str(va), "b": str(vb)}
                             st.rerun()
                         except Exception as e:  # noqa: BLE001
                             st.error(f"部署/验收失败：{e}")
@@ -1753,11 +1767,16 @@ def render_assets():
             # 验收区：两张对照图，人眼判断后一键入库
             val = st.session_state.get("lora_val")
             if val and val.get("trigger") == trig:
-                st.markdown("**验收对照**（左：写服装｜右：不写服装）")
+                _is_scene = val.get("kind") == "scene"
+                st.markdown("**验收对照**（左：写触发词｜右：不写触发词）" if _is_scene
+                            else "**验收对照**（左：写服装｜右：不写服装）")
                 vc1, vc2 = st.columns(2)
                 vc1.image(val["a"], use_container_width=True)
                 vc2.image(val["b"], use_container_width=True)
-                st.caption("判断标准：两张脸都是同一人=锁脸合格；右图服装漂移属正常（提示词需带服装短语）")
+                if _is_scene:
+                    st.caption("判断标准：左图必须是目标场景（如汴京街市）＝触发词生效；右图应明显不同/普通＝效果来自 LoRA 而非底模；两图都不应出现人脸主体")
+                else:
+                    st.caption("判断标准：两张脸都是同一人=锁脸合格；右图服装漂移属正常（提示词需带服装短语）")
                 if st.button("✅ 验收通过，存入角色库", key="lora_accept", type="primary"):
                     # 角色名为空且已有同触发词的卡：更新旧卡的 LoRA 文件名，不新建裸卡
                     chars_now = load_characters()
