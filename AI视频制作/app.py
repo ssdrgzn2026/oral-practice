@@ -1032,6 +1032,36 @@ def gen_comfy_txt2img(prompt_en: str, seed: int = 0, width: int = 768, height: i
     return out
 
 
+def gen_zimage(desc: str, size_wh, seed: int = 0) -> Path:
+    """Z-Image-Turbo 文生图（6B DiT，9步/CFG1/shift3）：非锁脸镜头主力通道。
+    中文画面描述直接喂，提示词遵循强；不支持负面词。烟测：现代装+古代场景、现代道具一次成。"""
+    _heartbeat()
+    w_, h_ = (768, 1024) if size_wh[1] > size_wh[0] else (1024, 768)
+    seed = seed or int(time.time() * 1000) % (2**31)
+    key = _sha(f"zimg|{desc}|{w_}x{h_}|{seed}")
+    out = COMFY_DIR / f"{key}.png"
+    if out.exists():
+        return out
+    wf = {
+        "1": {"class_type": "UNETLoader", "inputs": {"unet_name": "z_image_turbo_bf16.safetensors",
+                                                     "weight_dtype": "default"}},
+        "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": "qwen_3_4b.safetensors",
+                                                     "type": "lumina2"}},
+        "3": {"class_type": "VAELoader", "inputs": {"vae_name": "ae.safetensors"}},
+        "4": {"class_type": "CLIPTextEncode", "inputs": {"text": desc, "clip": ["2", 0]}},
+        "5": {"class_type": "CLIPTextEncode", "inputs": {"text": "", "clip": ["2", 0]}},
+        "6": {"class_type": "EmptyLatentImage", "inputs": {"width": w_, "height": h_, "batch_size": 1}},
+        "7": {"class_type": "ModelSamplingAuraFlow", "inputs": {"model": ["1", 0], "shift": 3}},
+        "8": {"class_type": "KSampler", "inputs": {"model": ["7", 0], "seed": seed, "steps": 9,
+              "cfg": 1.0, "sampler_name": "res_multistep", "scheduler": "simple",
+              "positive": ["4", 0], "negative": ["5", 0], "latent_image": ["6", 0], "denoise": 1.0}},
+        "9": {"class_type": "VAEDecode", "inputs": {"samples": ["8", 0], "vae": ["3", 0]}},
+        "10": {"class_type": "SaveImage", "inputs": {"images": ["9", 0], "filename_prefix": "zimg"}},
+    }
+    out.write_bytes(_comfy_run(wf))
+    return out
+
+
 def _api_headers():
     return {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 
@@ -2482,6 +2512,22 @@ with st.container(border=True):
                         st.session_state.pop("video", None)
                     except Exception as e:  # noqa: BLE001
                         st.error(f"镜头 {i+1} 文生图失败：{e}")
+                st.rerun()
+            if is_online and cols[i].button("🚀 Z-Image 生成（中文·快）", key=f"zimg_{i}",
+                                            use_container_width=True,
+                                            help="不锁脸镜头的主力通道：中文画面描述直喂，9步约30秒一张；现代装/道具/大场面构图比 SDXL 强一代"):
+                with st.spinner(f"Z-Image 正在生成镜头 {i+1}（约30秒）…"):
+                    try:
+                        seeds[i] = int(time.time() * 1000) % (2**31)
+                        images[i] = str(gen_zimage(shots[i]["desc"], size_wh, seed=seeds[i]))
+                        uploads.pop(str(i), None)
+                        st.session_state.setdefault("pulid_history", {}).setdefault(
+                            str(i), []).append(images[i])  # 进抽卡历史，可回选
+                        st.session_state.images = images
+                        st.session_state.pop("video", None)
+                        autosave()
+                    except Exception as e:  # noqa: BLE001
+                        st.error(f"镜头 {i+1} Z-Image 生成失败：{e}")
                 st.rerun()
         if not is_video and wan_available():
             # 动态提示词：LLM 由「画面描述+台词」合成，可见可改，Wan 只按它动
