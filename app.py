@@ -16,7 +16,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
-from flask import Flask, jsonify, redirect, render_template, request, send_from_directory, session
+from flask import Flask, Response, jsonify, redirect, render_template, request, send_from_directory, session
 from flask_cors import CORS
 
 import stats_logger
@@ -249,6 +249,22 @@ def demo_cnn():
 @app.route("/demo/fitness")
 def demo_fitness():
     return render_template("fitness.html")
+
+
+@app.route("/api/fitness-tts", methods=["POST"])
+def fitness_tts():
+    """健身跟练语音播报：转发到口语容器(8504)的 TTS 接口，返回 mp3（iOS PWA 无浏览器语音时用）"""
+    text = ((request.get_json(silent=True) or {}).get("text") or "").strip()[:200]
+    if not text:
+        return jsonify({"error": "text is required"}), 400
+    import requests as _r
+    try:
+        resp = _r.post("http://127.0.0.1:8504/api/tts", json={"text": text}, timeout=60)
+        if resp.status_code != 200:
+            return jsonify({"error": "tts upstream error"}), 502
+        return Response(resp.content, mimetype="audio/mpeg")
+    except _r.RequestException:
+        return jsonify({"error": "tts unavailable"}), 502
 
 
 @app.route("/tickets")

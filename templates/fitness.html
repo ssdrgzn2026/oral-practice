@@ -375,10 +375,47 @@ function pickVoice(){
     }catch(e){}
 }
 if(speechOK){ pickVoice(); speechSynthesis.onvoiceschanged=pickVoice; }
+
+/* 语音三级策略：①服务器 TTS（iOS PWA 可靠）②浏览器语音 ③纯文字提示 */
+var serverTTS=null;          // null=未探测 true=可用 false=不可用
+var audioQ=[], audioPlaying=false, curAudio=null;
 function speak(t){
-    if(!document.getElementById('chkVoice').checked || !speechOK) return;
+    if(!document.getElementById('chkVoice').checked) return;
+    if(serverTTS===false){ browserSpeak(t); return; }
+    audioQ.push(t);
+    if(!audioPlaying) playNext();
+}
+function playNext(){
+    var t=audioQ.shift();
+    if(t===undefined){ audioPlaying=false; return; }
+    audioPlaying=true;
+    fetch('/api/fitness-tts',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({text:t})})
+    .then(function(r){ if(!r.ok) throw new Error(); return r.blob(); })
+    .then(function(b){
+        serverTTS=true;
+        curAudio=new Audio(URL.createObjectURL(b));
+        curAudio.onended=function(){ playNext(); };
+        curAudio.onerror=function(){ ttsFail(t); };
+        var p=curAudio.play();
+        if(p&&p.catch) p.catch(function(){ ttsFail(t); });
+    })
+    .catch(function(){ ttsFail(t); });
+}
+function ttsFail(t){
+    serverTTS=false; audioPlaying=false; audioQ.length=0;
+    browserSpeak(t);
+}
+function stopVoice(){
+    audioQ.length=0;
+    if(curAudio){ try{ curAudio.pause(); curAudio=null; }catch(e){} }
+    audioPlaying=false;
+    if(speechOK) try{ speechSynthesis.cancel(); }catch(e){}
+}
+function browserSpeak(t){
+    if(!speechOK){ showVoiceHint(); return; }
     try{
-        speechSynthesis.resume();   // 部分手机浏览器会自动暂停，先恢复
+        speechSynthesis.resume();
         speechSynthesis.cancel();
         var u=new SpeechSynthesisUtterance(t);
         u.lang='zh-CN'; u.rate=1.05;
@@ -391,15 +428,9 @@ var voiceHinted=false;
 function showVoiceHint(){
     if(voiceHinted) return; voiceHinted=true;
     var el=document.getElementById('voiceHint');
-    if(el) el.textContent='⚠ 当前浏览器语音合成不可用（手机可能缺少中文语音包），已自动切换为纯文字提示模式';
+    if(el) el.textContent='⚠ 服务器语音与浏览器语音均不可用，已切换为纯文字提示模式';
 }
-function testVoice(){
-    if(!speechOK){ showVoiceHint(); return; }
-    speak('语音测试：平板杠铃卧推，第一组，开始');
-    setTimeout(function(){
-        if(!speechSynthesis.speaking && !speechSynthesis.pending) showVoiceHint();
-    }, 800);
-}
+function testVoice(){ speak('语音测试：平板杠铃卧推，第一组，开始'); }
 function curEx(){ return DAYS[PL.day].exs[PL.ex]; }
 function startPlayer(){
     PL={day:curDay,ex:0,set:1,phase:'work',remain:0,timer:null,paused:false,tipIdx:0,side:0};
@@ -522,11 +553,10 @@ document.getElementById('pSkip').onclick=function(){
 document.getElementById('pPause').onclick=function(){
     PL.paused=!PL.paused;
     this.textContent=PL.paused?'▶ 继续':'⏸ 暂停';
-    if(PL.paused){ animOn=false; speechSynthesis.cancel(); } else { animOn=true; requestAnimationFrame(animLoop); }
+    if(PL.paused){ animOn=false; stopVoice(); } else { animOn=true; requestAnimationFrame(animLoop); }
 };
 document.getElementById('pExit').onclick=function(){
-    animOn=false; stopImgCycle(); clearInterval(PL.timer); clearInterval(PL.tipTimer);
-    try{ speechSynthesis.cancel(); }catch(e){}
+    animOn=false; stopImgCycle(); stopVoice(); clearInterval(PL.timer); clearInterval(PL.tipTimer);
     document.getElementById('player').classList.remove('on');
 };
 </script>
