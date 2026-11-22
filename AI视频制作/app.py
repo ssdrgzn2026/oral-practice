@@ -1032,13 +1032,22 @@ def gen_comfy_txt2img(prompt_en: str, seed: int = 0, width: int = 768, height: i
     return out
 
 
-def gen_zimage(desc: str, size_wh, seed: int = 0) -> Path:
+def gen_zimage(desc: str, size_wh, seed: int = 0,
+               image_path: str = None, denoise: float = 1.0) -> Path:
     """Z-Image-Turbo 文生图（6B DiT，9步/CFG1/shift3）：非锁脸镜头主力通道。
-    中文画面描述直接喂，提示词遵循强；不支持负面词。烟测：现代装+古代场景、现代道具一次成。"""
+    中文画面描述直接喂，提示词遵循强；不支持负面词。烟测：现代装+古代场景、现代道具一次成。
+    image_path + denoise(<1) = img2img 垫图：锁参照图的构图与色调，denoise 越小越像原图（0.45~0.65 对应可灵相似度 0.6~0.7）。"""
     _heartbeat()
     w_, h_ = (768, 1024) if size_wh[1] > size_wh[0] else (1024, 768)
     seed = seed or int(time.time() * 1000) % (2**31)
-    key = _sha(f"zimg|{desc}|{w_}x{h_}|{seed}")
+    img_b64 = ""
+    if image_path:
+        from io import BytesIO
+        im = Image.open(image_path).convert("RGB").resize((w_, h_))
+        buf = BytesIO()
+        im.save(buf, format="PNG")
+        img_b64 = base64.b64encode(buf.getvalue()).decode()
+    key = _sha(f"zimg|{desc}|{w_}x{h_}|{seed}|{img_b64[:64]}|{denoise}")
     out = COMFY_DIR / f"{key}.png"
     if out.exists():
         return out
@@ -1050,14 +1059,25 @@ def gen_zimage(desc: str, size_wh, seed: int = 0) -> Path:
         "3": {"class_type": "VAELoader", "inputs": {"vae_name": "ae.safetensors"}},
         "4": {"class_type": "CLIPTextEncode", "inputs": {"text": desc, "clip": ["2", 0]}},
         "5": {"class_type": "CLIPTextEncode", "inputs": {"text": "", "clip": ["2", 0]}},
-        "6": {"class_type": "EmptyLatentImage", "inputs": {"width": w_, "height": h_, "batch_size": 1}},
         "7": {"class_type": "ModelSamplingAuraFlow", "inputs": {"model": ["1", 0], "shift": 3}},
-        "8": {"class_type": "KSampler", "inputs": {"model": ["7", 0], "seed": seed, "steps": 9,
-              "cfg": 1.0, "sampler_name": "res_multistep", "scheduler": "simple",
-              "positive": ["4", 0], "negative": ["5", 0], "latent_image": ["6", 0], "denoise": 1.0}},
         "9": {"class_type": "VAEDecode", "inputs": {"samples": ["8", 0], "vae": ["3", 0]}},
         "10": {"class_type": "SaveImage", "inputs": {"images": ["9", 0], "filename_prefix": "zimg"}},
     }
+    if img_b64:
+        r = requests.post(f"{COMFY_BASE}/upload/image",
+                          files={"image": ("ref.png", base64.b64decode(img_b64))}, timeout=60)
+        r.raise_for_status()
+        wf["11"] = {"class_type": "LoadImage", "inputs": {"image": r.json()["name"]}}
+        wf["12"] = {"class_type": "VAEEncode", "inputs": {"pixels": ["11", 0], "vae": ["3", 0]}}
+        latent = ["12", 0]
+    else:
+        wf["6"] = {"class_type": "EmptyLatentImage",
+                   "inputs": {"width": w_, "height": h_, "batch_size": 1}}
+        latent = ["6", 0]
+    wf["8"] = {"class_type": "KSampler", "inputs": {"model": ["7", 0], "seed": seed, "steps": 9,
+               "cfg": 1.0, "sampler_name": "res_multistep", "scheduler": "simple",
+               "positive": ["4", 0], "negative": ["5", 0], "latent_image": latent,
+               "denoise": denoise if img_b64 else 1.0}}
     out.write_bytes(_comfy_run(wf))
     return out
 
@@ -2414,6 +2434,20 @@ with st.container(border=True):
         st.caption(f"🏯 画风 LoRA 已启用：{style_lora}（权重 {style_lora_w}），逐镜「锁脸生成」后生效；与角色 LoRA 串联，单镜共 2 个 LoRA")
     draft_mode = st.toggle("⚡ 草稿模式：锁脸先出小图快抽（省一半时间），选定后点「⬆ 出高清」用同一种子同提示词出全尺寸",
                            key="draft_mode")
+    # ---- 垫图（Z-Image img2img）：上传参照图锁构图色调，复刻对标镜头专用 ----
+    ref1, ref2, _ = st.columns([2, 1, 1])
+    ref_img = ref1.file_uploader("🖼 参照图（垫图出首帧用，如对标片截图；不传则各镜纯文生图）",
+                                 type=["png", "jpg", "jpeg"], key="zimg_ref")
+    ref_denoise = ref2.selectbox("垫图重绘幅度", [0.45, 0.55, 0.65, 0.75], index=1,
+                                 key="zimg_denoise",
+                                 help="越小越像参照图：0.45≈可灵相似度0.7，0.55≈0.6，0.65 构图保留但内容自由些，0.75 只借氛围")
+    if ref_img:
+        _ref_path = IMG_DIR / f"ref_{_sha_bytes(ref_img.getvalue())}.png"
+        if not _ref_path.exists():
+            _ref_path.write_bytes(ref_img.getvalue())
+        st.session_state.zimg_ref_path = str(_ref_path)
+    else:
+        st.session_state.pop("zimg_ref_path", None)
 
     if images is None:
         # 懒生成：不自动消耗 Kolors 额度，先用参考照片/占位图就位，AI 配图由按钮触发
@@ -2519,7 +2553,10 @@ with st.container(border=True):
                 with st.spinner(f"Z-Image 正在生成镜头 {i+1}（约30秒）…"):
                     try:
                         seeds[i] = int(time.time() * 1000) % (2**31)
-                        images[i] = str(gen_zimage(shots[i]["desc"], size_wh, seed=seeds[i]))
+                        _ref = st.session_state.get("zimg_ref_path")
+                        images[i] = str(gen_zimage(shots[i]["desc"], size_wh, seed=seeds[i],
+                                                   image_path=_ref,
+                                                   denoise=st.session_state.get("zimg_denoise", 0.55) if _ref else 1.0))
                         uploads.pop(str(i), None)
                         st.session_state.setdefault("pulid_history", {}).setdefault(
                             str(i), []).append(images[i])  # 进抽卡历史，可回选
