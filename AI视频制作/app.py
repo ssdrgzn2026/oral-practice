@@ -17,6 +17,12 @@ import requests
 import streamlit as st
 from PIL import Image, ImageDraw, ImageFont
 
+# 后期处理模块（统一调色 / 程序化音效，全本地 ffmpeg，不外传文件）
+try:
+    import postprocess as pp
+except ImportError:  # 部署时缺文件则降级，不影响主产线
+    pp = None
+
 MODULE_DIR = Path(__file__).resolve().parent
 CACHE_DIR = Path(os.environ.get("VIDEO_CACHE_DIR", str(MODULE_DIR / "data" / "video_cache")))
 IMG_DIR = CACHE_DIR / "images"
@@ -1422,7 +1428,8 @@ def find_cjk_font() -> str:
 
 
 def render_subtitle(img_path: Path, narration: str, size_wh, bar_h_ratio=0.12) -> Path:
-    key = _sha(f"sub|v2|{img_path.name}|{narration}|{size_wh}")
+    # v3：字幕改"白字+黑描边"，浅色画面上也清晰（v2 为无描边白字）
+    key = _sha(f"sub|v3|{img_path.name}|{narration}|{size_wh}")
     out = SUB_DIR / f"{key}.png"
     if out.exists():
         return out
@@ -1452,7 +1459,13 @@ def render_subtitle(img_path: Path, narration: str, size_wh, bar_h_ratio=0.12) -
         y = max(y, h - bar_h + 2)         # 放得下时保持不出字幕条上沿
     for line in lines:
         lw = draw.textlength(line, font=font)
-        draw.text(((w - lw) / 2, y), line, font=font, fill=(255, 255, 255, 255))
+        tx = (w - lw) / 2
+        # 黑描边（4 向 + 4 斜角），保证浅色背景上白字依然清晰
+        stroke = max(2, font_size // 12)
+        for dx, dy in ((-stroke, 0), (stroke, 0), (0, -stroke), (0, stroke),
+                       (-stroke, -stroke), (stroke, -stroke), (-stroke, stroke), (stroke, stroke)):
+            draw.text((tx + dx, y + dy), line, font=font, fill=(0, 0, 0, 255))
+        draw.text((tx, y), line, font=font, fill=(255, 255, 255, 255))
         y += line_h
     img.save(out)
     return out
@@ -1463,6 +1476,24 @@ def _sub_text(shot: dict) -> str:
     n = (shot.get("narration") or "").strip()
     sp = (shot.get("speaker") or "旁白").strip()
     return f"{sp}：{n}" if n and sp not in ("", "旁白") else n
+
+
+def _wrap_drawtext(text: str, fontsize: int, max_w: int) -> tuple:
+    """给 ffmpeg drawtext 用：按宽度估算插入换行，返回 (带\\n文本, 行数)。
+    中文按 1 字宽≈fontsize，英文数字≈0.55，避免长台词单行溢出画面。"""
+    lines, cur, curw = [], "", 0.0
+    for ch in text:
+        if ch == "\n":
+            lines.append(cur); cur, curw = "", 0.0
+            continue
+        cw = fontsize if ord(ch) > 127 else fontsize * 0.55
+        if curw + cw > max_w and cur:
+            lines.append(cur); cur, curw = ch, cw
+        else:
+            cur += ch; curw += cw
+    if cur:
+        lines.append(cur)
+    return "\\n".join(lines), max(1, len(lines))
 
 
 def audio_duration(audio: Path) -> float:
@@ -1525,16 +1556,21 @@ def compose_video(shots: list, images: list, audios: list, size_wh, work: Path,
             narration = _sub_text(shots[i])
             if narration:
                 txt = work / f"sub{i}.txt"
-                txt.write_text(narration, encoding="utf-8")
                 bar_h = int(h * 0.12)
                 pad_bottom = int(h * 0.02)  # 离底边留 padding，防裁切
                 fontsize = max(18, h // 34)
-                text_h = int(fontsize * 1.3)  # 单行文字估算高度
+                # 长台词分行（drawtext 不会自动换行）+ 白字黑描边
+                wrapped, nlines = _wrap_drawtext(narration, fontsize, int(w * 0.88))
+                txt.write_text(wrapped, encoding="utf-8")
+                line_h = int(fontsize * 1.32)
+                text_h = line_h * nlines
                 # y 坐标在 Python 里算好（min 表达式里的逗号会被 ffmpeg 误解析）
-                y_pos = min(h - bar_h + (bar_h - text_h) // 2, h - pad_bottom - text_h)
+                y_pos = max(h - bar_h + 2, min(h - bar_h + (bar_h - text_h) // 2,
+                                               h - pad_bottom - text_h))
                 vf += (f",drawbox=y={h - bar_h}:w={w}:h={bar_h}:color=black@0.45:t=fill"
                        f",drawtext=fontfile='{find_cjk_font()}':textfile='{txt}':"
-                       f"fontcolor=white:fontsize={fontsize}:"
+                       f"fontcolor=white:fontsize={fontsize}:line_spacing={max(0, line_h - fontsize)}:"
+                       f"borderw=2:bordercolor=black@0.9:"
                        f"x=(w-text_w)/2:y={y_pos}")
             subprocess.run(
                 ["ffmpeg", "-y", "-stream_loop", "-1", "-i", str(img), "-i", str(aud),
@@ -2954,6 +2990,61 @@ with st.container(border=True):
             dst = OUT_DIR / f"{st.session_state.get('proj_name') or '未命名'}_{int(time.time())}.mp4"
             shutil.copy2(video, dst)
             st.success(f"已存入我的作品：{dst.name}")
+        # ===== 后期处理（统一调色 / 程序化音效，全本地 ffmpeg，不外传） =====
+        if pp is not None:
+            with st.expander("🎨 后期处理 · 统一调色 / 音效层（提升成片观感）", expanded=False):
+                st.caption("按《现状评估》落地：全片统一 LUT + 程序化音效，全部本地处理、不联网、不外传文件。")
+                pc1, pc2 = st.columns([3, 1])
+                with pc1:
+                    lut_sel = st.selectbox("调色预设（全片统一）", list(pp.LUT_PRESETS.keys()),
+                                           key="pp_lut_sel")
+                with pc2:
+                    st.write("")
+                    if st.button("🎨 应用调色", key="pp_apply_lut", use_container_width=True):
+                        with st.spinner("正在统一调色（本地 ffmpeg）…"):
+                            try:
+                                st.session_state.pp_graded = str(
+                                    pp.apply_lut(video, lut_sel))
+                                autosave()
+                                st.success("调色完成")
+                                st.rerun()
+                            except Exception as e:  # noqa: BLE001
+                                st.error(f"调色失败：{e}")
+                sd1, sd2, sd3 = st.columns([2, 1, 1])
+                with sd1:
+                    snd_sel = st.selectbox("音效层（程序化生成，无需素材）",
+                                           list(pp.SOUND_PRESETS.keys()), key="pp_snd_sel")
+                with sd2:
+                    mix_vol = st.slider("音效音量", 0.1, 0.8, 0.35, 0.05, key="pp_mix_vol")
+                with sd3:
+                    st.write("")
+                    if st.button("🔊 叠加音效", key="pp_apply_snd", use_container_width=True):
+                        if snd_sel == "无":
+                            st.info("音效选了「无」，无需叠加")
+                        else:
+                            with st.spinner("正在合成音效轨…"):
+                                try:
+                                    base = st.session_state.get("pp_graded") or video
+                                    st.session_state.pp_final = str(
+                                        pp.add_soundtrack(base, snd_sel, mix_vol))
+                                    autosave()
+                                    st.success("音效叠加完成")
+                                    st.rerun()
+                                except Exception as e:  # noqa: BLE001
+                                    st.error(f"音效叠加失败：{e}")
+                # 后期结果预览与下载
+                pp_video = st.session_state.get("pp_final") or st.session_state.get("pp_graded")
+                if pp_video and Path(pp_video).exists():
+                    st.markdown("**后期版预览**")
+                    st.video(pp_video)
+                    with open(pp_video, "rb") as f:
+                        st.download_button("⬇️ 下载后期版", f, file_name="AI视频_后期版.mp4",
+                                           mime="video/mp4", use_container_width=True)
+                    if st.button("💾 后期版存入作品", key="pp_save_work", use_container_width=True):
+                        import shutil
+                        dst2 = OUT_DIR / f"{st.session_state.get('proj_name') or '未命名'}_后期_{int(time.time())}.mp4"
+                        shutil.copy2(pp_video, dst2)
+                        st.success(f"已存入：{dst2.name}")
         # 高清放大：ESRGAN 帧级放大到 1080P（走 AutoDL，一次性工作流）
         up = st.session_state.get("upscaled_video")
         if comfy_online():
