@@ -208,13 +208,18 @@ function renderWalk(){
     document.getElementById('walkExplain').innerHTML=u.explain;
     document.getElementById('walkPos').textContent=(cur+1)+' / '+UNITS.length;
     var bd=document.getElementById('btnDemo');
-    if(u.demo){ bd.style.display='inline-block'; bd.href='/demo/graph?op='+u.demo; }
+    if(u.demo){ bd.style.display='inline-block'; bd.href='/demo/graph?op='+u.demo+'&from='+cur; }
     else bd.style.display='none';
     document.getElementById('btnPrev').disabled=(cur===0);
     document.getElementById('btnNext').disabled=(cur===UNITS.length-1);
 }
 document.getElementById('btnPrev').onclick=function(){ if(cur>0){cur--;renderWalk();} };
 document.getElementById('btnNext').onclick=function(){ if(cur<UNITS.length-1){cur++;renderWalk();} };
+/* 从演示器带 ?u= 返回时恢复到对应段落 */
+(function(){
+    var u=parseInt(new URLSearchParams(location.search).get('u'),10);
+    if(u>=0 && u<UNITS.length) cur=u;
+})();
 renderWalk();
 </script>
 <script src="/static/js/track.js"></script>

@@ -398,7 +398,16 @@ window.addEventListener('resize', renderGraph);
 
 /* 联动入口：从代码讲解页带 ?op= 跳来时自动执行对应操作 */
 (function(){
-    var op=new URLSearchParams(location.search).get('op');
+    var q=new URLSearchParams(location.search);
+    var op=q.get('op');
+    var from=q.get('from');
+    if(from!==null && from!==''){
+        var bk=document.createElement('a');
+        bk.href='/demo/graph/code?u='+from;
+        bk.textContent='← 返回代码讲解（第 '+(parseInt(from,10)+1)+' 段）';
+        bk.style.cssText='position:fixed;top:10px;left:10px;z-index:99;background:#4f46e5;color:#fff;padding:8px 14px;border-radius:20px;font-size:14px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.2)';
+        document.body.appendChild(bk);
+    }
     if(!op) return;
     setTimeout(function(){
         if(op==='insertArc'){ document.getElementById('selA').value='C'; document.getElementById('selB').value='D'; document.getElementById('btnAddArc').click(); }
