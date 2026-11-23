@@ -71,6 +71,7 @@ td.flash{ animation:flash 1s ease; }
         </div>
         <div class="quiz-foot">
             <button class="btn" id="btnGoQuiz">看完了，去闯关 →</button>
+            <a class="btn gray" href="/demo/graph/code" style="text-decoration:none">📖 代码逐段讲解</a>
         </div>
     </div>
 
@@ -394,6 +395,20 @@ document.getElementById('btnGoQuiz').onclick=function(){
 
 resetGraph();
 window.addEventListener('resize', renderGraph);
+
+/* 联动入口：从代码讲解页带 ?op= 跳来时自动执行对应操作 */
+(function(){
+    var op=new URLSearchParams(location.search).get('op');
+    if(!op) return;
+    setTimeout(function(){
+        if(op==='insertArc'){ document.getElementById('selA').value='C'; document.getElementById('selB').value='D'; document.getElementById('btnAddArc').click(); }
+        else if(op==='deleteArc'){ document.getElementById('selA').value='A'; document.getElementById('selB').value='C'; document.getElementById('btnDelArc').click(); }
+        else if(op==='insertVex'){ document.getElementById('txtNewVex').value='E'; document.getElementById('btnAddVex').click(); }
+        else if(op==='deleteVex'){ document.getElementById('selDel').value='A'; document.getElementById('btnDelVex').click(); }
+        else if(op==='auto'){ document.getElementById('btnAuto').click(); }
+        window.scrollTo({top:0,behavior:'smooth'});
+    },600);
+})();
 </script>
 <script src="/static/js/track.js"></script>
 </body>

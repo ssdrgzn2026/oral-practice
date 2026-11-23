@@ -251,6 +251,11 @@ def demo_fitness():
     return render_template("fitness.html")
 
 
+@app.route("/demo/graph/code")
+def demo_graph_code():
+    return render_template("graphcode.html")
+
+
 @app.route("/api/fitness-tts", methods=["POST"])
 def fitness_tts():
     """健身跟练语音播报：转发到口语容器(8504)的 TTS 接口，返回 mp3（iOS PWA 无浏览器语音时用）"""
@@ -259,7 +264,7 @@ def fitness_tts():
         return jsonify({"error": "text is required"}), 400
     import requests as _r
     try:
-        resp = _r.post("http://127.0.0.1:8504/api/tts", json={"text": text}, timeout=60)
+        resp = _r.post("http://mischub-oral:8504/api/tts", json={"text": text}, timeout=60)
         if resp.status_code != 200:
             return jsonify({"error": "tts upstream error"}), 502
         return Response(resp.content, mimetype="audio/mpeg")

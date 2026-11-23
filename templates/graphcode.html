@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>邻接矩阵代码逐行讲解 · 演示器</title>
+<link rel="stylesheet" href="/static/css/style.css">
+<link rel="stylesheet" href="/static/css/demo.css">
+<style>
+.walk-tabs{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+.walk-tab{ padding:6px 12px; border-radius:8px; border:1px solid #cfd3e3; background:#fff; cursor:pointer; font-size:13px; }
+.walk-tab.cur{ background:var(--brand); color:#fff; border-color:var(--brand); }
+.walk-grid{ display:grid; grid-template-columns:1.2fr 1fr; gap:16px; }
+@media(max-width:860px){ .walk-grid{ grid-template-columns:1fr; } }
+.explain{ background:#f7f8fd; border-radius:10px; padding:14px; font-size:14.5px; line-height:2.0; }
+.explain h3{ margin:0 0 8px; font-size:16px; color:var(--brand); }
+.explain .em{ background:#fff3d6; padding:0 4px; border-radius:4px; font-family:Consolas,monospace; font-size:13px; }
+.walk-nav{ display:flex; gap:10px; margin-top:14px; align-items:center; }
+.walk-nav .pos{ color:#888; font-size:13px; }
+.codebox .ln.dim{ opacity:.45; }
+</style>
+</head>
+<body class="demo-body">
+<div class="demo-wrap">
+    <div class="demo-head">
+        <h1>📖 邻接矩阵 C 代码 · 逐段讲解</h1>
+        <p>左边是完整代码（正在讲的部分保持高亮），右边是白话解释；点"联动演示"直接跳到演示器看这段代码的实际效果</p>
+        <a class="backlink" href="/demo/graph">← 返回演示器</a>
+    </div>
+    <div class="panel">
+        <div class="walk-tabs" id="walkTabs"></div>
+        <div class="walk-grid">
+            <div class="codebox" id="walkCode"></div>
+            <div>
+                <div class="explain" id="walkExplain"></div>
+                <div class="walk-nav">
+                    <button class="btn gray" id="btnPrev">← 上一段</button>
+                    <button class="btn" id="btnNext">下一段 →</button>
+                    <a class="btn" id="btnDemo" href="#" style="text-decoration:none;display:inline-block">🎬 联动演示</a>
+                    <span class="pos" id="walkPos"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+/* 讲解单元：lines=本段代码行, focus=在全代码里高亮的行号区间, explain=白话(html), demo=联动参数 */
+var UNITS=[
+{ title:'① 存储结构：图在内存里长什么样', demo:'',
+  lines:['#define MAX_VERTEX_NUM 20   // 最大顶点数',
+         'typedef char VertexType[6];  // 顶点名字（字符串）',
+         'typedef int ArcCell, AdjMatrix[MAX_VERTEX_NUM][MAX_VERTEX_NUM];',
+         'struct MGraph{',
+         '  VertexType vexs[MAX_VERTEX_NUM]; // 顶点数组：存每个顶点的名字',
+         '  AdjMatrix arcs;                  // 邻接矩阵：arcs[i][j]=1 表示 i 和 j 之间有边',
+         '  int vexnum, arcnum;              // 当前顶点数和边数',
+         '  GraphKind kind;                  // 图的种类（有向/无向）',
+         '};'],
+  focus:[0,8],
+  explain:'<h3>一切从这两样东西开始</h3>任何图在内存里都被拆成两部分：<br>'
+        +'· <span class="em">vexs[]</span> —— 顶点数组，顺序存名字，比如 [A, B, C, D]。顶点的"下标"就是它的身份证号。<br>'
+        +'· <span class="em">arcs[][]</span> —— 邻接矩阵，一个 n×n 的 0/1 表格。<span class="em">arcs[i][j]=1</span> 表示第 i 个顶点和第 j 个顶点之间有边，0 表示没有。<br><br>'
+        +'比如 A 和 B 之间有边，就是 arcs[0][1] 和 arcs[1][0] 同时为 1（无向图对称）。你在演示器右边看到的那个蓝白表格，就是这个矩阵的实时画面。'},
+{ title:'② LocateVex：按名字找下标', demo:'',
+  lines:['int LocateVex(MGraph G, VertexType u)',
+         '{ // 若 G 中存在顶点 u，返回它的下标；否则返回 -1',
+         '  int i;',
+         '  for(i=0;i<G.vexnum;++i)',
+         '    if(strcmp(G.vexs[i], u)==0)',
+         '      return i;',
+         '  return -1;',
+         '}'],
+  focus:[0,7],
+  explain:'<h3>最基础的工具函数</h3>用户只知道顶点的名字（比如 "C"），但矩阵只认下标。LocateVex 就是翻译官：<b>从头到尾遍历顶点数组，逐个 strcmp 比较名字，找到了就返回下标，找不到返回 -1</b>。<br><br>'
+        +'后面几乎所有操作的第一步都是它——InsertArc、DeleteVex、PutVex 都先调两次 LocateVex 把名字翻译成下标，才能动矩阵。闯关第 1 关考的就是它。'},
+{ title:'③ CreateAG：从无到有建一张图', demo:'auto',
+  lines:['Status CreateAG(MGraph &G)',
+         '{ // 用邻接矩阵表示法构造无向图 G',
+         '  scanf("%d",&G.vexnum);   // 读顶点数',
+         '  scanf("%d",&G.arcnum);   // 读边数',
+         '  for(i=0;i<G.vexnum;++i)',
+         '    scanf(" %s", G.vexs[i]);        // 读入每个顶点的名字',
+         '  for(i=0;i<G.vexnum;++i)          // 邻接矩阵全部清 0',
+         '    for(j=0;j<G.vexnum;++j)',
+         '      G.arcs[i][j]=0;',
+         '  for(k=0;k<G.arcnum;++k){         // 逐条读边',
+         '    scanf(" %s%s",va,vb);',
+         '    i=LocateVex(G, va);            // 边的两个端点翻译成下标',
+         '    j=LocateVex(G, vb);',
+         '    G.arcs[i][j]=G.arcs[j][i]=1;   // 无向图：对称两格同时置 1',
+         '  }',
+         '  G.kind=AG;  return OK;',
+         '}'],
+  focus:[0,17],
+  explain:'<h3>建图四步曲</h3>① 读顶点数和边数 → ② 把顶点名字挨个存进 vexs 数组 → ③ 矩阵清零（一开始谁和谁都不相连）→ ④ 每读一条边，先用 LocateVex 找到两个端点的下标 i、j，再把 <span class="em">arcs[i][j]</span> 和 <span class="em">arcs[j][i]</span> 同时置 1。<br><br>'
+        +'为什么置两格？因为无向图的边是双向的——A 连着 B，B 就连着 A，矩阵关于对角线对称。点下方"联动演示"可以直接看一次完整的建图流程。'},
+{ title:'④ 查询三兄弟：PutVex / FirstAdjVex / NextAdjVex', demo:'',
+  lines:['Status PutVex(MGraph &G, VertexType v, VertexType value)',
+         '{ // 把顶点 v 的值改成 value',
+         '  k=LocateVex(G,v);',
+         '  if(k<0) return ERROR;',
+         '  strcpy(G.vexs[k], value);   // 只改名字，不动矩阵',
+         '}  ',
+         'int FirstAdjVex(MGraph G, VertexType v)',
+         '{ // 返回 v 的第一个邻接点下标，没有返回 -1',
+         '  k=LocateVex(G,v);',
+         '  for(i=0;i<G.vexnum;i++)',
+         '    if(G.arcs[k][i]==1) return i;  // 顺着第 k 行找第一个 1',
+         '  return -1;',
+         '}  ',
+         'int NextAdjVex(MGraph G, VertexType v, VertexType w)',
+         '{ // 返回 v 的、排在 w 之后的下一个邻接点',
+         '  for(i=k2+1;i<G.vexnum;i++)       // 从 w 的下一个位置继续找',
+         '    if(G.arcs[k1][i]==1) return i;',
+         '  return -1;',
+         '}'],
+  focus:[0,21],
+  explain:'<h3>三个只读不写的小工具</h3>'
+        +'· <b>PutVex</b>：改顶点名字。注意它只动 vexs 数组，矩阵完全不用变——改名字不影响谁和谁相连。<br>'
+        +'· <b>FirstAdjVex</b>：找 v 的第一个邻居。做法是扫矩阵第 k 行，碰到第一个 1 就返回。<br>'
+        +'· <b>NextAdjVex</b>：找"下一个"邻居。关键在循环起点 <span class="em">i=k2+1</span>——从上一个邻居的后面继续扫，这样 First 和 Next 配合就能把 v 的所有邻居不重不漏地列出来，这是后面遍历（DFS/BFS）的基础。'},
+{ title:'⑤ InsertArc / DeleteArc：加边删边', demo:'insertArc',
+  lines:['Status InsertArc(MGraph &G, VertexType v, VertexType w)',
+         '{  v1=LocateVex(G, v);',
+         '   w1=LocateVex(G, w);',
+         '   if(v1<0||w1<0) return ERROR;   // 两个顶点都得存在',
+         '   G.arcnum++;                    // 边数 +1',
+         '   G.arcs[v1][w1]=G.arcs[w1][v1]=1;  // 对称两格置 1',
+         '   return OK;',
+         '}',
+         'Status DeleteArc(MGraph &G, VertexType v, VertexType w)',
+         '{  ……同样先定位、检查……',
+         '   G.arcs[v1][w1]=G.arcs[w1][v1]=0;  // 对称两格清 0',
+         '   G.arcnum--;                    // 边数 -1',
+         '}'],
+  focus:[0,13],
+  explain:'<h3>全程序最简单直白的两个操作</h3>加一条边 = 矩阵里对称的两格变 1、边数 +1；删一条边 = 变 0、边数 -1。<b>顶点本身完全不动</b>。<br><br>'
+        +'点"联动演示"会自动执行一次 InsertArc(C, D)——盯着矩阵里 C 行 D 列和 D 行 C 列两格，它们会同时变蓝。回到演示器后你也可以自己选手动删一条边试试。'},
+{ title:'⑥ InsertVex：加一个顶点', demo:'insertVex',
+  lines:['void InsertVex(MGraph &G, VertexType v)',
+         '{  strcpy(G.vexs[G.vexnum], v);   // 新名字放到顶点数组末尾',
+         '   for(i=0;i<=G.vexnum;i++){',
+         '     G.arcs[G.vexnum][i]=0;       // 新增一行，全清 0',
+         '     G.arcs[i][G.vexnum]=0;       // 新增一列，全清 0',
+         '   }',
+         '   G.vexnum++;                    // 顶点数 +1',
+         '}'],
+  focus:[0,7],
+  explain:'<h3>新顶点刚来时是"孤立"的</h3>名字追加到 vexs 末尾，然后矩阵给它开出<b>一行一列、全部清 0</b>——因为它还没有任何边。注意循环条件是 <span class="em">i&lt;=G.vexnum</span>（带等号），要把新行新列的对角线那格也清掉。<br><br>'
+        +'加边是后续的事（InsertArc）。点"联动演示"看插入顶点 E 后矩阵右下角多出的一圈 0。'},
+{ title:'⑦ DeleteVex：删顶点（最难的操作）', demo:'deleteVex',
+  lines:['Status DeleteVex(MGraph &G, VertexType v)',
+         '{  k=LocateVex(G,v);',
+         '   if(k<0) return ERROR;',
+         '   for(j=0;j<G.vexnum;j++)',
+         '     if(G.arcs[j][k]!=0) G.arcnum--;   // 先把 v 带走的边数减掉',
+         '   for(j=k+1;j<G.vexnum;j++)',
+         '     strcpy(G.vexs[j-1], G.vexs[j]);   // 顶点数组：k 后面的整体前移一格',
+         '   for(i=0;i<G.vexnum;i++)',
+         '     for(j=k+1;j<G.vexnum;j++)',
+         '       G.arcs[i][j-1]=G.arcs[i][j];    // 矩阵：k 列之后的列左移',
+         '   for(i=0;i<G.vexnum;i++)',
+         '     for(j=k+1;j<G.vexnum;j++)',
+         '       G.arcs[j-1][i]=G.arcs[j][i];    // 矩阵：k 行之后的行上移',
+         '   G.vexnum--;                          // 顶点数 -1',
+         '}'],
+  focus:[0,15],
+  explain:'<h3>难在"搬家的连锁反应"</h3>删掉第 k 个顶点不是把它清 0 就完事——数组和矩阵里不能留空洞，所以：<br>'
+        +'① 先扫第 k 列，它带走了几条边，arcnum 就减几；<br>'
+        +'② vexs 数组 k 之后的元素<b>整体往前挪一格</b>；<br>'
+        +'③ 矩阵 k 列之后的所有列<b>左移</b>，k 行之后的所有行<b>上移</b>——两段双重循环，这是全程序唯一需要"搬矩阵"的地方，也是闯关第 4 关的核心考点。<br><br>'
+        +'点"联动演示"看删除顶点 A 的全过程：B、C、D 的名字和数据会整齐地向前补位。'},
+{ title:'⑧ main：把上面所有操作串起来', demo:'auto',
+  lines:['int main(){',
+         '  MGraph g;',
+         '  CreateAG(g);   Display(g);    // 建图并打印',
+         '  PutVex(g, v1, v2);            // 改一个顶点的名字',
+         '  DeleteArc(g, v1, v2);         // 删一条边',
+         '  InsertVex(g, v1);             // 加一个顶点',
+         '  InsertArc(g, v1, v2);         // 给新顶点接边',
+         '  DeleteVex(g, v1);             // 删一个顶点',
+         '  DestroyGraph(g);              // 销毁：顶点数、边数清 0',
+         '}'],
+  focus:[0,9],
+  explain:'<h3>main 就是一条流水线</h3>建图 → 打印 → 改名 → 删边 → 加点 → 接边 → 删点 → 销毁。每个函数各司其职，组合起来就是图的完整生命周期。<br><br>'
+        +'点"联动演示"，演示器会自动按这个顺序完整跑一遍，每步配讲解。看完这个，再回到演示器点"去闯关"，把挖空的代码填回来检验一下学习成果吧。'}
+];
+var cur=0;
+function renderWalk(){
+    var u=UNITS[cur];
+    var tabs=document.getElementById('walkTabs');
+    tabs.innerHTML='';
+    UNITS.forEach(function(x,i){
+        var b=document.createElement('button');
+        b.className='walk-tab'+(i===cur?' cur':'');
+        b.textContent=x.title.split('：')[0];
+        b.title=x.title;
+        b.onclick=function(){ cur=i; renderWalk(); };
+        tabs.appendChild(b);
+    });
+    var code=document.getElementById('walkCode');
+    code.innerHTML='';
+    u.lines.forEach(function(l){
+        var s=document.createElement('span');
+        s.className='ln'; s.textContent=l;
+        code.appendChild(s);
+    });
+    document.getElementById('walkExplain').innerHTML=u.explain;
+    document.getElementById('walkPos').textContent=(cur+1)+' / '+UNITS.length;
+    var bd=document.getElementById('btnDemo');
+    if(u.demo){ bd.style.display='inline-block'; bd.href='/demo/graph?op='+u.demo; }
+    else bd.style.display='none';
+    document.getElementById('btnPrev').disabled=(cur===0);
+    document.getElementById('btnNext').disabled=(cur===UNITS.length-1);
+}
+document.getElementById('btnPrev').onclick=function(){ if(cur>0){cur--;renderWalk();} };
+document.getElementById('btnNext').onclick=function(){ if(cur<UNITS.length-1){cur++;renderWalk();} };
+renderWalk();
+</script>
+<script src="/static/js/track.js"></script>
+</body>
+</html>
