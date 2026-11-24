@@ -28,9 +28,16 @@
 #animCv{ width:min(90vw,420px); height:300px; background:#1e2236; border-radius:14px; }
 #animImg{ width:min(90vw,420px); height:300px; object-fit:contain; background:#fff; border-radius:14px; display:none; transition:opacity .25s; }
 .p-exname{ font-size:22px; font-weight:700; margin:10px 0 2px; }
+.p-muscle{ font-size:14px; color:#8fd3ff; margin-bottom:2px; }
 .p-setinfo{ font-size:15px; color:#aab; }
+.p-dots{ display:flex; gap:6px; margin:4px 0; }
+.p-dots i{ width:12px; height:12px; border-radius:50%; background:#3a4066; }
+.p-dots i.done{ background:#7ee2a8; }
+.p-dots i.cur{ background:#ffd66b; }
 .p-big{ font-size:56px; font-weight:800; font-variant-numeric:tabular-nums; margin:2px 0; color:#ffd66b; }
-.p-tip{ max-width:520px; font-size:13.5px; color:#cdd3f0; background:#232842; border-radius:8px; padding:8px 12px; margin:6px 0; min-height:38px; text-align:center; }
+.p-tip{ max-width:520px; width:min(92vw,520px); font-size:13.5px; color:#cdd3f0; background:#232842; border-radius:8px; padding:10px 14px; margin:6px 0; max-height:150px; overflow-y:auto; text-align:left; line-height:1.9; }
+.p-tip b{ color:#8fd3ff; }
+.p-tip .warn{ color:#ffb4b4; }
 .p-controls{ display:flex; gap:10px; margin:10px 0; flex-wrap:wrap; justify-content:center; }
 .p-controls button{ padding:10px 20px; border:none; border-radius:10px; font-size:15px; cursor:pointer; background:var(--brand); color:#fff; }
 .p-controls button.ghost{ background:#3a4066; }
@@ -68,7 +75,9 @@
 <!-- 跟练播放器 -->
 <div id="player">
     <div class="p-exname" id="pName"></div>
+    <div class="p-muscle" id="pMuscle"></div>
     <div class="p-setinfo" id="pSet"></div>
+    <div class="p-dots" id="pDots"></div>
     <canvas id="animCv" width="840" height="600"></canvas>
     <img id="animImg" alt="动作演示">
     <div class="p-big" id="pBig"></div>
@@ -76,6 +85,7 @@
     <div class="p-tip" id="pTip"></div>
     <div class="p-next" id="pNext"></div>
     <div class="p-controls">
+        <button class="ghost" id="pPrev">« 上个动作</button>
         <button class="ghost" id="pPause">⏸ 暂停</button>
         <button id="pDone">✓ 完成本组</button>
         <button class="ghost" id="pSkip">跳过动作 »</button>
@@ -210,7 +220,7 @@ var TMPL={
     pallof:     {view:'side',frames:[{hipH:1,torso:4,thigh:0,shin:6,arm:60,fore:80},{hipH:1,torso:4,thigh:0,shin:6,arm:88,fore:4}]}
 };
 /* 官方 3D 演示图（Keep 截图帧，static/img/fitness/），有图的动作优先用图，没有的回退火柴人 */
-var IMGCOUNT={bench:3,incline:5,press:4,lat:6,pushdown:5,plank:1,sideplank:1,facepull:4,
+var IMGCOUNT={bench:3,incline:4,press:4,lat:4,pushdown:4,plank:1,sideplank:1,facepull:4,
               curl:4,hammer:4,squat:2,rdl:2,lunge:4,hipthrust:2,calf:2,crunch:4,legraise:2,pallof:4};
 var imgTimer=null, imgFrame=0, imgKey=null;
 function startImgCycle(key){
@@ -252,8 +262,26 @@ function animLoop(){
 
 /* ================= 计划数据（摘自训练计划文档） =================
  * sets 组数, reps "8-10" 或 time 秒（计时类）, rest 组间休息秒, tmpl 动画模板 */
+var WARMUP_COMMON={
+  list:['跑步机快走 5 分钟（坡度 3–5、速度 5–6 km/h），微微出汗即可',
+        '关节活动：肩环绕 ×10、手臂画圈 ×10、髋部环绕 ×10、手腕与踝关节各活动 20 秒',
+        '动态拉伸：弓步转体每侧 ×5、站姿体侧屈每侧 ×5（训练前不要静态压腿，会降低力量输出）',
+        '目标肌群预组：当天第一个动作用空杆或 50% 重量做 1–2 组 × 10 次，再进入正式组'],
+  pits:['不要跳过热身直接上大重量——冬季或早晨肌肉关节温度低，受伤概率明显上升',
+        '热身不是训练，预组做到"身体热起来"就停，不要提前消耗体力',
+        '完成通用热身后，接着做当天的课前针对性预热，再进入正式组']};
 var DAYS=[
-{ id:'push', name:'周一 · 推日', sub:'胸 / 肩前中束 / 三头 + 核心', warm:'课前预热：肩环绕×10、弹力带肩外旋×15、弓步转体每侧×5、空杆卧推×15', cool:'课后拉伸：门框胸肌拉伸、肩前束拉伸、过头三头拉伸、眼镜蛇式腹部拉伸（每个 20–30 秒 × 2 组）', exs:[
+{ id:'push', name:'周一 · 推日', sub:'胸 / 肩前中束 / 三头 + 核心',
+  warmL:['肩部激活：肩环绕 ×10，再做徒手或弹力带肩外旋 ×15——推类动作对肩关节压力大，肩袖必须先唤醒',
+         '胸椎活动：弓步转体每侧 ×5，让上背部能挺得起来',
+         '预组：空杆卧推 ×15，再用正式重量的 50% 做 ×8，然后才进入正式组'],
+  coolL:['门框胸肌拉伸：前臂抵住门框或龙门架立柱，身体缓慢向前转，感受胸部牵拉',
+         '肩前束拉伸：双手在背后交扣，挺胸、手臂缓慢上抬',
+         '过头三头拉伸：一手屈肘放到颈后，另一手轻压肘部，感受手臂后侧牵拉',
+         '腹部拉伸：俯卧撑起上半身（眼镜蛇式），放松腹直肌'],
+  coolP:['拉伸到"有明显牵拉感"即可，不要弹震式下压、更不要追求疼痛',
+         '全程保持自然呼吸，憋气会让肌肉更紧张',
+         '静态拉伸只在训练后做——训练前做反而会降低力量表现'], exs:[
     {name:'平板杠铃卧推', imgs:'bench', tmpl:'bench', sets:4, reps:'8-10', rest:105, focus:'胸大肌整体，附带前肩、三头', keep:'杠铃平板卧推',
      tips:['眼睛位于杠铃正下方，双脚踩实、臀部贴凳','握距略宽于肩，重量压掌根','起杠先沉肩收紧肩胛，全程不松','下放到乳头附近，肘与躯干 45–60°','推起呼气，顶端不锁死肘'],
      pits:['手腕后折是腕痛主因','肩胛松开肩前送 = 肩痛头号原因','弹胸借力、臀部离凳就减重','无人保护不上极限重量，换史密斯架']},
@@ -279,7 +307,16 @@ var DAYS=[
      tips:['肘在肩正下方，身体侧向一条线','髋部上顶不下沉','两侧时间一致，弱侧先做'],
      pits:['髋下沉 → 侧腹不受力','身体前后倒 → 先屈膝版','支撑侧耸肩']}
 ]},
-{ id:'pull', name:'周三 · 拉日', sub:'背 / 肩后束 / 二头 + 核心', warm:'课前预热：肩胛引体×8–10、猫式伸展×8、轻重量高位下拉×12', cool:'课后拉伸：背阔肌拉伸、上背"抱自己"拉伸、二头拉伸、婴儿式 30 秒', exs:[
+{ id:'pull', name:'周三 · 拉日', sub:'背 / 肩后束 / 二头 + 核心',
+  warmL:['肩胛引体：吊在引体杆上手臂保持伸直，只做肩胛骨的下沉和上提 ×8–10——先学会"沉肩启动"，下拉和划船的质量都靠它',
+         '猫式伸展 ×8，活动脊柱，为俯身划船做准备',
+         '预组：轻重量高位下拉 1–2 组 ×12，找到背部发力感再加重'],
+  coolL:['背阔肌拉伸：单手扶住龙门架立柱，身体向后坐、向对侧倾，感受腋下到腰侧的牵拉',
+         '上背拉伸：双臂前伸"抱住自己"，肩胛骨尽量撑开，低头含胸',
+         '二头肌拉伸：手臂向后伸直扶住固定物、掌心向下，身体缓慢前转',
+         '婴儿式：跪坐、双臂前伸贴地，放松下背 30 秒'],
+  coolP:['拉伸到"有明显牵拉感"即可，不要弹震、不要忍痛硬压',
+         '婴儿式时腰部若被压得不适，可把双膝分开、臀部不必坐到底'], exs:[
     {name:'高位下拉', tmpl:'pulldown', sets:4, reps:'8-12', rest:105, focus:'背阔肌，加宽后背', keep:'高位下拉',
      tips:['大腿卡稳挡垫，握距约肩宽 1.5 倍','先沉肩再用背发力拉至锁骨上方','后仰不超过 15°，回放 2–3 秒','进阶可用辅助引体替代 1–2 组'],
      pits:['后仰甩成坐姿划船 → 背刺激减半','拉到颈后坚决不做','不沉肩纯用手臂拽','回放完全松掉']},
@@ -305,7 +342,18 @@ var DAYS=[
      tips:['髋部上顶不下沉','两侧时间一致，弱侧先做'],
      pits:['髋下沉是最常见错误','支撑侧耸肩']}
 ]},
-{ id:'legs', name:'周五 · 腿 + 核心', sub:'股四头 / 臀 / 腘绳 / 小腿 / 腹', warm:'课前预热：髋部环绕×10、弓步压髋每侧×8、徒手深蹲×15、臀桥×12、空杆深蹲×10', cool:'课后拉伸：股四头拉伸、体前屈腘绳拉伸、仰卧 4 字臀拉、推墙小腿拉伸、眼镜蛇式（每个 20–30 秒 × 2 组）', exs:[
+{ id:'legs', name:'周五 · 腿 + 核心', sub:'股四头 / 臀 / 腘绳 / 小腿 / 腹',
+  warmL:['髋部激活：髋部环绕 ×10、弓步压髋每侧 ×8——深蹲硬拉都需要髋关节充分打开',
+         '臀肌唤醒：徒手深蹲 ×15、臀桥 ×12，先让臀大肌"上线"，避免深蹲时全靠大腿前侧',
+         '预组：空杆深蹲 1–2 组 ×10，确认动作轨迹和膝盖方向后再加重'],
+  coolL:['站姿股四头肌拉伸：单腿后勾、手抓脚踝，膝盖并拢朝下，扶墙保持平衡，每侧',
+         '腘绳肌拉伸：站姿或坐姿体前屈，腰背挺直、从髋部折叠，不要弓腰硬够脚尖',
+         '仰卧"4 字"臀部拉伸：一侧脚踝搭在另一侧膝盖上，双手抱大腿拉近胸口，每侧',
+         '推墙小腿拉伸：前腿弓步、后腿伸直脚跟踩地，身体前倾推墙，每侧',
+         '眼镜蛇式腹部拉伸 20–30 秒，放松卷腹和举腿后的腹肌'],
+  coolP:['练腿日第二天的延迟性酸痛（DOMS）通常最明显，认真做完这组拉伸能明显缓解，不要省略',
+         '股四头拉伸时膝盖不要向外撇，双腿膝盖保持并拢',
+         '所有拉伸缓慢进入、保持呼吸，牵拉感明显但不疼痛'], exs:[
     {name:'杠铃深蹲', imgs:'squat', tmpl:'squat', sets:4, reps:'8-10', rest:120, focus:'股四头肌、臀大肌、腘绳肌、核心', keep:'杠铃深蹲',
      tips:['杠置斜方肌上，挺胸收紧上背再起杠','脚略宽于肩，脚尖外八 15–30°','先吸气入腹绷核心，髋膝同时启动','大腿至少与地面平行，膝盖对准脚尖','站起全脚掌蹬地、呼气过黏滞点'],
      pits:['膝盖内扣 → 想"膝向外撑"','脚跟离地 → 重心放足中','弓腰 → 减重改善活动度','半程还加重 → 幅度优先','冲大重量装保护杠或史密斯架']},
@@ -336,7 +384,11 @@ var DAYS=[
 var curDay=0;
 function renderDay(){
     var D=DAYS[curDay], body=document.getElementById('dayBody');
-    var html='<div class="narrate" style="margin:0 0 10px"><b>🔥 热身</b>：'+D.warm+'<br><b>🧘 练后</b>：'+D.cool+'</div>';
+    function ul(arr){ return '<ul style="margin:4px 0 8px;padding-left:18px;line-height:1.9;font-size:13.5px">'+arr.map(function(t){return '<li>'+t+'</li>';}).join('')+'</ul>'; }
+    var html='<div class="subbox" style="margin-bottom:12px"><h3>🔥 训练前热身（通用 8–10 分钟 + 课前针对性预热）</h3>'
+        +'<b style="font-size:13px;color:#666">通用热身</b>'+ul(WARMUP_COMMON.list)
+        +'<b style="font-size:13px;color:#666">课前针对性预热（'+D.name+'）</b>'+ul(D.warmL)
+        +'<b style="font-size:13px;color:#c26">避坑提醒</b>'+ul(WARMUP_COMMON.pits)+'</div>';
     D.exs.forEach(function(e,i){
         html+='<div class="ex-card" data-i="'+i+'"><div class="ex-head"><span class="num">'+(i+1)+'</span>'
             +'<span class="nm">'+e.name+'</span>'
@@ -345,6 +397,8 @@ function renderDay(){
             +'<div class="ex-detail"><h4>动作要点</h4><ul>'+e.tips.map(function(t){return '<li>'+t+'</li>';}).join('')+'</ul>'
             +'<h4>避坑提醒</h4><ul>'+e.pits.map(function(t){return '<li>'+t+'</li>';}).join('')+'</ul></div></div>';
     });
+    html+='<div class="subbox"><h3>🧘 课后拉伸放松（每个动作 20–30 秒 × 2 组）</h3>'
+        +ul(D.coolL)+'<b style="font-size:13px;color:#c26">避坑提醒</b>'+ul(D.coolP)+'</div>';
     body.innerHTML=html;
     body.querySelectorAll('.ex-head').forEach(function(h){
         h.onclick=function(){ h.parentNode.classList.toggle('open'); };
@@ -442,7 +496,9 @@ function startExercise(){
     var e=curEx();
     document.getElementById('player').classList.remove('resting');
     document.getElementById('pName').textContent=e.name;
+    document.getElementById('pMuscle').textContent='🎯 锻炼部位：'+e.focus;
     document.getElementById('pRestLabel').textContent='';
+    document.getElementById('pDone').textContent='✓ 完成本组';
     var cv=document.getElementById('animCv'), im=document.getElementById('animImg');
     if(e.imgs && IMGCOUNT[e.imgs]){
         animOn=false; cv.style.display='none'; im.style.display='block';
@@ -451,7 +507,7 @@ function startExercise(){
         stopImgCycle(); im.style.display='none'; cv.style.display='block';
         startAnim(e.tmpl);
     }
-    tipRotate(e);
+    renderTips(e);
     var nxt=DAYS[PL.day].exs[PL.ex+1];
     document.getElementById('pNext').textContent=nxt?('下一个：'+nxt.name+'　'+nxt.sets+' 组 × '+(nxt.time?nxt.time+'秒':nxt.reps+'次')):'这是今天最后一个动作';
     PL.phase='work';
@@ -465,23 +521,26 @@ function startExercise(){
     }
     updateSetInfo();
 }
+function renderDots(){
+    var e=curEx(), d=document.getElementById('pDots'), html='';
+    for(var i=1;i<=e.sets;i++)
+        html+='<i class="'+(i<PL.set?'done':(i===PL.set?'cur':''))+'"></i>';
+    d.innerHTML=html;
+}
+function renderTips(e){
+    var h='<b>动作要点</b><br>'+e.tips.map(function(t,i){return (i+1)+'. '+t;}).join('<br>')
+         +'<br><b style="color:#ffb4b4">避坑提醒</b><br>'
+         +e.pits.map(function(t){return '<span class="warn">⚠ '+t+'</span>';}).join('<br>');
+    document.getElementById('pTip').innerHTML=h;
+}
 function updateSetInfo(){
     var e=curEx();
-    var s='第 '+PL.set+' / '+e.sets+' 组';
+    var s='动作 '+(PL.ex+1)+'/'+DAYS[PL.day].exs.length+'　·　第 '+PL.set+' / '+e.sets+' 组';
     if(e.bothSides) s+='（'+(PL.side?'右侧':'左侧')+'）';
     document.getElementById('pSet').textContent=s;
+    renderDots();
 }
 function setBig(t){ document.getElementById('pBig').textContent=t; }
-function tipRotate(e){
-    clearInterval(PL.tipTimer);
-    PL.tipIdx=0;
-    var show=function(){
-        var pool=e.tips.concat(e.pits.map(function(p){return '⚠ '+p;}));
-        document.getElementById('pTip').textContent=pool[PL.tipIdx%pool.length];
-        PL.tipIdx++;
-    };
-    show(); PL.tipTimer=setInterval(show,5000);
-}
 function tick(){
     clearInterval(PL.timer);
     setBig(fmtT(PL.remain));
@@ -532,7 +591,7 @@ function nextExercise(){
         setBig('🎉'); document.getElementById('pName').textContent='今天的训练完成！';
         document.getElementById('pSet').textContent='';
         document.getElementById('pRestLabel').textContent='';
-        document.getElementById('pTip').textContent='别忘记课后拉伸：'+DAYS[PL.day].cool;
+        document.getElementById('pTip').innerHTML='<b>别忘记课后拉伸（每个 20–30 秒 × 2 组）</b><br>'+DAYS[PL.day].coolL.join('<br>');
         document.getElementById('pNext').textContent='';
         speak('今天的训练全部完成，记得做课后拉伸');
     }
@@ -540,10 +599,22 @@ function nextExercise(){
 document.getElementById('btnStart').onclick=startPlayer;
 document.getElementById('btnTestVoice').onclick=testVoice;
 document.getElementById('pDone').onclick=function(){
-    if(PL.phase!=='work') return;
+    if(PL.phase==='rest'){          // 跳过组间休息，直接开始下一组
+        clearInterval(PL.timer);
+        PL.set++;
+        startExercise();
+        return;
+    }
     clearInterval(PL.timer);
     speak('完成');
     finishSet();
+};
+document.getElementById('pPrev').onclick=function(){
+    if(PL.ex<=0) { speak('已经是第一个动作'); return; }
+    clearInterval(PL.timer);
+    PL.ex--; PL.set=1; PL.side=0;
+    speak('返回，'+curEx().name);
+    startExercise();
 };
 document.getElementById('pSkip').onclick=function(){
     clearInterval(PL.timer);
