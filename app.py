@@ -256,6 +256,11 @@ def demo_graph_code():
     return render_template("graphcode.html")
 
 
+@app.route("/demo/bilstm")
+def demo_bilstm():
+    return render_template("bilstm.html")
+
+
 @app.route("/api/fitness-tts", methods=["POST"])
 def fitness_tts():
     """健身跟练语音播报：转发到口语容器(8504)的 TTS 接口，返回 mp3（iOS PWA 无浏览器语音时用）"""

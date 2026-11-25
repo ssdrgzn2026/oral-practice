@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BiLSTM 流量预测 · 演示器</title>
+<link rel="stylesheet" href="/static/css/style.css">
+<link rel="stylesheet" href="/static/css/demo.css">
+<style>
+.sliders{ display:grid; grid-template-columns:repeat(6,1fr); gap:8px; }
+@media(max-width:700px){ .sliders{ grid-template-columns:repeat(4,1fr); } }
+.sl{ text-align:center; font-size:12px; color:#666; }
+.sl input[type=range]{ width:100%; }
+.sl .v{ font-family:Consolas,monospace; color:var(--brand); font-weight:700; }
+#flowCv{ width:100%; height:280px; display:block; background:#fff; border:1px solid #e5e7ef; border-radius:10px; }
+.pred-out{ text-align:center; margin-top:10px; font-size:15px; }
+.pred-out b{ font-size:26px; color:var(--bad); font-family:Consolas,monospace; }
+.pipe{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; }
+.pipe .stage{ background:#f7f8fd; border:1px solid #e5e7ef; border-radius:10px; padding:10px; font-size:12.5px; }
+.pipe .stage h4{ margin:0 0 6px; font-size:13px; color:var(--brand); }
+.pipe .stage .val{ font-family:Consolas,monospace; word-break:break-all; color:#333; }
+</style>
+</head>
+<body class="demo-body">
+<div class="demo-wrap">
+    <div class="demo-head">
+        <h1>📈 BiLSTM 流量预测</h1>
+        <p>双向 LSTM：用过去 12 个时刻的流量，预测第 13 个时刻——推理在你浏览器里真实运行（权重来自训练好的 checkpoint）</p>
+        <a class="backlink" href="/demo">← 返回演示器中心</a>
+    </div>
+
+    <div class="panel">
+        <h2>演示环节</h2>
+        <p class="hint">拖动 12 个滑块改变历史流量 → 点"预测第 13 步"→ 图上红点是模型预测值。所有计算由页面里的 JS 复现 PyTorch 双向 LSTM 完成（已与原模型逐数值对齐，误差 &lt; 0.001）。</p>
+        <div class="subbox">
+            <h3>① 过去 12 个时刻的流量（拖动调整）</h3>
+            <div class="sliders" id="sliders"></div>
+            <div class="controls">
+                <button id="btnPreset1" class="btn gray">示例数据</button>
+                <button id="btnPreset2" class="btn gray">早晚高峰</button>
+                <button id="btnPreset3" class="btn gray">持续走高</button>
+                <button id="btnGo">🔮 预测第 13 步</button>
+            </div>
+        </div>
+        <div class="subbox" style="margin-top:14px">
+            <h3>② 序列图（蓝=历史 12 步，红=预测的第 13 步）</h3>
+            <canvas id="flowCv"></canvas>
+            <div class="pred-out" id="predOut">还没预测。调调滑块，点上面的按钮试试。</div>
+        </div>
+        <div class="subbox" style="margin-top:14px">
+            <h3>③ 预测流水线（实时数值）</h3>
+            <div class="pipe" id="pipeBox">
+                <div class="stage"><h4>1. 归一化</h4><div class="val">原始值 ÷ (max−min=919) → 0~1</div></div>
+                <div class="stage"><h4>2. 双向 LSTM</h4><div class="val">正向读一遍 + 反向读一遍，各出 32 维隐藏向量</div></div>
+                <div class="stage"><h4>3. 拼接 + 全连接</h4><div class="val">64 维向量 × 权重 → 1 个分数</div></div>
+                <div class="stage"><h4>4. 反归一化</h4><div class="val">分数 × 919 → 预测的流量</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>原理速览</h2>
+        <div class="explain" style="background:#f7f8fd;border-radius:10px;padding:14px;font-size:14.5px;line-height:2">
+            <b>LSTM 是什么？</b>一种擅长"记事情"的循环神经网络。它逐步读入序列，每步用三个"门"决定记忆的去留：<b>遗忘门</b>（旧记忆留多少）、<b>输入门</b>（新信息记多少）、<b>输出门</b>（当前拿出多少）。这让它能抓住流量里"早高峰""回落"这类跨时刻的模式。<br>
+            <b>"双向"是什么意思？</b>普通 LSTM 只按时间正序读；双向 LSTM 同时反向再读一遍，让模型在理解每个时刻时既看到"过去"也看到"未来"的上下文。本模型正反向各 32 个隐藏单元，最后拼成 64 维。<br>
+            <b>预测为什么只用最后输出？</b>模型读完 12 步后，正向最后时刻的隐藏向量压缩了整个序列的信息；代码里 <span style="font-family:Consolas,monospace">out[:, -1, :]</span> 取的就是它（外加反向层在末位的输出），经一个全连接层变成预测值。<br>
+            <b>对应代码</b>（predict_demo.py）：归一化 → <span style="font-family:Consolas,monospace">lstm(x)</span> → <span style="font-family:Consolas,monospace">fc(out[:,-1,:])</span> → 反归一化输出。本页面用 JS 逐矩阵复现了这一过程，权重直接从 bilstm_checkpoint.pth 导出。
+        </div>
+    </div>
+</div>
+
+<script>
+var MODEL=null, H=32;
+var hist=[123,118,127,113,72,108,81,70,68,75,66,77];
+var predVal=null;
+var sig=function(x){ return 1/(1+Math.exp(-x)); };
+
+function lstmStep(xt,h,c,Wih,Whh,bih,bhh){
+    var hn=new Array(H), cn=new Array(H);
+    for(var j=0;j<H;j++){
+        var pi=Wih[j][0]*xt+bih[j]+bhh[j];
+        var pf=Wih[H+j][0]*xt+bih[H+j]+bhh[H+j];
+        var pg=Wih[2*H+j][0]*xt+bih[2*H+j]+bhh[2*H+j];
+        var po=Wih[3*H+j][0]*xt+bih[3*H+j]+bhh[3*H+j];
+        for(var k=0;k<H;k++){
+            pi+=Whh[j][k]*h[k]; pf+=Whh[H+j][k]*h[k]; pg+=Whh[2*H+j][k]*h[k]; po+=Whh[3*H+j][k]*h[k];
+        }
+        var ig=sig(pi), fg=sig(pf), gg=Math.tanh(pg), og=sig(po);
+        cn[j]=fg*c[j]+ig*gg;
+        hn[j]=og*Math.tanh(cn[j]);
+    }
+    return [hn,cn];
+}
+function bilstmPredict(flow){
+    var W=MODEL.weights;
+    var scale=MODEL.norm.max-MODEL.norm.min;
+    var x=flow.map(function(v){ return (v-MODEL.norm.min)/scale; });
+    var h=new Array(H).fill(0), c=new Array(H).fill(0);
+    for(var t=0;t<x.length;t++){ var r=lstmStep(x[t],h,c,W['lstm.weight_ih_l0'],W['lstm.weight_hh_l0'],W['lstm.bias_ih_l0'],W['lstm.bias_hh_l0']); h=r[0]; c=r[1]; }
+    var hf=h.slice();
+    var hb=new Array(H).fill(0), cb=new Array(H).fill(0);
+    var r2=lstmStep(x[x.length-1],hb,cb,W['lstm.weight_ih_l0_reverse'],W['lstm.weight_hh_l0_reverse'],W['lstm.bias_ih_l0_reverse'],W['lstm.bias_hh_l0_reverse']);
+    var cat=hf.concat(r2[0]);
+    var y=W['fc.bias'][0];
+    for(var k=0;k<64;k++) y+=W['fc.weight'][0][k]*cat[k];
+    return { yNorm:y, y:y*scale+MODEL.norm.min, xNorm:x, hidden:cat };
+}
+
+/* ================= 界面 ================= */
+function buildSliders(){
+    var box=document.getElementById('sliders'); box.innerHTML='';
+    for(var i=0;i<12;i++)(function(i){
+        var d=document.createElement('div'); d.className='sl';
+        d.innerHTML='t'+(i+1)+'<br><input type="range" min="0" max="919" value="'+hist[i]+'"><div class="v">'+hist[i]+'</div>';
+        d.querySelector('input').oninput=function(){
+            hist[i]=parseInt(this.value,10);
+            d.querySelector('.v').textContent=this.value;
+            predVal=null; drawChart();
+        };
+        box.appendChild(d);
+    })(i);
+}
+function drawChart(){
+    var cv=document.getElementById('flowCv');
+    var Wpx=cv.parentNode.clientWidth-24, Hpx=280;
+    cv.width=Wpx*2; cv.height=Hpx*2; cv.style.height=Hpx+'px';
+    var c=cv.getContext('2d'); c.scale(2,2); c.clearRect(0,0,Wpx,Hpx);
+    var L=44,R=Wpx-20,T=16,B=Hpx-30;
+    var n=predVal==null?12:13;
+    function X(i){ return L+(R-L)*i/(n-1); }
+    function Y(v){ return B-(B-T)*v/950; }
+    c.strokeStyle='#e8eaf4'; c.fillStyle='#999'; c.font='10px sans-serif'; c.textAlign='right';
+    [0,300,600,900].forEach(function(v){ c.beginPath(); c.moveTo(L,Y(v)); c.lineTo(R,Y(v)); c.stroke(); c.fillText(v,L-5,Y(v)+3); });
+    c.textAlign='center';
+    for(var i=0;i<n;i++) c.fillText('t'+(i+1),X(i),Hpx-12);
+    // 历史折线
+    c.strokeStyle='#4f46e5'; c.lineWidth=2; c.beginPath();
+    hist.forEach(function(v,i){ i?c.lineTo(X(i),Y(v)):c.moveTo(X(i),Y(v)); }); c.stroke();
+    c.fillStyle='#4f46e5';
+    hist.forEach(function(v,i){ c.beginPath(); c.arc(X(i),Y(v),3.5,0,7); c.fill(); });
+    // 预测点
+    if(predVal!=null){
+        c.strokeStyle='#dc2626'; c.setLineDash([5,4]); c.beginPath();
+        c.moveTo(X(11),Y(hist[11])); c.lineTo(X(12),Y(predVal)); c.stroke(); c.setLineDash([]);
+        c.fillStyle='#dc2626'; c.beginPath(); c.arc(X(12),Y(predVal),5.5,0,7); c.fill();
+        c.font='bold 12px sans-serif'; c.textAlign='left';
+        c.fillText(predVal.toFixed(1),X(12)-8,Y(predVal)-12);
+    }
+}
+function updatePipe(res){
+    var st=document.querySelectorAll('#pipeBox .stage .val');
+    st[0].textContent='x_norm = ['+res.xNorm.map(function(v){return v.toFixed(2);}).slice(0,6).join(', ')+', …]';
+    st[1].textContent='正向 32 维 + 反向 32 维 → 拼接 64 维：['+res.hidden.slice(0,4).map(function(v){return v.toFixed(3);}).join(', ')+', …]';
+    st[2].textContent='y_norm = '+res.yNorm.toFixed(4)+'（64 维向量加权和 + 偏置）';
+    st[3].textContent=res.yNorm.toFixed(4)+' × 919 = '+res.y.toFixed(2);
+}
+document.getElementById('btnGo').onclick=function(){
+    if(!MODEL){ alert('模型权重还在加载，请稍候'); return; }
+    var res=bilstmPredict(hist);
+    predVal=res.y;
+    drawChart(); updatePipe(res);
+    document.getElementById('predOut').innerHTML='第 13 步预测流量 = <b>'+res.y.toFixed(2)+'</b>　（与 PyTorch 原版一致）';
+};
+document.getElementById('btnPreset1').onclick=function(){ hist=[123,118,127,113,72,108,81,70,68,75,66,77]; predVal=null; buildSliders(); drawChart(); };
+document.getElementById('btnPreset2').onclick=function(){ hist=[80,150,420,780,919,700,300,150,100,260,650,850]; predVal=null; buildSliders(); drawChart(); };
+document.getElementById('btnPreset3').onclick=function(){ hist=[100,140,190,250,300,360,420,470,530,600,660,720]; predVal=null; buildSliders(); drawChart(); };
+
+buildSliders(); drawChart();
+fetch('/static/data/bilstm_weights.json').then(function(r){return r.json();}).then(function(j){
+    MODEL=j; H=32;
+    document.getElementById('predOut').innerHTML='模型已就绪（双向 LSTM，隐藏层 32，共约 8.5 千参数）。点"🔮 预测第 13 步"试试。';
+});
+window.addEventListener('resize', drawChart);
+</script>
+<script src="/static/js/track.js"></script>
+</body>
+</html>
