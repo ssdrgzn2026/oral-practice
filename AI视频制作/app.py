@@ -24,7 +24,21 @@ except ImportError:  # 部署时缺文件则降级，不影响主产线
     pp = None
 
 MODULE_DIR = Path(__file__).resolve().parent
-CACHE_DIR = Path(os.environ.get("VIDEO_CACHE_DIR", str(MODULE_DIR / "data" / "video_cache")))
+# 数据工作区：本机统一指向 D:\AI-大学成长\剧本制作（一剧一目录的产线大盘），
+# 线上容器无此目录 / 或显式设了 VIDEO_CACHE_DIR 时自动回退，部署行为不变。
+# 探测优先级：环境变量 VIDEO_CACHE_DIR > 盘上「剧本制作/_系统缓存/video_cache」> 模块内 data/video_cache。
+def _resolve_cache_dir() -> Path:
+    _env = os.environ.get("VIDEO_CACHE_DIR", "").strip()
+    if _env:
+        return Path(_env)
+    # 与 app.py 同盘的 AI-大学成长\剧本制作（MODULE_DIR 的祖父目录下）
+    _workspace = MODULE_DIR.parent.parent / "剧本制作" / "_系统缓存" / "video_cache"
+    if _workspace.parent.parent.is_dir():
+        return _workspace
+    return MODULE_DIR / "data" / "video_cache"
+
+
+CACHE_DIR = _resolve_cache_dir()
 IMG_DIR = CACHE_DIR / "images"
 AUD_DIR = CACHE_DIR / "audio"
 SUB_DIR = CACHE_DIR / "subtitled"  # 渲染了字幕条的图片
@@ -73,6 +87,12 @@ IMG_STYLES = {
 SIZES = {"竖屏 576×1024": (576, 1024), "横屏 1024×576": (1024, 576)}
 
 st.set_page_config(page_title="AI 视频制作", page_icon="🎬", layout="wide")
+# 声明中文页面语言，避免浏览器把中文误判为外语而弹出翻译浮层遮挡界面
+st.markdown(
+    '<script>document.documentElement.lang="zh-CN";</script>'
+    '<meta name="google" content="notranslate">',
+    unsafe_allow_html=True,
+)
 st.markdown("[← 返回杂具小栈首页](/)", unsafe_allow_html=False)
 st.title("🎬 AI 视频制作 · 图文视频合成器")
 st.caption("主题 → 口播文案 → 分镜脚本 → AI 配图 → AI 配音 → 自动合成视频。所有中间产物已缓存，重跑不重复消耗额度。")
@@ -539,11 +559,18 @@ def gen_upscaled_video(video_path: str, salt: str = "") -> Path:
     src_name = f"up_src_{key[:8]}.mp4"
     _scp_to_autodl(str(vp), f"/root/autodl-tmp/ComfyUI/input/{src_name}")
     portrait = True
+    fps = 24.0
     try:
-        r = subprocess.run(["ffprobe", "-v", "quiet", "-show_entries", "stream=width,height",
+        # 同时读宽高和实际帧率：VHS 合成必须用源片 fps，否则帧数不变但时长被改写
+        r = subprocess.run(["ffprobe", "-v", "quiet", "-select_streams", "v:0",
+                            "-show_entries", "stream=width,height,r_frame_rate",
                             "-of", "csv=p=0", str(vp)], capture_output=True, text=True, timeout=30)
-        w0, h0 = [int(x) for x in r.stdout.strip().split(",")[:2]]
+        parts = r.stdout.strip().split(",")
+        w0, h0 = int(parts[0]), int(parts[1])
         portrait = h0 >= w0
+        if len(parts) >= 3 and "/" in parts[2]:
+            num, den = parts[2].split("/", 1)
+            fps = float(num) / float(den) if float(den) else 24.0
     except Exception:  # noqa: BLE001
         pass
     tw, th = (1080, 1920) if portrait else (1920, 1080)
@@ -559,7 +586,7 @@ def gen_upscaled_video(video_path: str, salt: str = "") -> Path:
             "keep_proportion": "crop", "pad_color": "0, 0, 0", "crop_position": "center",
             "divisible_by": 2, "device": "cpu"}},
         "5": {"class_type": "VHS_VideoCombine", "inputs": {
-            "images": ["4", 0], "frame_rate": 24.0, "loop_count": 0,
+            "images": ["4", 0], "frame_rate": fps, "loop_count": 0,
             "filename_prefix": "upscaled", "format": "video/h264-mp4", "pix_fmt": "yuv420p",
             "crf": 18, "save_metadata": True, "trim_to_audio": False,
             "pingpong": False, "save_output": False}},
@@ -2155,81 +2182,147 @@ if page == "prompts":
     render_prompts()
     st.stop()
 
+# ========== 步骤进度条：一眼看清做到哪一步 ==========
+def _render_step_progress():
+    ss = st.session_state
+    # 各步完成判据：产物已生成即视为完成
+    flags = [
+        bool(ss.get("script", "").strip()),                      # ①主题→文案
+        bool(ss.get("shots")),                                   # ②文案→分镜
+        bool(ss.get("images")) and len(ss.get("images", [])) >= len(ss.get("shots") or [1]),  # ③分镜→配图
+        bool(ss.get("audios")) and len(ss.get("audios", [])) >= len(ss.get("shots") or [1]),  # ④配音
+        bool(ss.get("video")),                                   # ⑤合成
+    ]
+    steps = ["① 主题", "② 文案", "③ 分镜", "④ 配图", "⑤ 配音", "⑥ 合成"]
+    # 当前步 = 第一个未完成步骤；全部完成则停在⑥
+    current = next((i for i, done in enumerate(flags) if not done), len(steps) - 1)
+    cells = []
+    for i, label in enumerate(steps):
+        done = flags[i] if i < len(flags) else False
+        active = (i == current)
+        if done:
+            icon, bg, fg = "✓", "#e8f5e9", "#2e7d32"
+        elif active:
+            icon, bg, fg = str(i + 1), "#1e6fff", "#ffffff"
+        else:
+            icon, bg, fg = str(i + 1), "#f0f2f5", "#9aa0a6"
+        weight = "700" if active else "400"
+        cells.append(
+            f'<div style="flex:1;text-align:center;">'
+            f'<div style="margin:0 auto 3px;width:26px;height:26px;line-height:26px;border-radius:50%;'
+            f'background:{bg};color:{fg};font-weight:{weight};font-size:13px;">{icon}</div>'
+            f'<div style="font-size:12px;color:{fg};font-weight:{weight};white-space:nowrap;">{label}</div>'
+            f'</div>'
+        )
+    bar = "".join(
+        f'<div style="flex:1;height:3px;margin-top:13px;background:'
+        f'{"#1e6fff" if (i < current or (i < len(flags) and flags[i])) else "#e3e6eb"}"></div>'
+        for i in range(len(steps) - 1)
+    )
+    # 用格子/conline 交错排布：格子行 + 连接线覆盖
+    html = (
+        '<div style="position:relative;padding:2px 0 4px;">'
+        '<div style="display:flex;position:absolute;top:13px;left:8%;right:8%;z-index:0;">' + bar + '</div>'
+        '<div style="display:flex;position:relative;z-index:1;">' + "".join(cells) + '</div>'
+        '</div>'
+    )
+    st.markdown(html, unsafe_allow_html=True)
+    st.caption(f"当前进度：**{steps[current]}**（共 6 步，已缓存的中间产物可回退修改）")
+
+
+_render_step_progress()
+
 # ========== 第 1 步：输入主题 ==========
 with st.container(border=True):
     st.subheader("① 输入主题或文案")
-    # ---- 项目存档 ----
+    # ---- 项目存档（折叠收纳，默认不占首屏）----
     proj_names = sorted(p.name for p in PROJ_DIR.iterdir() if p.is_dir())
-    pj1, pj2, pj3 = st.columns([2, 1, 1])
-    pj1.text_input("📁 项目名（启用后所有进度自动保存，刷新/换电脑不丢）",
-                   value=st.session_state.get("proj_name", ""), key="proj_name_input",
-                   placeholder="如：持械入宋-01")
-    if st.session_state.get("proj_name_input", "").strip() or not st.session_state.get("proj_name"):
-        st.session_state.proj_name = st.session_state.proj_name_input  # 输入即绑定项目；空输入不覆盖自动命名
-    if pj2.button("💾 保存项目", use_container_width=True):
-        st.session_state.proj_name = st.session_state.proj_name_input
-        save_project(st.session_state.proj_name)
-        st.success("已保存")
-    if pj3.button("📂 打开项目", use_container_width=True, disabled=not proj_names):
-        st.session_state.show_proj_list = True
-    if st.session_state.get("show_proj_list") and proj_names:
-        pick = st.selectbox("选择要打开的项目", proj_names, key="proj_pick")
-        if st.button("加载这个项目", key="proj_load_btn"):
-            load_project(pick)
-            st.session_state.show_proj_list = False
-            st.rerun()
-    if st.session_state.get("proj_name"):
-        st.caption(f"当前项目：{st.session_state.proj_name}（自动保存中）")
+    _cur_proj = st.session_state.get("proj_name", "")
+    with st.expander(f"🗂 项目存档{'　·　当前：' + _cur_proj if _cur_proj else '　（可选，填项目名可自动保存进度）'}", expanded=False):
+        pj1, pj2, pj3 = st.columns([2, 1, 1])
+        pj1.text_input("📁 项目名（启用后所有进度自动保存，刷新/换电脑不丢）",
+                       value=_cur_proj, key="proj_name_input",
+                       placeholder="如：爆闪汴梁-01")
+        if st.session_state.get("proj_name_input", "").strip() or not st.session_state.get("proj_name"):
+            st.session_state.proj_name = st.session_state.proj_name_input  # 输入即绑定项目；空输入不覆盖自动命名
+        if pj2.button("💾 保存项目", use_container_width=True):
+            st.session_state.proj_name = st.session_state.proj_name_input
+            save_project(st.session_state.proj_name)
+            st.success("已保存")
+        if pj3.button("📂 打开项目", use_container_width=True, disabled=not proj_names):
+            st.session_state.show_proj_list = True
+        if st.session_state.get("show_proj_list") and proj_names:
+            pick = st.selectbox("选择要打开的项目", proj_names, key="proj_pick")
+            if st.button("加载这个项目", key="proj_load_btn"):
+                load_project(pick)
+                st.session_state.show_proj_list = False
+                st.rerun()
 
-    c1, c2, c3 = st.columns([3, 1, 1])
-    topic = c1.text_area("视频主题 / 提示词 / 完整文案",
-                         value=st.session_state.get("topic", ""),
-                         height=140,
-                         key="topic_input",
-                         placeholder="两种用法：\n· 写主题（如：三分钟讲清淝水之战）→ 点「生成文案」\n· 直接粘贴完整口播文案 → 点「直接手写/粘贴文案」")
-    n_shots = c2.slider("分镜数", 3, 8, st.session_state.get("n_shots", 5))
-    aspect_label = c3.radio("画幅", list(SIZES.keys()), index=st.session_state.get("aspect_idx", 0))
-    make_mode = st.radio("制作类型", ["普通视频", "短剧（角色锁脸）"], horizontal=True,
-                         key="make_mode",
-                         help="短剧=主要角色需先锁定形象：先到「资产库 → LoRA训练」给每个主角训练并验收，再回到这里分镜、逐镜指定锁脸角色；普通视频跳过此步")
+    # ---- 生成设置（折叠，首屏只留核心输入）----
+    with st.expander("⚙️ 生成设置（分镜数 / 画幅 / 制作类型）", expanded=False):
+        sc1, sc2 = st.columns(2)
+        n_shots = sc1.slider("分镜数", 3, 8, st.session_state.get("n_shots", 5))
+        aspect_label = sc2.radio("画幅", list(SIZES.keys()), index=st.session_state.get("aspect_idx", 0))
+        make_mode = st.radio("制作类型", ["普通视频", "短剧（角色锁脸）"], horizontal=True,
+                             key="make_mode",
+                             help="短剧=主要角色需先锁定形象：先到「资产库 → LoRA训练」给每个主角训练并验收，再回到这里分镜、逐镜指定锁脸角色；普通视频跳过此步")
+
     if make_mode.startswith("短剧"):
         _chars = load_characters()
         _loras = [n for n, v in _chars.items() if (v.get("lora") or "").strip()]
         if _loras:
-            st.success(f"已就绪 LoRA 角色：{'、'.join(_loras)}。分镜里可逐镜指定锁脸角色；新角色到「资产库 → 🏋 LoRA训练」")
+            st.success(f"🎭 已就绪 LoRA 角色：{'、'.join(_loras)}。分镜里可逐镜指定锁脸角色；新角色到「资产库 → 🏋 LoRA训练」")
         else:
-            st.warning("短剧模式：请先到「资产库 → 🏋 LoRA训练」给主要角色训练定妆（一人一档，可多个角色同时备），完成验收后再回来分镜。")
-    bc1, bc2 = st.columns(2)
-    gen_clicked = bc1.button("✍️ 生成文案", use_container_width=True)
-    if gen_clicked:
-        if not topic.strip():
-            st.error("请先填写视频主题")
-            st.stop()
-        st.session_state.update(topic=topic, n_shots=n_shots,
-                                aspect_idx=list(SIZES).index(aspect_label))
-        with st.spinner("LLM 正在撰写口播文案…"):
-            try:
-                st.session_state.script = gen_script(
-                    topic.strip(),
-                    [p["desc"] for p in st.session_state.get("photos", []) if p.get("desc")])
-            except Exception as e:  # noqa: BLE001
-                st.error(f"文案生成失败：{e}")
+            st.warning("短剧模式：请先到「资产库 → 🏋 LoRA训练」给主要角色训练定妆，完成验收后再回来分镜。")
+
+    # ---- 主题 / 文案：二选一 Tab ----
+    tab_ai, tab_paste = st.tabs(["✨ AI 写文案", "📝 我粘贴文案"])
+    with tab_ai:
+        _EXAMPLE = "三分钟讲清淝水之战：前秦百万大军为何输给东晋八万"
+        topic = st.text_area("视频主题", value=st.session_state.get("topic", ""),
+                             height=120, key="topic_input",
+                             placeholder="写一句话主题，AI 帮你扩写成口播文案（如：三分钟讲清淝水之战）")
+        if st.button("💡 填入示例", key="fill_example"):
+            st.session_state.topic_input = _EXAMPLE
+            st.rerun()
+        gen_clicked = st.button("✍️ 生成文案", use_container_width=True, type="primary")
+        if gen_clicked:
+            if not topic.strip():
+                st.error("请先填写视频主题")
                 st.stop()
-        for k in ("shots", "images", "audios", "video"):
-            st.session_state.pop(k, None)
-        st.rerun()
-    if bc2.button("📝 直接手写/粘贴文案", use_container_width=True):
-        if not topic.strip():
-            st.error("请先把完整文案粘贴到上方文本框，再点此按钮")
-            st.stop()
-        st.session_state.update(topic=topic, n_shots=n_shots,
-                                aspect_idx=list(SIZES).index(aspect_label))
-        st.session_state.setdefault("script", topic.strip())
-        st.rerun()
-    # ---- 参考照片（可选，最多 8 张）----
-    photo_files = st.file_uploader(
-        "📷 上传参考照片（可选，最多 8 张；AI 会看图生成文案/分镜，被选中的照片直接用作配图）",
-        type=["png", "jpg", "jpeg"], accept_multiple_files=True, key="photo_files")
+            st.session_state.update(topic=topic, n_shots=n_shots,
+                                    aspect_idx=list(SIZES).index(aspect_label))
+            with st.spinner("LLM 正在撰写口播文案…"):
+                try:
+                    st.session_state.script = gen_script(
+                        topic.strip(),
+                        [p["desc"] for p in st.session_state.get("photos", []) if p.get("desc")])
+                except Exception as e:  # noqa: BLE001
+                    st.error(f"文案生成失败：{e}")
+                    st.stop()
+            for k in ("shots", "images", "audios", "video"):
+                st.session_state.pop(k, None)
+            st.rerun()
+    with tab_paste:
+        pasted = st.text_area("完整口播文案", value=st.session_state.get("pasted_text", ""),
+                              height=120, key="paste_input",
+                              placeholder="把你写好的完整口播文案粘贴到这里，直接进入分镜")
+        if st.button("✅ 使用这段文案", use_container_width=True, type="primary"):
+            if not pasted.strip():
+                st.error("请先粘贴完整文案")
+                st.stop()
+            st.session_state.update(pasted_text=pasted, topic=pasted[:60], n_shots=n_shots,
+                                    aspect_idx=list(SIZES).index(aspect_label))
+            st.session_state.script = pasted.strip()
+            for k in ("shots", "images", "audios", "video"):
+                st.session_state.pop(k, None)
+            st.rerun()
+
+    # ---- 参考照片（可选，折叠）----
+    with st.expander("📎 添加参考图（可选，最多 8 张；AI 看图生成文案/分镜，选中照片直接作配图）", expanded=False):
+        photo_files = st.file_uploader(
+            "上传参考照片",
+            type=["png", "jpg", "jpeg"], accept_multiple_files=True, key="photo_files")
     photo_files = (photo_files or [])[:8]
     ids = [f.file_id for f in photo_files]
     if ids != st.session_state.get("photo_ids"):
